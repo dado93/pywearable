@@ -4,3 +4,5 @@ In this repository you will find code that you can use to analyse data collected
 - visualization of physiological data at different resolutions (day, week, month, year)
 - automatic analysis of data
 - ...
+
+At the moment, the repo is a playground for understanding how data are saved and organized in Labfront. Hopefully, this will turno into a Python package.
