@@ -65,8 +65,8 @@ def get_labfront_file_stats(path, header_length):
     
     # Get sample rate from data
     data = pd.read_csv(path, nrows=2, skiprows=header_length+1, usecols=[_LABFRONT_ISO_DATE_KEY])
-    tmp_data = data[_LABFRONT_ISO_DATE_KEY]
-    sample_rate = (data[_LABFRONT_ISO_DATE_KEY].iloc[1] - data[_LABFRONT_ISO_DATE_KEY].iloc[0]).total_seconds()
+    tmp_data = pd.to_datetime(data[_LABFRONT_ISO_DATE_KEY])
+    sample_rate = (tmp_data.iloc[1] - tmp_data.iloc[0]).total_seconds()
 
     return first_unix_timestamp, last_unix_timestamp, sample_rate
 
