@@ -1,10 +1,7 @@
-import os
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
+import datetime
 import utils
-import matplotlib.pyplot as plt
 
 _LABFRONT_GARMIN_CONNECT_STRING = 'garmin-connect'
 _LABFRONT_GARMIN_DEVICE_STRING = 'garmin-device'
@@ -12,21 +9,6 @@ _LABFRONT_GARMIN_DEVICE_STRING = 'garmin-device'
 _LABFRONT_GARMIN_CONNECT_HEART_RATE_KEY = _LABFRONT_GARMIN_CONNECT_STRING + '-daily-heart-rate'
 _LABFRONT_GARMIN_CONNECT_HEART_RATE_COL = 'beatsPerMinute'
 _LABFRONT_GARMIN_DEVICE_HEART_RATE_KEY = _LABFRONT_GARMIN_DEVICE_STRING + '-heart-rate'
-
-_LABFRONT_QUESTIONNAIRE_STRIGN = 'questionnaire'
-_LABFRONT_TODO_STRING = 'todo'
-_LABFRONT_TIMEZONEOFFSET_MS = 'timezoneOffsetInMs'
-_LABFRONT_UNIXTIMESTAMP_MS = 'unixTimestampInMs'
-_LABFRONT_ISODATE = 'isoDate'
-
-
-_LABFRONT_PHYSIO_CSV = ['garmin-connect-daily-heart-rate','garmin-device-heart-rate',
-                            'garmin-connect-pulse-ox', 'garmin-connect-sleep-pulse-ox',
-                            'garmin-device-pulse-ox',
-                            'garmin-connect-respiration', 'garmin-connect-sleep-respiration',
-                            'garmin-device-respiratorion',
-                            #'garmin-connect-stress', 
-                            'garmin-device-stress']
 
 BASE_FOLDER = Path('data') / 'sample_data' / \
     '9dbabd13-879e-4131-a562-66a2501435ab'
@@ -38,13 +20,12 @@ id_dict = utils.get_ids(BASE_FOLDER, return_dict=True)
 id = '01---ipad,-green-watch'
 labfront_id = id_dict[id]
 
-# Create folder name based on IDs
-path_to_data = id + '_' + labfront_id
+start_dt = datetime.datetime(2023,1,10)
+end_dt = datetime.datetime(2023,1,11)
+p_data = utils.get_data_from_datetime(BASE_FOLDER, id + '_' + labfront_id, 'garmin-connect-daily-heart-rate', start_date=start_dt, end_date=end_dt)
+print(p_data.dtypes)
 
-# Check that folder exists
-if not (BASE_FOLDER / path_to_data).exists():
-    print(f'Data folder for participant {id} does not exist')
-
+"""
 # This is the summary dictionary of the participant
 participant_summary_dict = {}
 
@@ -112,3 +93,4 @@ if _LABFRONT_GARMIN_CONNECT_HEART_RATE_KEY in participant_summary_dict.keys():
                             _LABFRONT_GARMIN_CONNECT_HEART_RATE_KEY + '-' + _LABFRONT_GARMIN_CONNECT_HEART_RATE_COL]
         participant_df = participant_df.merge(tmp, 'outer', on=_LABFRONT_UNIXTIMESTAMP_MS)
         participant_df.to_csv('test.csv')
+"""
