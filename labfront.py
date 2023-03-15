@@ -1,5 +1,6 @@
 from pathlib import Path
 
+
 import datetime
 import utils
 
@@ -22,8 +23,9 @@ labfront_id = id_dict[id]
 
 start_dt = datetime.datetime(2023,1,10)
 end_dt = datetime.datetime(2023,1,11)
-p_data = utils.get_data_from_datetime(BASE_FOLDER, id + '_' + labfront_id, 'garmin-connect-daily-heart-rate', start_date=start_dt, end_date=end_dt)
-print(p_data.dtypes)
+p_data = utils.get_data_from_datetime(BASE_FOLDER, 
+                                      id + '_' + labfront_id, _LABFRONT_GARMIN_CONNECT_HEART_RATE_KEY, start_date=start_dt, end_date=end_dt)
+print(p_data.head())
 
 """
 # This is the summary dictionary of the participant

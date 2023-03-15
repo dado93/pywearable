@@ -3,6 +3,7 @@ from pathlib import Path
 
 import datetime
 import pandas as pd
+import timeit
 
 _LABFRONT_ID_LENGHT = 37
 _LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY = 'firstSampleUnixTimestampInMs'
@@ -155,13 +156,14 @@ def get_data_from_datetime(data_path, participant_id, metric, start_date, end_da
         path_to_folder = Path(data_path) / participant_id / metric
     # Load data from first file
     data = pd.read_csv(path_to_folder / files[0], skiprows=5)
-    data[_LABFRONT_ISO_DATE_KEY] = pd.to_datetime(data[_LABFRONT_ISO_DATE_KEY])
     data = data.drop([_LABFRONT_TIMEZONEOFFSET_MS_KEY, _LABFRONT_UNIXTIMESTAMP_MS_KEY], axis=1)
     for f in files[1:]:
         tmp = pd.read_csv(path_to_folder / f, skiprows=5)
         tmp = tmp.drop([_LABFRONT_TIMEZONEOFFSET_MS_KEY, _LABFRONT_UNIXTIMESTAMP_MS_KEY], axis=1)
         data = pd.concat([data, tmp], ignore_index=True)
-    print(data.describe())
+    # Convert to datetime according to isoformat
+    data[_LABFRONT_ISO_DATE_KEY] = pd.to_datetime(data[_LABFRONT_ISO_DATE_KEY], format="%Y-%m-%dT%H:%M:%S.%f%z")
+    # Get data only from
     return data
 
 def get_ids(folder, return_dict=False):
