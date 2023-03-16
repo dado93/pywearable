@@ -10,18 +10,13 @@ _LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY = 'firstSampleUnixTimestampInMs'
 _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY = 'lastSampleUnixTimestampInMs'
 _LABFRONT_ISO_DATE_KEY = 'isoDate'
 _LABFRONT_CSV_STATS_SKIP_ROWS = 3
-_LABFRONT_PHYSIO_CSV = ['garmin-connect-daily-heart-rate','garmin-device-heart-rate',
-                            'garmin-connect-pulse-ox', 'garmin-connect-sleep-pulse-ox',
-                            'garmin-device-pulse-ox',
-                            'garmin-connect-respiration', 'garmin-connect-sleep-respiration',
-                            'garmin-device-respiration',
-                            'garmin-connect-stress', 
-                            'garmin-device-stress']
-
 _LABFRONT_QUESTIONNAIRE_STRING = 'questionnaire'
 _LABFRONT_TODO_STRING = 'todo'
-_LABFRONT_TIMEZONEOFFSET_MS_KEY = 'timezoneOffsetInMs'
+_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY = 'timezoneOffsetInMs'
+_LABFRONT_GARMIN_DEVICE_TIMEZONEOFFSET_MS_KEY = 'timezone'
+
 _LABFRONT_UNIXTIMESTAMP_MS_KEY = 'unixTimestampInMs'
+_LABFRONT_GARMIN_CONNECT_STRING = 'garmin-connect'
 
 def create_time_dictionary(data_path):
     """Create a dictionary with start and end times for all files.
@@ -109,6 +104,8 @@ def get_files_timerange(participant_dict, participant_id,
         temp_dict = participant_dict[participant_id][metric]
     # Convert dictionary to a pandas dataframe, so that we can sort it
     temp_pd = pd.DataFrame.from_dict(temp_dict, orient='index').sort_values(by=_LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY)
+    if (start_date is None) and (end_date is None):
+        return list(temp_pd.index)
     # Convert date to unix format: YYYY/MM/DD
     # First, make sure that we have a datetime
     if not isinstance(start_date, datetime.datetime):
@@ -167,16 +164,25 @@ def get_data_from_datetime(data_path, participant_id, metric, start_date,
 
     # Load data from first file
     data = pd.read_csv(path_to_folder / files[0], skiprows=5)
-    data = data.drop([_LABFRONT_TIMEZONEOFFSET_MS_KEY, _LABFRONT_UNIXTIMESTAMP_MS_KEY], axis=1)
+    if _LABFRONT_GARMIN_CONNECT_STRING in metric:
+        data = data.drop([_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY, _LABFRONT_UNIXTIMESTAMP_MS_KEY], axis=1)
+    else:
+        data = data.drop([_LABFRONT_GARMIN_DEVICE_TIMEZONEOFFSET_MS_KEY, _LABFRONT_UNIXTIMESTAMP_MS_KEY], axis=1)
     for f in files[1:]:
         tmp = pd.read_csv(path_to_folder / f, skiprows=5)
-        tmp = tmp.drop([_LABFRONT_TIMEZONEOFFSET_MS_KEY, _LABFRONT_UNIXTIMESTAMP_MS_KEY], axis=1)
+        if _LABFRONT_GARMIN_CONNECT_STRING in metric:
+            tmp = tmp.drop([_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY, _LABFRONT_UNIXTIMESTAMP_MS_KEY], axis=1)
+        else:
+            tmp = tmp.drop([_LABFRONT_GARMIN_DEVICE_TIMEZONEOFFSET_MS_KEY, _LABFRONT_UNIXTIMESTAMP_MS_KEY], axis=1)
         data = pd.concat([data, tmp], ignore_index=True)
     # Convert to datetime according to isoformat
     data[_LABFRONT_ISO_DATE_KEY] = pd.to_datetime(data[_LABFRONT_ISO_DATE_KEY], format="%Y-%m-%dT%H:%M:%S.%f%z")
     # Get data only from given start and end dates
-    return data[(data[_LABFRONT_ISO_DATE_KEY].dt.tz_convert(None) >= start_date)
-                    & (data[_LABFRONT_ISO_DATE_KEY].dt.tz_convert(None) <= end_date)]
+    if (not start_date is None) and (not end_date is None):
+        return data[(data[_LABFRONT_ISO_DATE_KEY].dt.tz_localize(None) >= start_date)
+                    & (data[_LABFRONT_ISO_DATE_KEY].dt.tz_localize(None) <= end_date)]
+    else:
+        return data
 
 def get_ids(folder, return_dict=False):
     """Get participant IDs from folder with data.
@@ -235,6 +241,5 @@ def get_labfront_file_stats(path):
     
     return first_unix_timestamp, last_unix_timestamp
 
-
-def get_garmin_metrics_names(folder):
+def get_available_metrics(folder):
     pass
