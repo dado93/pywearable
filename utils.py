@@ -69,12 +69,16 @@ def create_time_dictionary(data_path):
                                 }
     return participant_dict
 
-def get_files_around_datetime(participant_dict, participant_id, metric, start_date, end_date, is_questionnaire=False, is_todo=False, task_name = None):
+def get_files_timerange(participant_dict, participant_id, 
+                            metric, start_date, end_date, 
+                            is_questionnaire=False, is_todo=False, task_name = None):
     """Get files containing daily data from within a given time range.
 
     This function retrieves the files that contain data in a given time range. By setting start 
     and end times to the time range of interest, this function returns all the files that
-    contain data within this time range.
+    contain data within this time range. This function is based on unix timestamps, thus it
+    does not take into account timezones. In order to find the files containing data within
+    the timerange, 12 hours are removed (added) from the start_date (end_date).
 
     Args:
         participant_dict (dict): Dictionary with first and last unix time stamps for each participant
@@ -109,8 +113,12 @@ def get_files_around_datetime(participant_dict, participant_id, metric, start_da
     # First, make sure that we have a datetime
     if not isinstance(start_date, datetime.datetime):
         start_dt = datetime.datetime.strptime(start_date, "%Y/%m/%d")
+    else:
+        start_dt = start_date
     if not isinstance(end_date, datetime.datetime):
-        end_dt = datetime.datetime.strptime(start_date, "%Y/%m/%d")
+        end_dt = datetime.datetime.strptime(end_date, "%Y/%m/%d")
+    else:
+        end_dt = end_date
 
     # Then, convert it to UNIX timestamp
     start_dt_timestamp = (start_dt - datetime.timedelta(hours=12)).timestamp()
@@ -136,7 +144,8 @@ def get_files_around_datetime(participant_dict, participant_id, metric, start_da
 
     return list(temp_pd.loc[min_row:max_row].index)
 
-def get_data_from_datetime(data_path, participant_id, metric, start_date, end_date, is_questionnaire=False, is_todo=False, task_name = None):
+def get_data_from_datetime(data_path, participant_id, metric, start_date, 
+                            end_date, is_questionnaire=False, is_todo=False, task_name = None):
     
     if is_questionnaire and is_todo:
         raise ValueError("Select only questionnaire or todo.")
@@ -144,7 +153,8 @@ def get_data_from_datetime(data_path, participant_id, metric, start_date, end_da
         raise ValueError("Specify name of questionnaire or of todo.")
     
     participant_dict = create_time_dictionary(data_path)
-    files = get_files_around_datetime(participant_dict, participant_id, metric,'2023/01/10', is_questionnaire, is_todo, task_name)
+    files = get_files_timerange(participant_dict, participant_id, 
+                                metric, start_date, end_date, is_questionnaire, is_todo, task_name)
     
     if len(files) == 0:
         raise ValueError("No files available to load data.")
@@ -154,6 +164,7 @@ def get_data_from_datetime(data_path, participant_id, metric, start_date, end_da
         path_to_folder = Path(data_path) / participant_id / metric / _LABFRONT_TODO_STRING / task_name
     else:
         path_to_folder = Path(data_path) / participant_id / metric
+
     # Load data from first file
     data = pd.read_csv(path_to_folder / files[0], skiprows=5)
     data = data.drop([_LABFRONT_TIMEZONEOFFSET_MS_KEY, _LABFRONT_UNIXTIMESTAMP_MS_KEY], axis=1)
@@ -163,8 +174,9 @@ def get_data_from_datetime(data_path, participant_id, metric, start_date, end_da
         data = pd.concat([data, tmp], ignore_index=True)
     # Convert to datetime according to isoformat
     data[_LABFRONT_ISO_DATE_KEY] = pd.to_datetime(data[_LABFRONT_ISO_DATE_KEY], format="%Y-%m-%dT%H:%M:%S.%f%z")
-    # Get data only from
-    return data
+    # Get data only from given start and end dates
+    return data[(data[_LABFRONT_ISO_DATE_KEY].dt.tz_convert(None) >= start_date)
+                    & (data[_LABFRONT_ISO_DATE_KEY].dt.tz_convert(None) <= end_date)]
 
 def get_ids(folder, return_dict=False):
     """Get participant IDs from folder with data.
