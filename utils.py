@@ -164,9 +164,6 @@ def get_data_from_datetime(data_path, participant_id, metric, start_date,
 
     # Load data from first file
     data = pd.read_csv(path_to_folder / files[0], skiprows=5)
-    if _LABFRONT_GARMIN_CONNECT_STRING in metric:
-        data = data.drop([_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY, _LABFRONT_UNIXTIMESTAMP_MS_KEY], axis=1)
-
     for f in files[1:]:
         tmp = pd.read_csv(path_to_folder / f, skiprows=5)
         if _LABFRONT_GARMIN_CONNECT_STRING in metric:

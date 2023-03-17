@@ -7,7 +7,9 @@ import utils
 
 # Garmin Connect metrics - Labfront folder names
 _LABFRONT_GARMIN_CONNECT_STRING = 'garmin-connect'
+_LABFRONT_GARMIN_CONNECT_BODY_COMPOSITION_STRING = _LABFRONT_GARMIN_CONNECT_STRING + '-body-composition'
 _LABFRONT_GARMIN_CONNECT_HEART_RATE_STRING = _LABFRONT_GARMIN_CONNECT_STRING + '-daily-heart-rate'
+_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STRING = _LABFRONT_GARMIN_CONNECT_STRING + '-daily-summary'
 _LABFRONT_GARMIN_CONNECT_DAILY_PULSE_OX_STRING = _LABFRONT_GARMIN_CONNECT_STRING + '-pulse-ox'
 _LABFRONT_GARMIN_CONNECT_SLEEP_PULSE_OX_STRING = _LABFRONT_GARMIN_CONNECT_STRING + '-sleep-pulse-ox'
 _LABFRONT_SPO2_COLUMN = 'spo2'
@@ -36,7 +38,7 @@ def load_garmin_connect_heart_rate(data_path, participant_id, start_date=None, e
         data_path (str): Path to the folder containing Labfront data.
         participant_id (str): Full ID of the participant
         start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-        end_date (_type_, optional): End date from which data should be retrieved. Defaults to None.
+        end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
 
     Returns:
         pd.DataFrame: Dataframe containing Garmin Connect heart rate data.
@@ -58,7 +60,7 @@ def load_garmin_connect_pulse_ox(data_path, participant_id, start_date=None, end
         data_path (str): Path to the folder containing Labfront data.
         participant_id (str): Full ID of the participant
         start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-        end_date (_type_, optional): End date from which data should be retrieved. Defaults to None.
+        end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
 
     Returns:
         pd.DataFrame: Dataframe containing Garmin Connect pulse ox data.
@@ -90,7 +92,7 @@ def load_garmin_connect_respiration(data_path, participant_id, start_date=None, 
         data_path (str): Path to the folder containing Labfront data.
         participant_id (str): Full ID of the participant
         start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-        end_date (_type_, optional): End date from which data should be retrieved. Defaults to None.
+        end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
 
     Returns:
         pd.DataFrame: Dataframe containing Garmin Connect respiration data.
@@ -119,7 +121,7 @@ def load_garmin_connect_sleep_stage(data_path, participant_id, start_date=None, 
         data_path (str): Path to the folder containing Labfront data.
         participant_id (str): Full ID of the participant
         start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-        end_date (_type_, optional): End date from which data should be retrieved. Defaults to None.
+        end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
 
     Returns:
         pd.DataFrame: Dataframe containing Garmin Connect sleep stage data.
@@ -138,7 +140,7 @@ def load_garmin_connect_sleep_summary(data_path, participant_id, start_date=None
         data_path (str): Path to the folder containing Labfront data.
         participant_id (str): Full ID of the participant
         start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-        end_date (_type_, optional): End date from which data should be retrieved. Defaults to None.
+        end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
 
     Returns:
         pd.DataFrame: Dataframe containing Garmin Connect sleep summary data.
@@ -157,7 +159,7 @@ def load_garmin_connect_stress(data_path, participant_id, start_date=None, end_d
         data_path (str): Path to the folder containing Labfront data.
         participant_id (str): Full ID of the participant
         start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-        end_date (_type_, optional): End date from which data should be retrieved. Defaults to None.
+        end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
 
     Returns:
         pd.DataFrame: Dataframe containing Garmin Connect stress data.
@@ -176,7 +178,7 @@ def load_garmin_connect_stress(data_path, participant_id, start_date=None, end_d
         data_path (str): Path to the folder containing Labfront data.
         participant_id (str): Full ID of the participant
         start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-        end_date (_type_, optional): End date from which data should be retrieved. Defaults to None.
+        end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
 
     Returns:
         pd.DataFrame: Dataframe containing Garmin Connect stress data.
@@ -195,7 +197,7 @@ def load_garmin_device_heart_rate(data_path, participant_id, start_date=None, en
         data_path (str): Path to the folder containing Labfront data.
         participant_id (str): Full ID of the participant
         start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-        end_date (_type_, optional): End date from which data should be retrieved. Defaults to None.
+        end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
 
     Returns:
         pd.DataFrame: Dataframe containing Garmin device heart rate data.
@@ -214,7 +216,7 @@ def load_garmin_device_pulse_ox(data_path, participant_id, start_date=None, end_
         data_path (str): Path to the folder containing Labfront data.
         participant_id (str): Full ID of the participant
         start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-        end_date (_type_, optional): End date from which data should be retrieved. Defaults to None.
+        end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
 
     Returns:
         pd.DataFrame: Dataframe containing Garmin device pulse ox data.
@@ -233,7 +235,7 @@ def load_garmin_device_respiration(data_path, participant_id, start_date=None, e
         data_path (str): Path to the folder containing Labfront data.
         participant_id (str): Full ID of the participant
         start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-        end_date (_type_, optional): End date from which data should be retrieved. Defaults to None.
+        end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
 
     Returns:
         pd.DataFrame: Dataframe containing Garmin device respiratory data.
@@ -252,7 +254,7 @@ def load_garmin_device_step(data_path, participant_id, start_date=None, end_date
         data_path (str): Path to the folder containing Labfront data.
         participant_id (str): Full ID of the participant
         start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-        end_date (_type_, optional): End date from which data should be retrieved. Defaults to None.
+        end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
 
     Returns:
         pd.DataFrame: Dataframe containing Garmin device step data.
@@ -271,7 +273,7 @@ def load_garmin_device_stress(data_path, participant_id, start_date=None, end_da
         data_path (str): Path to the folder containing Labfront data.
         participant_id (str): Full ID of the participant
         start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-        end_date (_type_, optional): End date from which data should be retrieved. Defaults to None.
+        end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
 
     Returns:
         pd.DataFrame: Dataframe containing Garmin device stress data.
@@ -290,7 +292,7 @@ def load_garmin_device_stress(data_path, participant_id, start_date=None, end_da
         data_path (str): Path to the folder containing Labfront data.
         participant_id (str): Full ID of the participant
         start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-        end_date (_type_, optional): End date from which data should be retrieved. Defaults to None.
+        end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
 
     Returns:
         pd.DataFrame: Dataframe containing Garmin device stress data.
@@ -309,11 +311,49 @@ def load_garmin_device_bbi(data_path, participant_id, start_date=None, end_date=
         data_path (str): Path to the folder containing Labfront data.
         participant_id (str): Full ID of the participant
         start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-        end_date (_type_, optional): End date from which data should be retrieved. Defaults to None.
+        end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
 
     Returns:
         pd.DataFrame: Dataframe containing Garmin device BBI data.
     """
     data = utils.get_data_from_datetime(data_path, participant_id, _LABFRONT_GARMIN_DEVICE_BBI_STRING, 
+                                            start_date, end_date)
+    return data
+
+def load_garmin_connect_body_composition(data_path, participant_id, start_date=None, end_date=None):
+    """Load Garmin Connect body composition data.
+
+    This function loads Garmin Connect body composition data from a given
+    participant and within a specified date and time range.
+
+    Args:
+        data_path (str): Path to the folder containing Labfront data.
+        participant_id (str): Full ID of the participant
+        start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
+        end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
+
+    Returns:
+        pd.DataFrame: Dataframe containing Garmin Connect body composition data.
+    """
+    data = utils.get_data_from_datetime(data_path, participant_id, _LABFRONT_GARMIN_CONNECT_BODY_COMPOSITION_STRING, 
+                                            start_date, end_date)
+    return data
+
+def load_garmin_connect_daily_summary(data_path, participant_id, start_date=None, end_date=None):
+    """Load Garmin Connect daily summary data.
+
+    This function loads Garmin Connect daily summary data from a given
+    participant and within a specified date and time range.
+
+    Args:
+        data_path (str): Path to the folder containing Labfront data.
+        participant_id (str): Full ID of the participant
+        start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
+        end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
+
+    Returns:
+        pd.DataFrame: Dataframe containing Garmin Connect daily summary data.
+    """
+    data = utils.get_data_from_datetime(data_path, participant_id, _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STRING, 
                                             start_date, end_date)
     return data
