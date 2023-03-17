@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import seaborn as sns
 
+import data
 import utils
 
 BASE_FOLDER = Path('data') / 'sample_data' / \
@@ -18,11 +19,15 @@ labfront_id = id_dict[id]
 start_dt = datetime.datetime(2023,1,18)
 end_dt = datetime.datetime(2023,1,19)
 
-p_data = utils.get_data_from_datetime(BASE_FOLDER, 
-                                      id + '_' + labfront_id, 'garmin-device-stress', 
-                                      start_date=start_dt, end_date=end_dt)
+p_data = data.load_garmin_connect_pulse_ox(BASE_FOLDER,
+                                             id + '_' + labfront_id,
+                                             start_dt,
+                                             end_dt)
+
+print(p_data.head())
+
 
 plt.figure()
-plt.plot(p_data[p_data.stressLevel > -1].isoDate.dt.tz_localize(None), p_data.stressLevel[p_data.stressLevel > -1])
+plt.plot(p_data.isoDate.dt.tz_localize(None), p_data.spo2)
 plt.xlim([start_dt, end_dt])
 plt.show()
