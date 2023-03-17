@@ -166,23 +166,25 @@ def get_data_from_datetime(data_path, participant_id, metric, start_date,
     data = pd.read_csv(path_to_folder / files[0], skiprows=5)
     if _LABFRONT_GARMIN_CONNECT_STRING in metric:
         data = data.drop([_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY, _LABFRONT_UNIXTIMESTAMP_MS_KEY], axis=1)
-    else:
-        data = data.drop([_LABFRONT_GARMIN_DEVICE_TIMEZONEOFFSET_MS_KEY, _LABFRONT_UNIXTIMESTAMP_MS_KEY], axis=1)
+
     for f in files[1:]:
         tmp = pd.read_csv(path_to_folder / f, skiprows=5)
         if _LABFRONT_GARMIN_CONNECT_STRING in metric:
             tmp = tmp.drop([_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY, _LABFRONT_UNIXTIMESTAMP_MS_KEY], axis=1)
-        else:
-            tmp = tmp.drop([_LABFRONT_GARMIN_DEVICE_TIMEZONEOFFSET_MS_KEY, _LABFRONT_UNIXTIMESTAMP_MS_KEY], axis=1)
         data = pd.concat([data, tmp], ignore_index=True)
-    # Convert to datetime according to isoformat
-    data[_LABFRONT_ISO_DATE_KEY] = pd.to_datetime(data[_LABFRONT_ISO_DATE_KEY], format="%Y-%m-%dT%H:%M:%S.%f%z")
+    if _LABFRONT_GARMIN_CONNECT_STRING in metric:
+        # Convert to datetime according to isoformat
+        data[_LABFRONT_ISO_DATE_KEY] = pd.to_datetime(data[_LABFRONT_ISO_DATE_KEY], format="%Y-%m-%dT%H:%M:%S.%f%z")
+    else:
+        # Convert unix time stamp
+        data[_LABFRONT_ISO_DATE_KEY] = pd.to_datetime(data[_LABFRONT_UNIXTIMESTAMP_MS_KEY], unit='ms', utc=True)
+        data[_LABFRONT_ISO_DATE_KEY] = data.groupby(_LABFRONT_GARMIN_DEVICE_TIMEZONEOFFSET_MS_KEY, group_keys=False)[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.dt.tz_convert(x.name))
     # Get data only from given start and end dates
     if (not start_date is None) and (not end_date is None):
         return data[(data[_LABFRONT_ISO_DATE_KEY].dt.tz_localize(None) >= start_date)
-                    & (data[_LABFRONT_ISO_DATE_KEY].dt.tz_localize(None) <= end_date)]
+                    & (data[_LABFRONT_ISO_DATE_KEY].dt.tz_localize(None) <= end_date)].reset_index(drop=True)
     else:
-        return data
+        return data.reset_index(drop=True)
 
 def get_ids(folder, return_dict=False):
     """Get participant IDs from folder with data.

@@ -13,21 +13,20 @@ BASE_FOLDER = Path('data') / 'sample_data' / \
 id_dict = utils.get_ids(BASE_FOLDER, return_dict=True)
 
 # Select participant ID
-id = '01---ipad,-green-watch'
+id = '02---nokia,-white-watch'
 labfront_id = id_dict[id]
 
-start_dt = datetime.datetime(2023,1,18)
-end_dt = datetime.datetime(2023,1,19)
+start_dt = datetime.datetime(2023,1,24)
+end_dt = datetime.datetime(2023,1,25)
 
-p_data = data.load_garmin_connect_pulse_ox(BASE_FOLDER,
+p_data = data.load_garmin_device_bbi(BASE_FOLDER,
                                              id + '_' + labfront_id,
                                              start_dt,
                                              end_dt)
 
 print(p_data.head())
 
-
 plt.figure()
-plt.plot(p_data.isoDate.dt.tz_localize(None), p_data.spo2)
+plt.plot(p_data.isoDate.dt.tz_localize(None), p_data.bbi)
 plt.xlim([start_dt, end_dt])
 plt.show()
