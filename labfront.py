@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import seaborn as sns
 
-import data
-import utils
+import pylabfront.data as data
+import pylabfront.utils as utils
 
 BASE_FOLDER = Path('data') / 'sample_data' / \
     '9dbabd13-879e-4131-a562-66a2501435ab'
