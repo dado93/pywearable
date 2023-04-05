@@ -17,16 +17,16 @@ id = '02---nokia,-white-watch'
 labfront_id = id_dict[id]
 
 start_dt = datetime.datetime(2023,1,24)
-end_dt = datetime.datetime(2023,1,25)
+end_dt = datetime.datetime(2023,1,28)
 
-p_data = data.load_garmin_connect_body_composition(BASE_FOLDER,
+p_data = data.load_garmin_device_heart_rate(BASE_FOLDER,
                                              id + '_' + labfront_id,
                                              start_dt,
                                              end_dt)
 
 print(p_data.head())
 
-#plt.figure()
-#plt.plot(p_data.isoDate.dt.tz_localize(None), p_data.bbi)
-#plt.xlim([start_dt, end_dt])
-#plt.show()
+plt.figure()
+plt.plot(p_data.isoDate.dt.tz_localize(None), p_data.beatsPerMinute)
+plt.xlim([start_dt, end_dt])
+plt.show()
