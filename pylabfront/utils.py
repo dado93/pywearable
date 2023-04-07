@@ -240,5 +240,30 @@ def get_labfront_file_stats(path):
     
     return first_unix_timestamp, last_unix_timestamp
 
-def get_available_metrics(folder):
-    pass
+def get_available_metrics(data_path, partecipant_ids="all"):
+    """
+    Args:
+        data_path (str): Path to folder containing data.
+        partecipant_ids (list):  IDs of participants. Defaults to "all",
+        in case one wants metrics available across all partecipants.
+    
+    Returns:
+        list: alphabetically sorted names of the metrics for the partecipant(s).
+    """
+
+    data_path = Path(data_path)
+    if not data_path.exists():
+        raise FileNotFoundError
+    
+    metrics = set()
+    
+    if partecipant_ids == "all":
+        # get all partecipant ids automatically
+        partecipant_ids = [k+"_"+v for k,v in get_ids(data_path,return_dict=True).items()] 
+
+    for partecipant_id in partecipant_ids:
+        partecipant_path = data_path / partecipant_id
+        partecipant_metrics = set(os.listdir(str(partecipant_path)))
+        metrics = metrics.union(partecipant_metrics)
+    
+    return sorted(list(metrics))
