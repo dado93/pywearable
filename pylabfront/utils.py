@@ -157,9 +157,9 @@ def get_data_from_datetime(data_path, participant_id, metric, start_date,
     if len(files) == 0:
         raise ValueError("No files available to load data.")
     if is_questionnaire:
-        path_to_folder = Path(data_path) / participant_id / metric / _LABFRONT_QUESTIONNAIRE_STRING / task_name
+        path_to_folder = Path(data_path) / participant_id / _LABFRONT_QUESTIONNAIRE_STRING / task_name
     elif is_todo:
-        path_to_folder = Path(data_path) / participant_id / metric / _LABFRONT_TODO_STRING / task_name
+        path_to_folder = Path(data_path) / participant_id / _LABFRONT_TODO_STRING / task_name
     else:
         path_to_folder = Path(data_path) / participant_id / metric
 
