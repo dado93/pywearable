@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import datetime
+import time
 import pandas as pd
 import timeit
 
@@ -240,5 +241,111 @@ def get_labfront_file_stats(path):
     
     return first_unix_timestamp, last_unix_timestamp
 
-def get_available_metrics(folder):
-    pass
+def get_available_metrics(data_path, participant_ids="all"):
+    """
+    Args:
+        data_path (str): Path to folder containing data.
+        participant_ids (list):  IDs of participants. Defaults to "all",
+        in case one wants metrics available across all participants.
+    
+    Returns:
+        list: alphabetically sorted names of the metrics for the participant(s).
+    """
+
+    data_path = Path(data_path)
+    if not data_path.exists():
+        raise FileNotFoundError
+    
+    metrics = set()
+
+    if participant_ids == "all":
+        # get all participant ids automatically
+        participant_ids = [k+"_"+v for k,v in get_ids(data_path,return_dict=True).items()]
+
+    if not isinstance(participant_ids, list):
+        raise TypeError("participant_ids has to be a list.")
+    
+    for participant_id in participant_ids:
+        participant_path = data_path / participant_id
+        participant_metrics = set(os.listdir(str(participant_path)))
+        metrics |= participant_metrics
+    return sorted(list(metrics))
+
+def get_available_questionnaires(data_path, participant_ids="all"):
+    """
+    Args:
+        data_path (str): Path to folder containing data.
+        participant_ids (list):  IDs of participants. Defaults to "all",
+        in case one wants questionnaires available across all participants.
+    
+    Returns:
+        list: alphabetically sorted names of the questionnaires for the participant(s).
+    """
+
+    data_path = Path(data_path)
+    if not data_path.exists():
+        raise FileNotFoundError
+    
+    questionnaires = set()
+
+    if participant_ids == "all":
+        # get all participant ids automatically
+        participant_ids = [k+"_"+v for k,v in get_ids(data_path,return_dict=True).items()] 
+
+    if not isinstance(participant_ids, list):
+        raise TypeError("participant_ids has to be a list.")
+    
+    for participant_id in participant_ids:
+        participant_path = data_path / participant_id / "questionnaire"
+        if participant_path.exists():
+            participant_questionnaires = set(os.listdir(str(participant_path)))
+            questionnaires |= participant_questionnaires
+    
+    return sorted(list(questionnaires))
+
+def get_summary(data_path):
+    """
+    Args:
+        data_path (str): Path to folder containing data.
+
+    Returns:
+        DataFrame: general summary of the number of full days since metrics were updated for all participants.
+        Entries are NaN if the metric has never been registered for the participant.
+    """
+
+    available_metrics = set(get_available_metrics(data_path))
+    available_metrics.discard("todo")
+    available_metrics.discard("questionnaire")
+    available_metrics = sorted(list(available_metrics))
+    available_questionnaires = get_available_questionnaires(data_path)
+    participant_dict = create_time_dictionary(data_path)
+    MS_TO_DAY_CONVERSION = 1000*60*60*24
+
+    features_dictionary = {}
+    
+    for full_participant_id in sorted(participant_dict.keys()):
+        participant_id = full_participant_id[:(len(full_participant_id)-_LABFRONT_ID_LENGHT)]
+        features_dictionary[participant_id] = {}
+        participant_metrics = get_available_metrics(data_path, [full_participant_id])
+        participant_questionnaires = get_available_questionnaires(data_path, [full_participant_id])
+
+        for metric in available_metrics:
+            name_metric = metric[7:]
+            if metric not in participant_metrics:
+                features_dictionary[participant_id][name_metric] = None
+            else: # figure out how many days since the last update
+               last_unix_times = [v[_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY] for v in participant_dict[full_participant_id][metric].values()]
+               number_of_days_since_update = (time.time()*1000 - max(last_unix_times)) // MS_TO_DAY_CONVERSION
+               features_dictionary[participant_id][name_metric] = number_of_days_since_update
+        
+        for questionnaire in available_questionnaires:
+            name_questionnaire = questionnaire[:(len(questionnaire)-_LABFRONT_ID_LENGHT)]
+            if questionnaire not in participant_questionnaires:
+                features_dictionary[participant_id][name_questionnaire] = None
+            else:
+                last_unix_times = [v[_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY] for v in participant_dict[full_participant_id][_LABFRONT_QUESTIONNAIRE_STRING][questionnaire].values()]
+                number_of_days_since_update = (time.time()*1000 - max(last_unix_times)) // MS_TO_DAY_CONVERSION
+                features_dictionary[participant_id][name_questionnaire] = number_of_days_since_update
+
+    df = pd.DataFrame(features_dictionary)
+    return df.T
