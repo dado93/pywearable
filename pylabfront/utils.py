@@ -163,13 +163,13 @@ def get_data_from_datetime(data_path, participant_id, metric, start_date,
     else:
         path_to_folder = Path(data_path) / participant_id / metric
 
-    # n_rows_to_skip= get_header_length(path_to_folder)
-    # if is_questionnaire or is_todo:
-    #     n_rows_to_skip += get_key_length(path_to_folder)
+    n_rows_to_skip= get_header_length(path_to_folder / files[0])
+    if is_questionnaire:
+        n_rows_to_skip += (get_key_length(path_to_folder / files[0]) + 1)
     # Load data from first file
-    data = pd.read_csv(path_to_folder / files[0], skiprows=5)
+    data = pd.read_csv(path_to_folder / files[0], skiprows=n_rows_to_skip)
     for f in files[1:]:
-        tmp = pd.read_csv(path_to_folder / f, skiprows=5)
+        tmp = pd.read_csv(path_to_folder / f, skiprows=n_rows_to_skip)
         if _LABFRONT_GARMIN_CONNECT_STRING in metric:
             tmp = tmp.drop([_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY, _LABFRONT_UNIXTIMESTAMP_MS_KEY], axis=1)
         data = pd.concat([data, tmp], ignore_index=True)
