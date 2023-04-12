@@ -222,6 +222,19 @@ def get_header_length(file):
     header_length = int(line[1])
     return header_length
 
+def get_key_length(file):
+    """Get key length of Labfront questionnaire csv file.
+
+    Args:
+        file (str): Path to csv file of the questionnaire.
+    """
+    header_length = get_header_length(file)
+    with open(file, 'r') as f:
+        for _ in range(header_length+2):
+            line = f.readline().split(',')
+    key_length = int(line[1])
+    return key_length
+
 def get_labfront_file_stats(path):
     """_summary_
 
