@@ -163,6 +163,9 @@ def get_data_from_datetime(data_path, participant_id, metric, start_date,
     else:
         path_to_folder = Path(data_path) / participant_id / metric
 
+    # n_rows_to_skip= get_header_length(path_to_folder)
+    # if is_questionnaire or is_todo:
+    #     n_rows_to_skip += get_key_length(path_to_folder)
     # Load data from first file
     data = pd.read_csv(path_to_folder / files[0], skiprows=5)
     for f in files[1:]:
@@ -228,10 +231,11 @@ def get_key_length(file):
     Args:
         file (str): Path to csv file of the questionnaire.
     """
-    header_length = get_header_length(file)
     with open(file, 'r') as f:
-        for _ in range(header_length+2):
+        while True:
             line = f.readline().split(',')
+            if line[0] == "Key Length":
+                break
     key_length = int(line[1])
     return key_length
 
