@@ -26,8 +26,10 @@ def create_time_dictionary(data_path):
     end unix times for all the files that are present in the 
     data_path. This is useful to easily determine, based on an
     input time and date, which files need to be loaded.
+
     Args:
         data_path (str): Path to folder containing data.
+        
     Returns:
         dict: Dictionary with start and end times for all files.
     """
