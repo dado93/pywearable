@@ -165,16 +165,19 @@ def get_data_from_datetime(data_path, participant_id, metric, start_date,
     if len(files) == 0:
         raise ValueError("No files available to load data.")
     if is_questionnaire:
-        path_to_folder = Path(data_path) / participant_id / metric / _LABFRONT_QUESTIONNAIRE_STRING / task_name
+        path_to_folder = Path(data_path) / participant_id / _LABFRONT_QUESTIONNAIRE_STRING / task_name
     elif is_todo:
-        path_to_folder = Path(data_path) / participant_id / metric / _LABFRONT_TODO_STRING / task_name
+        path_to_folder = Path(data_path) / participant_id / _LABFRONT_TODO_STRING / task_name
     else:
         path_to_folder = Path(data_path) / participant_id / metric
 
+    n_rows_to_skip= get_header_length(path_to_folder / files[0])
+    if is_questionnaire:
+        n_rows_to_skip += (get_key_length(path_to_folder / files[0]) + 1)
     # Load data from first file
-    data = pd.read_csv(path_to_folder / files[0], skiprows=5)
+    data = pd.read_csv(path_to_folder / files[0], skiprows=n_rows_to_skip)
     for f in files[1:]:
-        tmp = pd.read_csv(path_to_folder / f, skiprows=5)
+        tmp = pd.read_csv(path_to_folder / f, skiprows=n_rows_to_skip)
         if _LABFRONT_GARMIN_CONNECT_STRING in metric:
             tmp = tmp.drop([_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY, _LABFRONT_UNIXTIMESTAMP_MS_KEY], axis=1)
         data = pd.concat([data, tmp], ignore_index=True)
@@ -231,6 +234,20 @@ def get_header_length(file):
         line = f.readline().split(',')
     header_length = int(line[1])
     return header_length
+
+def get_key_length(file):
+    """Get key length of Labfront questionnaire csv file.
+
+    Args:
+        file (str): Path to csv file of the questionnaire.
+    """
+    with open(file, 'r') as f:
+        while True:
+            line = f.readline().split(',')
+            if line[0] == "Key Length":
+                break
+    key_length = int(line[1])
+    return key_length
 
 def get_labfront_file_stats(path):
     """_summary_
@@ -314,7 +331,8 @@ def get_available_questionnaires(data_path, participant_ids="all"):
     return sorted(list(questionnaires))
 
 def get_summary(data_path):
-    """
+    """ Returns a general summary of the latest update of every metric for every participant
+    
     Args:
         data_path (str): Path to folder containing data.
 
