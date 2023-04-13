@@ -324,7 +324,8 @@ def get_available_questionnaires(data_path, participant_ids="all"):
     return sorted(list(questionnaires))
 
 def get_summary(data_path):
-    """
+    """ Returns a general summary of the latest update of every metric for every participant
+    
     Args:
         data_path (str): Path to folder containing data.
 
