@@ -6,6 +6,12 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
+import sphinx_rtd_theme
+
+import os
+import sys
+sys.path.insert(0, os.path.abspath('..'))
+
 project = 'pylabfront'
 copyright = '2023, Davide Marzorati'
 author = 'Davide Marzorati'
@@ -15,11 +21,11 @@ author = 'Davide Marzorati'
 
 extensions = [
     'sphinx_rtd_theme',
+    'sphinx.ext.autodoc'
 ]
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-
 
 
 # -- Options for HTML output -------------------------------------------------
