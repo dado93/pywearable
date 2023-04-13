@@ -49,6 +49,7 @@ def create_time_dictionary(data_path):
                     for metric_data in participant_metric_folder.iterdir():
                         # For each csv folder/file
                         if metric_data.is_file():
+                            #TODO add check that it is a .csv file
                             # If it is a file
                             first_ts, last_ts = get_labfront_file_stats(metric_data)
                             participant_dict[participant_folder.name][participant_metric_folder.name][metric_data.name] = {
@@ -100,7 +101,13 @@ def get_files_timerange(participant_dict, participant_id,
     if (is_questionnaire or is_todo) and (task_name is None):
         with ValueError as e:
             raise e + "Please specify name of questionnaire or of todo."
+    if participant_id not in participant_dict.keys():
+        return []
+    if metric not in participant_dict[participant_id].keys():
+        return []
     if is_questionnaire or is_todo:
+        if task_name not in participant_dict[participant_id][metric].keys():
+            return []
         temp_dict = participant_dict[participant_id][metric][task_name]
     else:
         temp_dict = participant_dict[participant_id][metric]
