@@ -182,7 +182,7 @@ def get_data_from_datetime(data_path, participant_id, metric, start_date,
     else:
         # Convert unix time stamp
         data[_LABFRONT_ISO_DATE_KEY] = pd.to_datetime(data[_LABFRONT_UNIXTIMESTAMP_MS_KEY], unit='ms', utc=True)
-        data[_LABFRONT_ISO_DATE_KEY] = data.groupby(_LABFRONT_GARMIN_DEVICE_TIMEZONEOFFSET_MS_KEY, group_keys=False)[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.dt.tz_convert(x.name).tz_localize(tz=None))
+        data[_LABFRONT_ISO_DATE_KEY] = data.groupby(_LABFRONT_GARMIN_DEVICE_TIMEZONEOFFSET_MS_KEY, group_keys=False)[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.dt.tz_convert(x.name).dt.tz_localize(tz=None))
     # Get data only from given start and end dates
     if (not start_date is None) and (not end_date is None):
         return data[(data[_LABFRONT_ISO_DATE_KEY] >= start_date)
