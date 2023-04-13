@@ -3,7 +3,7 @@ This module contains all the functions related to handling of data from Labfront
 """
 import pandas as pd
 
-import utils
+import pylabfront.utils as utils
 
 # Garmin Connect metrics - Labfront folder names
 _LABFRONT_GARMIN_CONNECT_STRING = 'garmin-connect'
