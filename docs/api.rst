@@ -6,5 +6,6 @@ API documentation.
 .. toctree::
    :maxdepth: 1
 
-   data
+   loader
+   sleep
    utils

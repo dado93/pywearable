@@ -21,9 +21,13 @@ end_dt = datetime.datetime(2023,4,28)
 
 loader = loader.LabfrontLoader(BASE_FOLDER)
 
-heart_rate = loader.load_garmin_connect_pulse_ox(id)
-print(heart_rate.columns)
-plt.plot(heart_rate.isoDate, heart_rate.spo2)
-plt.show()
-#rem = sleep.get_rem_sleep(BASE_FOLDER, start_dt, end_dt, "all")
+#heart_rate = loader.load_garmin_connect_pulse_ox(id)
+#print(heart_rate.columns)
+#plt.plot(heart_rate.isoDate, heart_rate.spo2)
+#plt.show()
+
+rem = sleep.get_rem_sleep(loader, start_dt, end_dt, "all")
 #print(rem)
+
+average_rem = sleep.get_average_rem_sleep(loader, start_dt, end_dt, "all")
+print(average_rem)

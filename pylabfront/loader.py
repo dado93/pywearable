@@ -71,6 +71,12 @@ class LabfrontLoader:
         self.ids_list = self.get_participant_list()
         self.data_dictionary = self.get_time_dictionary()
 
+    def get_user_ids(self):
+        return self.ids
+    
+    def get_labfront_ids(self):
+        return self.labfront_ids
+
     def get_ids(self, return_dict=False):
         """Get participant IDs from folder with data.
 
