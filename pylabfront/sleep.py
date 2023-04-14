@@ -3,7 +3,7 @@ This module contains all the functions related to analysis
 of Labfront sleep data.
 """
 
-import pylabfront.data
+import pylabfront.loader
 import pylabfront.utils
 import pandas as pd
 
@@ -37,7 +37,7 @@ def get_rem_sleep(data_path, start_dt, end_dt, participant_id="all"):
     
     for participant in participant_id: 
         # Load sleep summary data
-        participant_sleep_summary = pylabfront.data.load_garmin_connect_sleep_summary(data_path, participant,
+        participant_sleep_summary = pylabfront.loader.load_garmin_connect_sleep_summary(data_path, participant,
                                                                           start_dt, end_dt)
         # Get REM 
         if len(participant_sleep_summary) > 0:
