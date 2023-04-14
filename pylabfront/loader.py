@@ -21,19 +21,25 @@ _LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY = 'timezoneOffsetInMs'
 _LABFRONT_GARMIN_DEVICE_TIMEZONEOFFSET_MS_KEY = 'timezone'
 _LABFRONT_UNIXTIMESTAMP_MS_KEY = 'unixTimestampInMs'
 
-# Garmin Connect metrics - Labfront folder names
+###################################################
+# Garmin Connect metrics - Labfront folder names  #
+###################################################
 _LABFRONT_GARMIN_CONNECT_STRING = 'garmin-connect'
 _LABFRONT_GARMIN_CONNECT_BODY_COMPOSITION_STRING = _LABFRONT_GARMIN_CONNECT_STRING + '-body-composition'
 _LABFRONT_GARMIN_CONNECT_HEART_RATE_STRING = _LABFRONT_GARMIN_CONNECT_STRING + '-daily-heart-rate'
 _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STRING = _LABFRONT_GARMIN_CONNECT_STRING + '-daily-summary'
 _LABFRONT_GARMIN_CONNECT_DAILY_PULSE_OX_STRING = _LABFRONT_GARMIN_CONNECT_STRING + '-pulse-ox'
 _LABFRONT_GARMIN_CONNECT_SLEEP_PULSE_OX_STRING = _LABFRONT_GARMIN_CONNECT_STRING + '-sleep-pulse-ox'
-_LABFRONT_SPO2_COLUMN = 'spo2'
 _LABFRONT_GARMIN_CONNECT_DAILY_RESPIRATION_STRING = _LABFRONT_GARMIN_CONNECT_STRING + '-respiration'
 _LABFRONT_GARMIN_CONNECT_SLEEP_RESPIRATION_STRING = _LABFRONT_GARMIN_CONNECT_STRING + '-sleep-respiration'
-_LABFRONT_RESPIRATION_COLUMN = 'breathsPerMinute'
 _LABFRONT_GARMIN_CONNECT_SLEEP_STAGE_STRING = _LABFRONT_GARMIN_CONNECT_STRING + '-sleep-stage'
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_STRING = _LABFRONT_GARMIN_CONNECT_STRING + '-sleep-summary'
+
+###################################################
+#  Garmin Connect metrics - Labfront csv columns  #
+###################################################
+_LABFRONT_SPO2_COLUMN = 'spo2'
+_LABFRONT_RESPIRATION_COLUMN = 'breathsPerMinute'
 
 # Garmin device metrics - Labfront folder names
 _LABFRONT_GARMIN_DEVICE_STRING = 'garmin-device'
