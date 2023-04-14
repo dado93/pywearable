@@ -35,14 +35,10 @@ def get_rem_sleep(data_path, start_dt, end_dt, participant_id="all"):
         # Get all participant ids automatically
         participant_id = [k+"_"+v for k,v in pylabfront.utils.get_ids(data_path,return_dict=True).items()]
     
-    for participant in participant_id:
-        print(participant)
+    for participant in participant_id: 
         # Load sleep summary data
-        try:
-            participant_sleep_summary = pylabfront.data.load_garmin_connect_sleep_summary(data_path, participant,
+        participant_sleep_summary = pylabfront.data.load_garmin_connect_sleep_summary(data_path, participant,
                                                                           start_dt, end_dt)
-        except:
-            continue
         # Get REM 
         if len(participant_sleep_summary) > 0:
             rem_dict[participant] = pd.Series(participant_sleep_summary[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_REM_MS_COL].values, 

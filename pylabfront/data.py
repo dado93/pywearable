@@ -145,8 +145,11 @@ def load_garmin_connect_sleep_summary(data_path, participant_id, start_date=None
     Returns:
         pd.DataFrame: Dataframe containing Garmin Connect sleep summary data.
     """
-    data = utils.get_data_from_datetime(data_path, participant_id, _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_STRING, 
+    if _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_STRING in utils.get_available_metrics(data_path, participant_id):
+        data = utils.get_data_from_datetime(data_path, participant_id, _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_STRING, 
                                             start_date, end_date)
+    else:
+        data = pd.DataFrame()
     return data
 
 def load_garmin_connect_stress(data_path, participant_id, start_date=None, end_date=None):
