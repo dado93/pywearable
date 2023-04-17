@@ -20,18 +20,29 @@ _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_MS_COL = 'durationInMs'
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SCORE_COL = 'overallSleepScore'
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL = 'calendarDate'
 
-def get_sleep_summary_stage_by_day(loader, metric, start_date=None, end_date=None, participant_id="all"):
-    """Get REM sleep time for each day.
+def get_sleep_summary_stage_by_day(loader, sleep_stage, start_date=None, end_date=None, participant_id="all"):
+    """Get total time spent in a sleep stage for each day.
 
-    This function returns the absolute time spent in REM stage for
+    This function returns the absolute time spent in a certain sleep stage for
     the given participant(s) for each given day from ``start_date`` to
     ``end_date``, in units of milliseconds.
 
     Args:
-        load: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_date (:class:`datetime.datetime`, optional): Start date from which REM data should be extracted. Defaults to None.
-        end_date (:class:`datetime.datetime`, optional): End date from which REM data should be extracted. Defaults to None.
+        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
+        sleep_stage (str): Type of sleep stage or metric to be extracted.
+                            'REM': REM sleep stage.
+                            'LIGHT_SLEEP': Light sleep stage.
+                            'DEEP_SLEEP': Deep sleep stage.
+                            'AWAKE': Awake sleep stage.
+                            'UNMEASURABLE': Unmeasureable sleep stage.
+                            'DURATION': Total duration of sleep.
+                            'SLEEP_SCORE': Sleep score computed by Garmin.
+        start_date (:class:`datetime.datetime`, optional): Start date from which sleep stages should be extracted. Defaults to None.
+        end_date (:class:`datetime.datetime`, optional): End date from which sleep stages should be extracted. Defaults to None.
         participant_id (:class:`str`, optional): ID of the participants. Defaults to "all".
+    
+    Returns:
+        dict: Dictionary with calendar day as key, and time spent in `sleep_stage` as value.
     """
     data_dict = {}
     if participant_id == "all":
@@ -43,19 +54,19 @@ def get_sleep_summary_stage_by_day(loader, metric, start_date=None, end_date=Non
 
     if not isinstance(participant_id, list):
         raise TypeError("participant_ids has to be a list.")
-    if metric == 'REM':
+    if sleep_stage == 'REM':
         column = _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_REM_MS_COL
-    elif metric == 'LIGHT_SLEEP':
+    elif sleep_stage == 'LIGHT_SLEEP':
         column = _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_LIGHT_SLEEP_MS_COL
-    elif metric == 'DEEP_SLEEP':
+    elif sleep_stage == 'DEEP_SLEEP':
         column = _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_DEEP_SLEEP_MS_COL
-    elif metric == 'AWAKE':
+    elif sleep_stage == 'AWAKE':
         column = _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_AWAKE_SLEEP_MS_COL
-    elif metric == 'UNMEASURABLE':
+    elif sleep_stage == 'UNMEASURABLE':
         column = _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_UNMEASURABLE_SLEEP_MS_COL
-    elif metric == 'DURATION':
+    elif sleep_stage == 'DURATION':
         column = _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_MS_COL
-    elif metric == 'SLEEP_SCORE':
+    elif sleep_stage == 'SLEEP_SCORE':
         column = _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SCORE_COL
     else:
         raise ValueError("Invalid metric")
@@ -69,8 +80,20 @@ def get_sleep_summary_stage_by_day(loader, metric, start_date=None, end_date=Non
         
     return data_dict
 
-def get_sleep_summary_stage_average(loader, metric, start_date=None, end_date=None, participant_id="all"):
-    data_dict = get_sleep_summary_stage_by_day(loader, metric, start_date, end_date, participant_id="all")
+def get_sleep_summary_stage_average(loader, sleep_stage, start_date=None, end_date=None, participant_id="all"):
+    """"Get average time spent in a sleep stage across timerange.
+
+    Args:
+        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
+        sleep_stage (str): Type of sleep stage or metric to be extracted.
+        start_date (:class:`datetime.datetime`, optional): Start date from which REM data should be extracted. Defaults to None.
+        end_date (:class:`datetime.datetime`, optional): End date from which REM data should be extracted. Defaults to None.
+        participant_id (:class:`str`, optional): ID of the participants. Defaults to "all".
+
+    Returns:
+        dict: Dictionary with participant id as key, and average time spent in `sleep_stage` as value.
+    """
+    data_dict = get_sleep_summary_stage_by_day(loader, sleep_stage, start_date, end_date, participant_id)
     average_dict = {}
     for participant in data_dict.keys():
         average_dict[participant] = np.array(list(data_dict[participant].values())).mean()
