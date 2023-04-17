@@ -20,18 +20,3 @@ start_dt = datetime.datetime(2023,1,1)
 end_dt = datetime.datetime(2023,4,28)
 
 labfront_loader = loader.LabfrontLoader(BASE_FOLDER)
-
-#heart_rate = loader.load_garmin_connect_pulse_ox(id)
-#print(heart_rate.columns)
-#plt.plot(heart_rate.isoDate, heart_rate.spo2)
-#plt.show()
-
-rem = sleep.get_rem_sleep(labfront_loader, participant_id="all")
-#print(rem)
-
-average_rem = sleep.get_average_rem_sleep(labfront_loader, participant_id="all")
-
-ls = sleep.get_sleep_duration(labfront_loader, start_dt, end_dt, "all")
-
-average_ls = sleep.get_average_sleep_score(labfront_loader, participant_id="all")
-print(average_ls)

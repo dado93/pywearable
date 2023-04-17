@@ -51,7 +51,9 @@ _LABFRONT_GARMIN_DEVICE_RESPIRATION_STRING = _LABFRONT_GARMIN_DEVICE_STRING + '-
 _LABFRONT_GARMIN_DEVICE_STEP_STRING = _LABFRONT_GARMIN_DEVICE_STRING + '-step'
 _LABFRONT_GARMIN_DEVICE_STRESS_STRING = _LABFRONT_GARMIN_DEVICE_STRING + '-stress'
 
-class LabfrontLoader:
+class Loader:
+    pass
+class LabfrontLoader(Loader):
     """This class is required to manage all the loading operations of 
     Labfront data.
 
