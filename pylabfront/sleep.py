@@ -293,3 +293,36 @@ def get_average_sleep_score(loader, start_date=None, end_date=None, participant_
         dict: Average sleep score by participant.
     """
     return get_sleep_summary_stage_average(loader, "SLEEP_SCORE", start_date, end_date, participant_id)
+
+def get_sleep_statistics(loader, start_date=None, end_date=None, participant_id="all", average=False):
+    data_dict = {}
+    for participant in participant_id:
+        hypnogram = loader.load_hypnogram(participant, start_date, end_date)
+    
+def get_time_in_bed(loader, start_date=None, end_date=None, participant_id="all", average=False):
+    
+    pass
+
+def get_sleep_period_time():
+    pass
+
+def get_wake_after_sleep_onset():
+    pass
+
+def get_total_sleep_time():
+    pass
+
+def get_sleep_efficiency():
+    pass
+
+def get_sleep_maintenance_efficiency():
+    pass
+
+def get_sleep_onset_latency():
+    pass
+
+def get_sleep_latencies():
+    pass
+
+def get_number_of_arousals():
+    pass
