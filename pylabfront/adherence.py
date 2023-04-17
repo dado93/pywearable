@@ -1,3 +1,9 @@
+"""
+This module contains all the functions related to the analysis
+of Labfront adherence.
+"""
+
+
 import pylabfront.utils as utils
 import pandas as pd
 
