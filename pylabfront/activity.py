@@ -233,16 +233,161 @@ def get_avg_weekly_activities(loader, start_dt=None, end_dt=None, participant_id
     return weekday_activities_dict
 
 def get_avg_weekday_sedentary(loader, start_dt=None, end_dt=None, participant_ids="all"):
-    pass
+    """ Get the daily average amount of time (in minutes) spent sedentary
+    by participants of interest in a given time frame, for working days (Mon-Fri)
 
-def get_avg_weekday_active():
-    pass
+    Args:
+        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
+        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
+        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
+        participant_ids (list): List of participants of interest. Defaults to "all".
 
-def get_avg_weekend_sedentary():
-    pass
+    Returns:
+        dict: Dictionary reporting for every participant of interest the 
+        average daily amount of minutes spent sedentary.
+    """
 
-def get_avg_weekend_active():
-    pass
+    avg_sedentary_dict = {}
+ 
+    for k,v in get_avg_weekly_activities(loader,start_dt,end_dt,participant_ids).items():
+        if v is None:
+            avg_sedentary_dict[k] = None
+        else:
+            df = v.reset_index()
+            avg_sedentary_dict[k] = round(df.loc[df.weekday.isin(range(0,5))].SEDENTARY.mean(),1)
 
+    return avg_sedentary_dict
+
+
+def get_avg_weekday_active(loader, start_dt=None, end_dt=None, participant_ids="all"):
+    """ Get the daily average amount of time (in minutes) spent active
+    by participants of interest in a given time frame, for working days (Mon-Fri)
+
+    Args:
+        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
+        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
+        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
+        participant_ids (list): List of participants of interest. Defaults to "all".
+
+    Returns:
+        dict: Dictionary reporting for every participant of interest the 
+        average daily amount of minutes spent active.
+    """
+
+    avg_active_dict = {}
+ 
+    for k,v in get_avg_weekly_activities(loader,start_dt,end_dt,participant_ids).items():
+        if v is None:
+            avg_active_dict[k] = None
+        else:
+            df = v.reset_index()
+            avg_active_dict[k] = round(df.loc[df.weekday.isin(range(0,5))].ACTIVE.mean(),1)
+
+    return avg_active_dict
+
+def get_avg_weekday_highly_active(loader, start_dt=None, end_dt=None, participant_ids="all"):
+    """ Get the daily average amount of time (in minutes) spent highly active
+    by participants of interest in a given time frame, for working days (Mon-Fri)
+
+    Args:
+        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
+        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
+        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
+        participant_ids (list): List of participants of interest. Defaults to "all".
+
+    Returns:
+        dict: Dictionary reporting for every participant of interest the 
+        average daily amount of minutes spent highly active.
+    """
+
+    avg_highly_active_dict = {}
+ 
+    for k,v in get_avg_weekly_activities(loader,start_dt,end_dt,participant_ids).items():
+        if v is None:
+            avg_highly_active_dict[k] = None
+        else:
+            df = v.reset_index()
+            avg_highly_active_dict[k] = round(df.loc[df.weekday.isin(range(0,5))].HIGHLY_ACTIVE.mean(),1)
+
+    return avg_highly_active_dict
+
+def get_avg_weekend_sedentary(loader, start_dt=None, end_dt=None, participant_ids="all"):
+    """ Get the daily average amount of time (in minutes) spent sedentary
+    by participants of interest in a given time frame, during weekends (Sat/Sun)
+
+    Args:
+        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
+        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
+        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
+        participant_ids (list): List of participants of interest. Defaults to "all".
+
+    Returns:
+        dict: Dictionary reporting for every participant of interest the 
+        average daily amount of minutes spent sedentary, during weekends.
+    """
+
+    avg_sedentary_dict = {}
+ 
+    for k,v in get_avg_weekly_activities(loader,start_dt,end_dt,participant_ids).items():
+        if v is None:
+            avg_sedentary_dict[k] = None
+        else:
+            df = v.reset_index()
+            avg_sedentary_dict[k] = round(df.loc[~df.weekday.isin(range(0,5))].SEDENTARY.mean(),1)
+
+    return avg_sedentary_dict
+
+def get_avg_weekend_active(loader, start_dt=None, end_dt=None, participant_ids="all"):
+    """ Get the daily average amount of time (in minutes) spent active
+    by participants of interest in a given time frame, for weekends (Sat/Sun)
+
+    Args:
+        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
+        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
+        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
+        participant_ids (list): List of participants of interest. Defaults to "all".
+
+    Returns:
+        dict: Dictionary reporting for every participant of interest the 
+        average daily amount of minutes spent active, during weekends.
+    """
+
+    avg_active_dict = {}
+ 
+    for k,v in get_avg_weekly_activities(loader,start_dt,end_dt,participant_ids).items():
+        if v is None:
+            avg_active_dict[k] = None
+        else:
+            df = v.reset_index()
+            avg_active_dict[k] = round(df.loc[~df.weekday.isin(range(0,5))].ACTIVE.mean(),1)
+
+    return avg_active_dict
+
+def get_avg_weekend_highly_active(loader, start_dt=None, end_dt=None, participant_ids="all"):
+    """ Get the daily average amount of time (in minutes) spent highly active
+    by participants of interest in a given time frame, for weekends (Sat/Sun)
+
+    Args:
+        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
+        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
+        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
+        participant_ids (list): List of participants of interest. Defaults to "all".
+
+    Returns:
+        dict: Dictionary reporting for every participant of interest the 
+        average daily amount of minutes spent highly active, during weekends.
+    """
+
+    avg_highly_active_dict = {}
+ 
+    for k,v in get_avg_weekly_activities(loader,start_dt,end_dt,participant_ids).items():
+        if v is None:
+            avg_highly_active_dict[k] = None
+        else:
+            df = v.reset_index()
+            avg_highly_active_dict[k] = round(df.loc[~df.weekday.isin(range(0,5))].HIGHLY_ACTIVE.mean(),1)
+
+    return avg_highly_active_dict
+   
 
 # partecipants, start_dt, end_dt -> dict k: part_id, v: return
