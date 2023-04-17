@@ -2,6 +2,7 @@ import time
 import pandas as pd
 
 def get_summary(loader):
+    # TODO COMPLETELY CHANGE ??
     """ Returns a general summary of the latest update of every metric for every participant
     
     Args:
@@ -47,3 +48,29 @@ def get_summary(loader):
 
     df = pd.DataFrame(features_dictionary)
     return df.T
+
+def is_task_repetable(file_path):
+    """Returns boolean indication of questionnaire/todo repetability
+
+    Args:
+        file_path (Path): path to the folder of the questionnaire/todo csv files
+
+    Returns:
+        bool: Indication if the questionnaire/todo is repeatable
+    """
+    csv_path = list((file_path).iterdir())[0]
+    with open(csv_path,"r") as f:
+        for _ in range(5):
+            line = f.readline().split(",")
+    return line[7] == "true"
+
+def is_workday(day):
+    """ Indication if the day considered is a normally a working day (Mon to Fri) or not (Sat/Sun).
+
+    Args:
+        day (datatime): date of interest.
+
+    Returns:
+        bool: True/False depending if day is a working day or not.
+    """
+    pass

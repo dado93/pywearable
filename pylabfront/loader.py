@@ -136,19 +136,49 @@ class LabfrontLoader(Loader):
         questionnaires = set()
 
         if participant_ids == "all":
-            # get all participant ids automatically
-            participant_ids = self.ids_list
+            participant_ids = self.get_user_ids()
 
         if not isinstance(participant_ids, list):
             raise TypeError("participant_ids must be a list.")
         
         for participant_id in participant_ids:
+            participant_id = self.get_full_id(participant_id)
             participant_path = self.data_path / participant_id / _LABFRONT_QUESTIONNAIRE_STRING
             if participant_path.exists():
                 participant_questionnaires = set(os.listdir(str(participant_path)))
                 questionnaires |= participant_questionnaires
         
         return sorted(list(questionnaires))
+    
+    def get_available_todos(self, participant_ids="all"):
+        """ Get the lit of available todos.
+        
+        Args:
+            participant_ids (list):  IDs of participants. Defaults to "all",
+        
+        Returns:
+            list: alphabetically sorted names of the todos for the participant(s).
+        """
+
+        if not self.data_path.exists():
+            raise FileNotFoundError
+        
+        todos = set()
+
+        if participant_ids == "all":
+            participant_ids = self.get_user_ids()
+
+        if not isinstance(participant_ids, list):
+            raise TypeError("participant_ids has to be a list.")
+        
+        for participant_id in participant_ids:
+            participant_id = self.get_full_id(participant_id)
+            participant_path = self.data_path / participant_id / _LABFRONT_TODO_STRING
+            if participant_path.exists():
+                participant_todos = set(os.listdir(str(participant_path)))
+                todos |= participant_todos
+        
+        return sorted(list(todos))
     
     def get_time_dictionary(self):
         """Create a dictionary with start and end times for all files.
@@ -417,15 +447,16 @@ class LabfrontLoader(Loader):
 
         if participant_ids == "all":
             # get all participant ids automatically
-            participant_ids = self.ids_list
+            participant_ids = self.get_user_ids()
 
         if isinstance(participant_ids, str):
-            participant_ids = [self.get_full_id(participant_ids)]
+            participant_ids = [participant_ids]
 
         if not isinstance(participant_ids, list):
             raise TypeError("participant_ids has to be a list.")
         
         for participant_id in participant_ids:
+            participant_id = self.get_full_id(participant_id)
             participant_path = self.data_path / participant_id
             participant_metrics = set(os.listdir(str(participant_path)))
             metrics |= participant_metrics
