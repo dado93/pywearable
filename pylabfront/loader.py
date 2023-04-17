@@ -65,6 +65,8 @@ class LabfrontLoader(Loader):
         """Constructor method
         """
         self.set_path(data_path)
+        self.date_column = _LABFRONT_ISO_DATE_KEY
+        self.respiration_column = _LABFRONT_RESPIRATION_COLUMN
 
     def set_path(self, data_path):
         """Set path of Labfront data.
