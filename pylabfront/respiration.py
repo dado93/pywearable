@@ -72,7 +72,7 @@ def get_average_breaths_per_minute(loader, day_or_night=None, start_date=None, e
     data_dict = get_breaths_per_minute_per_day(loader, day_or_night, start_date, end_date, participant_id)
     average_dict = {}
     for participant in data_dict.keys():
-        average_dict[participant] = np.array(list(data_dict[participant].values())).mean()
+        average_dict[participant] = np.array(list(data_dict[participant].values())).nanmean()
     return average_dict
 
 def get_average_rest_breaths_per_minute_per_night(loader, start_date=None, end_date=None, participant_id="all"):
