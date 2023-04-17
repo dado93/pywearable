@@ -52,6 +52,7 @@ _LABFRONT_GARMIN_DEVICE_STRESS_STRING = _LABFRONT_GARMIN_DEVICE_STRING + '-stres
 
 class Loader:
     pass
+
 class LabfrontLoader(Loader):
     """This class is required to manage all the loading operations of 
     Labfront data.
@@ -516,10 +517,11 @@ class LabfrontLoader(Loader):
                                                 start_date, end_date).reset_index(drop=True)
         if len(sleep_data) > 0:
             sleep_data.loc[:,'sleep'] = 1
+        sleep_data = sleep_data.drop([x for x in sleep_data.columns if (not x in([_LABFRONT_ISO_DATE_KEY, 'sleep']))], axis=1)
         # Merge dataframes
-        merged_data = pd.merge(daily_data, sleep_data, on=_LABFRONT_ISO_DATE_KEY, how='left')
-        merged_data.loc[:,_LABFRONT_RESPIRATION_COLUMN] = merged_data[_LABFRONT_RESPIRATION_COLUMN + '_x']
-        merged_data = merged_data.drop([_LABFRONT_RESPIRATION_COLUMN + '_x', _LABFRONT_RESPIRATION_COLUMN + '_y'], axis=1)
+        # We need to merge the dataframes because the daily_data already contain sleep_data
+        merged_data = daily_data.merge(sleep_data, on=_LABFRONT_ISO_DATE_KEY, how='left')
+        merged_data.loc[merged_data.sleep != 1, 'sleep'] = 0
         return merged_data
 
     def load_garmin_connect_sleep_stage(self, participant_id, start_date=None, end_date=None):
