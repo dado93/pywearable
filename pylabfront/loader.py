@@ -40,6 +40,9 @@ _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_STRING = _LABFRONT_GARMIN_CONNECT_STRING 
 ###################################################
 _LABFRONT_SPO2_COLUMN = 'spo2'
 _LABFRONT_RESPIRATION_COLUMN = 'breathsPerMinute'
+_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATA_COL = 'calendarData'
+_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_IN_MS_COL = 'durationInMs'
+_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_STAGE_COL = 'type'
 
 # Garmin device metrics - Labfront folder names
 _LABFRONT_GARMIN_DEVICE_STRING = 'garmin-device'
@@ -593,6 +596,7 @@ class LabfrontLoader(Loader):
         if _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_STRING in self.get_available_metrics(participant_id):
             data = self.get_data_from_datetime(participant_id, _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_STRING, 
                                                 start_date, end_date)
+            data[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATA_COL] = pd.to_datetime(data[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATA_COL], format='%Y-%m-%d')
         else:
             data = pd.DataFrame()
         return data
@@ -794,3 +798,82 @@ class LabfrontLoader(Loader):
         data = self.get_data_from_datetime(participant_id, _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STRING, 
                                                 start_date, end_date)
         return data
+
+    def load_hypnogram(self, participant_id, calendar_day, resolution=1):
+        """Load hypnogram for participant.
+
+        Args:
+            participant_id (str): Unique identifier of the participant.
+            calendar_day (`class: datetime.datetime`): Calendar day for which hypnogram is requested.
+            resolution (int, optional): Desired resolution (in minutes) requested for the
+                hypnogram. Defaults to 1.
+
+        Raises:
+            ValueError: If `calendar_day` is not a valid day.
+
+        Returns:
+            `class: pandas.DataFrame`: Hypnogram data.
+        """
+        if not isinstance(calendar_day, datetime.datetime):
+            try:
+                calendar_day = datetime.datetime.strptime(calendar_day, "%Y-%m-%d")
+            except:
+                raise ValueError(f"Could not parse {calendar_day} into a valid calendar day")
+        # Get start and end days from calendar date
+        start_date = calendar_day - datetime.timedelta(days=1)
+        end_date = calendar_day + datetime.timedelta(days=1)
+        # Load sleep summary and sleep stages data
+        sleep_summary = self.load_garmin_connect_sleep_summary(participant_id=participant_id,
+                                                            start_date=start_date, end_date=end_date)
+        sleep_stages = self.load_garmin_connect_sleep_stage(participant_id=participant_id,
+                                                            start_date=start_date, end_date=end_date)
+        
+        sleep_sumary_row = sleep_summary[sleep_summary.calendarDate == calendar_day]
+        sleep_start_time = pd.to_datetime((sleep_sumary_row[_LABFRONT_UNIXTIMESTAMP_MS_KEY] + 
+                                           sleep_sumary_row[_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY]), 
+                                           unit='ms', utc=True).dt.tz_localize(None).iloc[0]
+        sleep_end_time = pd.to_datetime((sleep_sumary_row[_LABFRONT_UNIXTIMESTAMP_MS_KEY] + 
+                                            sleep_sumary_row[_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY] +
+                                            sleep_sumary_row[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_IN_MS_COL]), 
+                                            unit='ms', utc=True).dt.tz_localize(None).iloc[0]
+
+        intervals = int(divmod((sleep_end_time - sleep_start_time).total_seconds(), resolution*60)[0])
+        time_delta_intervals = [sleep_start_time + i * datetime.timedelta(minutes=1) for i in range(intervals)]
+
+        hypnogram = pd.DataFrame(data={
+            _LABFRONT_ISO_DATE_KEY: time_delta_intervals 
+        })
+        
+        hypnogram = hypnogram.merge(sleep_stages.loc[:, [_LABFRONT_ISO_DATE_KEY,
+                                                         _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_STAGE_COL]], 
+                                                         how='left', on=_LABFRONT_ISO_DATE_KEY)
+
+        hypnogram[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_STAGE_COL] = hypnogram.loc[:, _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_STAGE_COL].fillna(method='ffill')
+
+        hypnogram['stage'] = hypnogram[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_STAGE_COL].apply(self._convert_sleep_stages)
+
+        return hypnogram
+
+    def _convert_sleep_stages(self, x):
+        """Convert Garmin sleep stages from Garmin-specific to yasa values.
+
+        The implemented convention is as follows:
+            - REM: Yasa state 4
+            - awake: Yasa state 0
+            - deep: Yasa state 3
+            - others: Yasa state 1
+
+        Args:
+            x (str): Garmin sleep stage.
+
+        Returns:
+            int: Yasa sleep stage.
+        """
+        if x == 'rem':
+            return 4
+        elif x == 'awake':
+            return 0
+        elif x == 'deep':
+            return 3
+        else:
+            return 1
