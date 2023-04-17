@@ -38,7 +38,7 @@ def get_questionnaire_dict(loader, start_dt, end_dt, participant_ids="all", ques
         for questionnaire in questionnaire_names:
             adherence_dict[participant_id][questionnaire] = {}
             if questionnaire in participant_questionnaires:
-                questionnaire_df = loader.get_data_from_datetime(participant_id,_LABFRONT_QUESTIONNAIRE_STRING,start_dt,end_dt,is_questionnaire=True,task_name=questionnaire)
+                questionnaire_df = loader.load_questionnaire(participant_id,start_dt,end_dt,task_name=questionnaire)
                 timestamps = questionnaire_df.unixTimestampInMs
                 count = 0
                 for i in range(len(timestamps)):
@@ -113,7 +113,7 @@ def get_todo_dict(loader, start_dt=None, end_dt=None, participant_ids="all", tod
         for todo in todo_names:
             adherence_dict[participant_id][todo] = {}
             if todo in participant_todos:
-                todo_df = loader.get_data_from_datetime(participant_id,_LABFRONT_TODO_STRING,start_dt,end_dt,is_todo=True,task_name=todo)
+                todo_df = loader.load_todo(participant_id,start_dt,end_dt,task_name=todo)
                 timestamps = todo_df.unixTimestampInMs
                 count = 0
                 for i in range(len(timestamps)):
