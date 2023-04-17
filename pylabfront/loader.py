@@ -34,6 +34,7 @@ _LABFRONT_GARMIN_CONNECT_DAILY_RESPIRATION_STRING = _LABFRONT_GARMIN_CONNECT_STR
 _LABFRONT_GARMIN_CONNECT_SLEEP_RESPIRATION_STRING = _LABFRONT_GARMIN_CONNECT_STRING + '-sleep-respiration'
 _LABFRONT_GARMIN_CONNECT_SLEEP_STAGE_STRING = _LABFRONT_GARMIN_CONNECT_STRING + '-sleep-stage'
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_STRING = _LABFRONT_GARMIN_CONNECT_STRING + '-sleep-summary'
+_LABFRONT_GARMIN_CONNECT_EPOCH_STRING = _LABFRONT_GARMIN_CONNECT_STRING  + "-epoch"
 
 ###################################################
 #  Garmin Connect metrics - Labfront csv columns  #
@@ -788,4 +789,60 @@ class LabfrontLoader(Loader):
         """
         data = self.get_data_from_datetime(participant_id, _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STRING, 
                                                 start_date, end_date)
+        return data
+    
+    def load_garmin_connect_epoch(self, participant_id, start_date=None, end_date=None):
+        """Load Garmin Connect epoch data.
+
+        This function loads Garmin Connect epoch data from a given
+        participant and within a specified date and time range.
+
+        Args:
+            participant_id (str): Full ID of the participant
+            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
+            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
+
+        Returns:
+            pd.DataFrame: Dataframe containing Garmin Connect epoch data.
+        """
+        data = self.get_data_from_datetime(participant_id, _LABFRONT_GARMIN_CONNECT_EPOCH_STRING, 
+                                                start_date, end_date)
+        return data
+
+    def load_todo(self, participant_id, start_date=None, end_date=None, task_name=None):
+        """Load todo data.
+
+        This function loads todo data from a given
+        participant and within a specified date and time range.
+
+        Args:
+            participant_id (str): Full ID of the participant
+            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
+            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
+            task_name (str, optional): Name of the todo of interest. Defaults to None.
+
+        Returns:
+            pd.DataFrame: Dataframe containing todo data.
+        """
+        data = self.get_data_from_datetime(participant_id, _LABFRONT_TODO_STRING, 
+                                                start_date, end_date, is_todo=True, task_name=task_name)
+        return data
+
+    def load_questionnaire(self, participant_id, start_date=None, end_date=None, task_name=None):
+        """Load questionnaire data.
+
+        This function loads questionnaire data from a given
+        participant and within a specified date and time range.
+
+        Args:
+            participant_id (str): Full ID of the participant
+            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
+            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
+            task_name (str, optional): Name of the questionnaire of interest. Defaults to None.
+
+        Returns:
+            pd.DataFrame: Dataframe containing questionnaire data.
+        """
+        data = self.get_data_from_datetime(participant_id, _LABFRONT_QUESTIONNAIRE_STRING, 
+                                                start_date, end_date, is_questionnaire=True, task_name=task_name)
         return data
