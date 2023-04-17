@@ -35,7 +35,7 @@ def get_activity_by_period(loader, activity, start_dt, end_dt, participant_ids="
 
     for participant_id in participant_ids:
         try:
-            df = loader.get_data_from_datetime(participant_id,_LABFRONT_GARMIN_CONNECT_EPOCH_FOLDER,start_dt,end_dt+timedelta(hours=23,minutes=45))
+            df = loader.load_garmin_connect_epoch(participant_id,start_dt,end_dt-timedelta(minutes=15))
             activity_dict[participant_id] = pd.Series(df[df[_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL] == activity][_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].values,
                                                       index= df[df.intensity == activity].isoDate)
         except:
@@ -83,7 +83,7 @@ def get_avg_daily_activities(loader, start_dt=None, end_dt=None, participant_ids
     for participant_id in participant_ids:
         try:
             # get data for the period desired
-            df = loader.get_data_from_datetime(participant_id,_LABFRONT_GARMIN_CONNECT_EPOCH_FOLDER,start_dt,end_dt+timedelta(hours=23,minutes=45))
+            df = loader.load_garmin_connect_epoch(participant_id,start_dt,end_dt-timedelta(minutes=15))
             if len(df) == 0:
                 raise Exception
             df["date"] = df[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.date())
@@ -212,23 +212,23 @@ def get_avg_weekly_activities(loader, start_dt=None, end_dt=None, participant_id
         raise TypeError("participant_ids has to be a list.")
 
     for participant_id in participant_ids:
-            try:
-                # get data for that period
-                df = loader.get_data_from_datetime(participant_id,_LABFRONT_GARMIN_CONNECT_EPOCH_FOLDER,start_dt,end_dt+timedelta(hours=23,minutes=45))
-                if len(df) == 0:
-                    raise Exception
-                # create columns to tell for each entry which day it is, both calendar date and weekday
-                df["date"] = df[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.date())
-                df["weekday"] = df[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.weekday())
-                # calculate for every calendar date the total amount time for each activity
-                df = df.groupby(["date", _LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL, "weekday"])[_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].sum().reset_index() 
-                # calculate for every weekday the mean amount of time for each activity
-                df = df.groupby([_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL, "weekday"])[_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].mean().reset_index()
-                # make it more readable and transform MS to minutes
-                df = df.pivot(index="weekday", columns=_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL, values=_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL) / _MS_TO_MINUTES_CONVERSION
-                weekday_activities_dict[participant_id] = df.fillna(0).round(1)
-            except:
-                weekday_activities_dict[participant_id] = None
+        try:
+            # get data for that period
+            df = loader.load_garmin_connect_epoch(participant_id,start_dt,end_dt-timedelta(minutes=15))
+            if len(df) == 0:
+                raise Exception
+            # create columns to tell for each entry which day it is, both calendar date and weekday
+            df["date"] = df[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.date())
+            df["weekday"] = df[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.weekday())
+            # calculate for every calendar date the total amount time for each activity
+            df = df.groupby(["date", _LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL, "weekday"])[_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].sum().reset_index() 
+            # calculate for every weekday the mean amount of time for each activity
+            df = df.groupby([_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL, "weekday"])[_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].mean().reset_index()
+            # make it more readable and transform MS to minutes
+            df = df.pivot(index="weekday", columns=_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL, values=_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL) / _MS_TO_MINUTES_CONVERSION
+            weekday_activities_dict[participant_id] = df.fillna(0).round(1)
+        except:
+            weekday_activities_dict[participant_id] = None
 
     return weekday_activities_dict
 
