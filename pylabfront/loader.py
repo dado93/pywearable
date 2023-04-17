@@ -50,7 +50,9 @@ _LABFRONT_GARMIN_DEVICE_RESPIRATION_STRING = _LABFRONT_GARMIN_DEVICE_STRING + '-
 _LABFRONT_GARMIN_DEVICE_STEP_STRING = _LABFRONT_GARMIN_DEVICE_STRING + '-step'
 _LABFRONT_GARMIN_DEVICE_STRESS_STRING = _LABFRONT_GARMIN_DEVICE_STRING + '-stress'
 
-class LabfrontLoader:
+class Loader:
+    pass
+class LabfrontLoader(Loader):
     """This class is required to manage all the loading operations of 
     Labfront data.
 
@@ -184,7 +186,7 @@ class LabfrontLoader:
                                 # For each questionnaire/task folder
                                 participant_dict[participant_folder.name][participant_metric_folder.name][metric_data.name] = {}
                                 for csv_file in metric_data.iterdir():
-                                    if metric_data.is_file() and str(metric_data).endswith('csv'):
+                                    if csv_file.is_file() and str(csv_file).endswith('csv'):
                                         # If it is a file
                                         first_ts, last_ts = self.get_labfront_file_time_stats(csv_file)
                                         participant_dict[participant_folder.name][participant_metric_folder.name][metric_data.name][csv_file.name] = {
