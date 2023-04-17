@@ -183,7 +183,7 @@ def get_avg_daily_highly_active(loader, start_dt=None, end_dt=None, participant_
 
     return highly_active_dict
 
-def get_avg_weekly_activities(loader, start_dt=None, end_dt=None, participant_ids="all"):
+def get_avg_weekly_activities(loader, start_dt=None, end_dt=None, participant_ids="all",return_as_ratio=False):
     """Creates a dictionary reporting for every participant of interest
     a DataFrame detailing the mean amount of time spent for activity level for
     every day of the week (0 to 6, 0 being Monday and 6 Sunday)
@@ -193,7 +193,8 @@ def get_avg_weekly_activities(loader, start_dt=None, end_dt=None, participant_id
         start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
         end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
         participant_ids (list): List of participants of interest. Defaults to "all".
-
+        return_as_ratio (bool): Whather to return the amount of time as ratio or minutes. Defaults to False.
+        
     Returns:
         dict: Dictionary of the weekly activities of the participants (as a DataFrame).
         If no activity was registered in the period of interest for a partecipant,
@@ -222,17 +223,26 @@ def get_avg_weekly_activities(loader, start_dt=None, end_dt=None, participant_id
             df["weekday"] = df[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.weekday())
             # calculate for every calendar date the total amount time for each activity
             df = df.groupby(["date", _LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL, "weekday"])[_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].sum().reset_index() 
-            # calculate for every weekday the mean amount of time for each activity
-            df = df.groupby([_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL, "weekday"])[_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].mean().reset_index()
-            # make it more readable and transform MS to minutes
-            df = df.pivot(index="weekday", columns=_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL, values=_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL) / _MS_TO_MINUTES_CONVERSION
-            weekday_activities_dict[participant_id] = df.fillna(0).round(1)
+            if return_as_ratio:
+                activity_df = df.pivot(index=["date","weekday"],
+                                       columns=_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL,
+                                         values=_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL).reset_index()
+                time_collected_df = df.groupby(["date"])[_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].sum().reset_index()
+                ratio_df = pd.concat([activity_df.iloc[:,2:].div(time_collected_df[_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL],axis=0).fillna(0),
+                                      activity_df.weekday],axis=1)
+                weekday_activities_dict[participant_id] = (ratio_df.groupby("weekday").mean()*100).round(1)
+            else:       
+                # calculate for every weekday the mean amount of time for each activity
+                df = df.groupby([_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL, "weekday"])[_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].mean().reset_index()
+                # make it more readable and transform MS to minutes
+                df = df.pivot(index="weekday", columns=_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL, values=_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL) / _MS_TO_MINUTES_CONVERSION
+                weekday_activities_dict[participant_id] = df.fillna(0).round(1)
         except:
             weekday_activities_dict[participant_id] = None
 
     return weekday_activities_dict
 
-def get_avg_weekday_sedentary(loader, start_dt=None, end_dt=None, participant_ids="all"):
+def get_avg_weekday_sedentary(loader, start_dt=None, end_dt=None, participant_ids="all",return_as_ratio=False):
     """ Get the daily average amount of time (in minutes) spent sedentary
     by participants of interest in a given time frame, for working days (Mon-Fri)
 
@@ -241,6 +251,7 @@ def get_avg_weekday_sedentary(loader, start_dt=None, end_dt=None, participant_id
         start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
         end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
         participant_ids (list): List of participants of interest. Defaults to "all".
+        return_as_ratio (bool): Whather to return the amount of time as ratio or minutes. Defaults to False.
 
     Returns:
         dict: Dictionary reporting for every participant of interest the 
@@ -249,7 +260,7 @@ def get_avg_weekday_sedentary(loader, start_dt=None, end_dt=None, participant_id
 
     avg_sedentary_dict = {}
  
-    for k,v in get_avg_weekly_activities(loader,start_dt,end_dt,participant_ids).items():
+    for k,v in get_avg_weekly_activities(loader,start_dt,end_dt,participant_ids,return_as_ratio).items():
         if v is None:
             avg_sedentary_dict[k] = None
         else:
@@ -259,7 +270,7 @@ def get_avg_weekday_sedentary(loader, start_dt=None, end_dt=None, participant_id
     return avg_sedentary_dict
 
 
-def get_avg_weekday_active(loader, start_dt=None, end_dt=None, participant_ids="all"):
+def get_avg_weekday_active(loader, start_dt=None, end_dt=None, participant_ids="all",return_as_ratio=False):
     """ Get the daily average amount of time (in minutes) spent active
     by participants of interest in a given time frame, for working days (Mon-Fri)
 
@@ -268,6 +279,7 @@ def get_avg_weekday_active(loader, start_dt=None, end_dt=None, participant_ids="
         start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
         end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
         participant_ids (list): List of participants of interest. Defaults to "all".
+        return_as_ratio (bool): Whather to return the amount of time as ratio or minutes. Defaults to False.
 
     Returns:
         dict: Dictionary reporting for every participant of interest the 
@@ -276,7 +288,7 @@ def get_avg_weekday_active(loader, start_dt=None, end_dt=None, participant_ids="
 
     avg_active_dict = {}
  
-    for k,v in get_avg_weekly_activities(loader,start_dt,end_dt,participant_ids).items():
+    for k,v in get_avg_weekly_activities(loader,start_dt,end_dt,participant_ids,return_as_ratio).items():
         if v is None:
             avg_active_dict[k] = None
         else:
@@ -285,7 +297,7 @@ def get_avg_weekday_active(loader, start_dt=None, end_dt=None, participant_ids="
 
     return avg_active_dict
 
-def get_avg_weekday_highly_active(loader, start_dt=None, end_dt=None, participant_ids="all"):
+def get_avg_weekday_highly_active(loader, start_dt=None, end_dt=None, participant_ids="all",return_as_ratio=False):
     """ Get the daily average amount of time (in minutes) spent highly active
     by participants of interest in a given time frame, for working days (Mon-Fri)
 
@@ -294,6 +306,7 @@ def get_avg_weekday_highly_active(loader, start_dt=None, end_dt=None, participan
         start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
         end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
         participant_ids (list): List of participants of interest. Defaults to "all".
+        return_as_ratio (bool): Whather to return the amount of time as ratio or minutes. Defaults to False.
 
     Returns:
         dict: Dictionary reporting for every participant of interest the 
@@ -302,7 +315,7 @@ def get_avg_weekday_highly_active(loader, start_dt=None, end_dt=None, participan
 
     avg_highly_active_dict = {}
  
-    for k,v in get_avg_weekly_activities(loader,start_dt,end_dt,participant_ids).items():
+    for k,v in get_avg_weekly_activities(loader,start_dt,end_dt,participant_ids,return_as_ratio).items():
         if v is None:
             avg_highly_active_dict[k] = None
         else:
@@ -311,7 +324,7 @@ def get_avg_weekday_highly_active(loader, start_dt=None, end_dt=None, participan
 
     return avg_highly_active_dict
 
-def get_avg_weekend_sedentary(loader, start_dt=None, end_dt=None, participant_ids="all"):
+def get_avg_weekend_sedentary(loader, start_dt=None, end_dt=None, participant_ids="all",return_as_ratio=False):
     """ Get the daily average amount of time (in minutes) spent sedentary
     by participants of interest in a given time frame, during weekends (Sat/Sun)
 
@@ -320,6 +333,7 @@ def get_avg_weekend_sedentary(loader, start_dt=None, end_dt=None, participant_id
         start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
         end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
         participant_ids (list): List of participants of interest. Defaults to "all".
+        return_as_ratio (bool): Whather to return the amount of time as ratio or minutes. Defaults to False.
 
     Returns:
         dict: Dictionary reporting for every participant of interest the 
@@ -328,7 +342,7 @@ def get_avg_weekend_sedentary(loader, start_dt=None, end_dt=None, participant_id
 
     avg_sedentary_dict = {}
  
-    for k,v in get_avg_weekly_activities(loader,start_dt,end_dt,participant_ids).items():
+    for k,v in get_avg_weekly_activities(loader,start_dt,end_dt,participant_ids,return_as_ratio).items():
         if v is None:
             avg_sedentary_dict[k] = None
         else:
@@ -337,7 +351,7 @@ def get_avg_weekend_sedentary(loader, start_dt=None, end_dt=None, participant_id
 
     return avg_sedentary_dict
 
-def get_avg_weekend_active(loader, start_dt=None, end_dt=None, participant_ids="all"):
+def get_avg_weekend_active(loader, start_dt=None, end_dt=None, participant_ids="all",return_as_ratio=False):
     """ Get the daily average amount of time (in minutes) spent active
     by participants of interest in a given time frame, for weekends (Sat/Sun)
 
@@ -346,6 +360,7 @@ def get_avg_weekend_active(loader, start_dt=None, end_dt=None, participant_ids="
         start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
         end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
         participant_ids (list): List of participants of interest. Defaults to "all".
+        return_as_ratio (bool): Whather to return the amount of time as ratio or minutes. Defaults to False.
 
     Returns:
         dict: Dictionary reporting for every participant of interest the 
@@ -354,7 +369,7 @@ def get_avg_weekend_active(loader, start_dt=None, end_dt=None, participant_ids="
 
     avg_active_dict = {}
  
-    for k,v in get_avg_weekly_activities(loader,start_dt,end_dt,participant_ids).items():
+    for k,v in get_avg_weekly_activities(loader,start_dt,end_dt,participant_ids,return_as_ratio).items():
         if v is None:
             avg_active_dict[k] = None
         else:
@@ -363,7 +378,7 @@ def get_avg_weekend_active(loader, start_dt=None, end_dt=None, participant_ids="
 
     return avg_active_dict
 
-def get_avg_weekend_highly_active(loader, start_dt=None, end_dt=None, participant_ids="all"):
+def get_avg_weekend_highly_active(loader, start_dt=None, end_dt=None, participant_ids="all",return_as_ratio=False):
     """ Get the daily average amount of time (in minutes) spent highly active
     by participants of interest in a given time frame, for weekends (Sat/Sun)
 
@@ -372,6 +387,7 @@ def get_avg_weekend_highly_active(loader, start_dt=None, end_dt=None, participan
         start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
         end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
         participant_ids (list): List of participants of interest. Defaults to "all".
+        return_as_ratio (bool): Whather to return the amount of time as ratio or minutes. Defaults to False.
 
     Returns:
         dict: Dictionary reporting for every participant of interest the 
@@ -380,7 +396,7 @@ def get_avg_weekend_highly_active(loader, start_dt=None, end_dt=None, participan
 
     avg_highly_active_dict = {}
  
-    for k,v in get_avg_weekly_activities(loader,start_dt,end_dt,participant_ids).items():
+    for k,v in get_avg_weekly_activities(loader,start_dt,end_dt,participant_ids,return_as_ratio).items():
         if v is None:
             avg_highly_active_dict[k] = None
         else:
@@ -388,6 +404,3 @@ def get_avg_weekend_highly_active(loader, start_dt=None, end_dt=None, participan
             avg_highly_active_dict[k] = round(df.loc[~df.weekday.isin(range(0,5))].HIGHLY_ACTIVE.mean(),1)
 
     return avg_highly_active_dict
-   
-
-# partecipants, start_dt, end_dt -> dict k: part_id, v: return
