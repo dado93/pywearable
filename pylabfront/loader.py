@@ -841,6 +841,6 @@ class LabfrontLoader:
         Returns:
             pd.DataFrame: Dataframe containing questionnaire data.
         """
-        data = self.get_data_from_datetime(participant_id, _LABFRONT_GARMIN_CONNECT_EPOCH_STRING, 
+        data = self.get_data_from_datetime(participant_id, _LABFRONT_QUESTIONNAIRE_STRING, 
                                                 start_date, end_date, is_questionnaire=True, task_name=task_name)
         return data
