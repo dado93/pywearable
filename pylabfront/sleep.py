@@ -2,8 +2,11 @@
 This module contains all the functions related to analysis
 of Labfront sleep data.
 """
+
 import numpy as np
 import pandas as pd
+import datetime
+import yasa
 
 _LABFRONT_GARMIN_CONNECT_SLEEP_STAGE_REM_MS_COL = 'remSleepInMs'
 _LABFRONT_GARMIN_CONNECT_SLEEP_STAGE_DEEP_SLEEP_MS_COL = 'deepSleepDurationInMs'
@@ -19,6 +22,7 @@ _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_UNMEASURABLE_SLEEP_MS_COL = 'unmeasurable
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_MS_COL = 'durationInMs'
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SCORE_COL = 'overallSleepScore'
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL = 'calendarDate'
+
 
 def get_sleep_summary_stage_by_day(loader, sleep_stage, start_date=None, end_date=None, participant_id="all"):
     """Get total time spent in a sleep stage for each day.
@@ -40,7 +44,7 @@ def get_sleep_summary_stage_by_day(loader, sleep_stage, start_date=None, end_dat
         start_date (:class:`datetime.datetime`, optional): Start date from which sleep stages should be extracted. Defaults to None.
         end_date (:class:`datetime.datetime`, optional): End date from which sleep stages should be extracted. Defaults to None.
         participant_id (:class:`str`, optional): ID of the participants. Defaults to "all".
-    
+
     Returns:
         dict: Dictionary with calendar day as key, and time spent in `sleep_stage` as value.
     """
@@ -71,14 +75,16 @@ def get_sleep_summary_stage_by_day(loader, sleep_stage, start_date=None, end_dat
     else:
         raise ValueError("Invalid metric")
 
-    for participant in participant_id: 
+    for participant in participant_id:
         # Load sleep summary data
-        participant_sleep_summary = loader.load_garmin_connect_sleep_summary(participant, start_date, end_date)
+        participant_sleep_summary = loader.load_garmin_connect_sleep_summary(
+            participant, start_date, end_date)
         if len(participant_sleep_summary) > 0:
-            data_dict[participant] = pd.Series(participant_sleep_summary[column].values, 
-                                              index=participant_sleep_summary[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL]).to_dict()
-        
+            data_dict[participant] = pd.Series(participant_sleep_summary[column].values,
+                                               index=participant_sleep_summary[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL]).to_dict()
+
     return data_dict
+
 
 def get_sleep_summary_stage_average(loader, sleep_stage, start_date=None, end_date=None, participant_id="all"):
     """"Get average time spent in a sleep stage across timerange.
@@ -93,11 +99,14 @@ def get_sleep_summary_stage_average(loader, sleep_stage, start_date=None, end_da
     Returns:
         dict: Dictionary with participant id as key, and average time spent in `sleep_stage` as value.
     """
-    data_dict = get_sleep_summary_stage_by_day(loader, sleep_stage, start_date, end_date, participant_id)
+    data_dict = get_sleep_summary_stage_by_day(
+        loader, sleep_stage, start_date, end_date, participant_id)
     average_dict = {}
     for participant in data_dict.keys():
-        average_dict[participant] = np.array(list(data_dict[participant].values())).mean()
+        average_dict[participant] = np.array(
+            list(data_dict[participant].values())).mean()
     return average_dict
+
 
 def get_rem_sleep(loader, start_date=None, end_date=None, participant_id="all"):
     """Get REM sleep time for each day.
@@ -114,6 +123,7 @@ def get_rem_sleep(loader, start_date=None, end_date=None, participant_id="all"):
     """
     return get_sleep_summary_stage_by_day(loader, "REM", start_date, end_date, participant_id)
 
+
 def get_average_rem_sleep(loader, start_date=None, end_date=None, participant_id="all"):
     """Get average REM sleep time across time range.
 
@@ -128,6 +138,7 @@ def get_average_rem_sleep(loader, start_date=None, end_date=None, participant_id
         participant_id (:class:`str`, optional): ID of the participants. Defaults to "all".
     """
     return get_sleep_summary_stage_average(loader, "REM", start_date, end_date, participant_id)
+
 
 def get_light_sleep(loader, start_date=None, end_date=None, participant_id="all"):
     """Get light sleep time for each day.
@@ -144,6 +155,7 @@ def get_light_sleep(loader, start_date=None, end_date=None, participant_id="all"
     """
     return get_sleep_summary_stage_by_day(loader, "LIGHT_SLEEP", start_date, end_date, participant_id)
 
+
 def get_average_light_sleep(loader, start_date=None, end_date=None, participant_id="all"):
     """Get average light sleep time across time range.
 
@@ -158,6 +170,7 @@ def get_average_light_sleep(loader, start_date=None, end_date=None, participant_
         participant_id (:class:`str`, optional): ID of the participants. Defaults to "all".
     """
     return get_sleep_summary_stage_average(loader, "LIGHT_SLEEP", start_date, end_date, participant_id)
+
 
 def get_deep_sleep(loader, start_date=None, end_date=None, participant_id="all"):
     """Get deep sleep time for each day.
@@ -174,6 +187,7 @@ def get_deep_sleep(loader, start_date=None, end_date=None, participant_id="all")
     """
     return get_sleep_summary_stage_by_day(loader, "DEEP_SLEEP", start_date, end_date, participant_id)
 
+
 def get_average_deep_sleep(loader, start_date=None, end_date=None, participant_id="all"):
     """Get average deep sleep time across time range.
 
@@ -188,6 +202,7 @@ def get_average_deep_sleep(loader, start_date=None, end_date=None, participant_i
         participant_id (:class:`str`, optional): ID of the participants. Defaults to "all".
     """
     return get_sleep_summary_stage_average(loader, "DEEP_SLEEP", start_date, end_date, participant_id)
+
 
 def get_awake_sleep(loader, start_date=None, end_date=None, participant_id="all"):
     """Get awake sleep time for each day.
@@ -204,6 +219,7 @@ def get_awake_sleep(loader, start_date=None, end_date=None, participant_id="all"
     """
     return get_sleep_summary_stage_by_day(loader, "AWAKE", start_date, end_date, participant_id)
 
+
 def get_average_awake_sleep(loader, start_date=None, end_date=None, participant_id="all"):
     """Get average wake sleep time across time range.
 
@@ -216,11 +232,12 @@ def get_average_awake_sleep(loader, start_date=None, end_date=None, participant_
         start_date (:class:`datetime.datetime`, optional): Start date from which awake sleep data should be extracted. Defaults to None.
         end_date (:class:`datetime.datetime`, optional): End date from which awake sleep data should be extracted. Defaults to None.
         participant_id (:class:`str`, optional): ID of the participants. Defaults to "all".
-    
+
     Return:
         dict: average awake sleep.
     """
     return get_sleep_summary_stage_average(loader, "AWAKE", start_date, end_date, participant_id)
+
 
 def get_sleep_duration(loader, start_date=None, end_date=None, participant_id="all"):
     """Get sleep duration for each day.
@@ -240,6 +257,7 @@ def get_sleep_duration(loader, start_date=None, end_date=None, participant_id="a
     """
     return get_sleep_summary_stage_by_day(loader, "DURATION", start_date, end_date, participant_id)
 
+
 def get_average_sleep_duration(loader, start_date=None, end_date=None, participant_id="all"):
     """Get average sleep duration across time range.
 
@@ -252,11 +270,12 @@ def get_average_sleep_duration(loader, start_date=None, end_date=None, participa
         start_date (:class:`datetime.datetime`, optional): Start date from which sleep duration should be extracted. Defaults to None.
         end_date (:class:`datetime.datetime`, optional): End date from which sleep duration should be extracted. Defaults to None.
         participant_id (:class:`str`, optional): ID of the participants. Defaults to "all".
-    
+
     Return:
         dict: average awake sleep.
     """
     return get_sleep_summary_stage_average(loader, "DURATION", start_date, end_date, participant_id)
+
 
 def get_sleep_score(loader, start_date=None, end_date=None, participant_id="all"):
     """Get sleep score for each day.
@@ -276,6 +295,7 @@ def get_sleep_score(loader, start_date=None, end_date=None, participant_id="all"
     """
     return get_sleep_summary_stage_by_day(loader, "SLEEP_SCORE", start_date, end_date, participant_id)
 
+
 def get_average_sleep_score(loader, start_date=None, end_date=None, participant_id="all"):
     """Get average sleep score across time range.
 
@@ -288,8 +308,69 @@ def get_average_sleep_score(loader, start_date=None, end_date=None, participant_
         start_date (:class:`datetime.datetime`, optional): Start date from which sleep score should be extracted. Defaults to None.
         end_date (:class:`datetime.datetime`, optional): End date from which sleep score should be extracted. Defaults to None.
         participant_id (:class:`str`, optional): ID of the participants. Defaults to "all".
-    
+
     Return:
         dict: Average sleep score by participant.
     """
     return get_sleep_summary_stage_average(loader, "SLEEP_SCORE", start_date, end_date, participant_id)
+
+
+def get_sleep_statistics(loader, start_date=None, end_date=None,
+                         participant_id="all", resolution=1, average=False):
+    data_dict = {}
+    intervals = int(
+        divmod((end_date - start_date).total_seconds(), 3600*12)[0])
+    calendar_days = [
+        start_date + i * datetime.timedelta(days=1) for i in range(intervals)]
+    for participant in participant_id:
+        data_dict[participant] = {}
+        for calendar_day in calendar_days:
+            hypnogram = loader.load_hypnogram(
+                participant, calendar_day, resolution)
+            if len(hypnogram) > 0:
+                data_dict[participant][calendar_day] = {}
+                sleep_statistics = yasa.sleep_statistics(
+                    hypnogram['stage'], 1/(resolution*60))
+                if not average:
+                    data_dict[participant][calendar_day] = sleep_statistics
+                else:
+                    for statistic in sleep_statistics.keys():
+                        data_dict[participant][calendar_day][statistic] = np.array(
+                            list(sleep_statistics[statistic])).nanmean()
+
+
+def get_time_in_bed(loader, start_date=None, end_date=None, participant_id="all", average=False):
+
+    pass
+
+
+def get_sleep_period_time():
+    pass
+
+
+def get_wake_after_sleep_onset():
+    pass
+
+
+def get_total_sleep_time():
+    pass
+
+
+def get_sleep_efficiency():
+    pass
+
+
+def get_sleep_maintenance_efficiency():
+    pass
+
+
+def get_sleep_onset_latency():
+    pass
+
+
+def get_sleep_latencies():
+    pass
+
+
+def get_number_of_arousals():
+    pass
