@@ -317,6 +317,16 @@ def get_average_sleep_score(loader, start_date=None, end_date=None, participant_
 
 def get_sleep_statistics(loader, start_date=None, end_date=None,
                          participant_id="all", resolution=1, average=False):
+    if participant_id == "all":
+        # get all participant ids automatically
+        participant_id = loader.get_user_ids()
+
+    if isinstance(participant_id, str):
+        participant_id = [participant_id]
+
+    if not isinstance(participant_id, list):
+        raise TypeError("participant_ids has to be a list.")
+
     data_dict = {}
     intervals = int(
         divmod((end_date - start_date).total_seconds(), 3600*12)[0])
@@ -325,9 +335,9 @@ def get_sleep_statistics(loader, start_date=None, end_date=None,
     for participant in participant_id:
         data_dict[participant] = {}
         for calendar_day in calendar_days:
-            hypnogram = loader.load_hypnogram(
-                participant, calendar_day, resolution)
-            if len(hypnogram) > 0:
+            try:
+                hypnogram = loader.load_hypnogram(
+                    participant, calendar_day, resolution)
                 data_dict[participant][calendar_day] = {}
                 sleep_statistics = yasa.sleep_statistics(
                     hypnogram['stage'], 1/(resolution*60))
@@ -337,6 +347,10 @@ def get_sleep_statistics(loader, start_date=None, end_date=None,
                     for statistic in sleep_statistics.keys():
                         data_dict[participant][calendar_day][statistic] = np.array(
                             list(sleep_statistics[statistic])).nanmean()
+            except:
+                data_dict[participant][calendar_day] = None
+
+    return data_dict
 
 
 def get_time_in_bed(loader, start_date=None, end_date=None, participant_id="all", average=False):
