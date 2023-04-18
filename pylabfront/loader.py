@@ -37,14 +37,14 @@ _LABFRONT_GARMIN_CONNECT_SLEEP_RESPIRATION_STRING = _LABFRONT_GARMIN_CONNECT_STR
     '-sleep-respiration'
 _LABFRONT_GARMIN_CONNECT_SLEEP_STAGE_STRING = _LABFRONT_GARMIN_CONNECT_STRING + '-sleep-stage'
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_STRING = _LABFRONT_GARMIN_CONNECT_STRING + '-sleep-summary'
-_LABFRONT_GARMIN_CONNECT_EPOCH_STRING = _LABFRONT_GARMIN_CONNECT_STRING  + "-epoch"
+_LABFRONT_GARMIN_CONNECT_EPOCH_STRING = _LABFRONT_GARMIN_CONNECT_STRING + "-epoch"
 
 ###################################################
 #  Garmin Connect metrics - Labfront csv columns  #
 ###################################################
 _LABFRONT_SPO2_COLUMN = 'spo2'
 _LABFRONT_RESPIRATION_COLUMN = 'breathsPerMinute'
-_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATA_COL = 'calendarData'
+_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATA_COL = 'calendarDate'
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_IN_MS_COL = 'durationInMs'
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_STAGE_COL = 'type'
 
@@ -623,13 +623,10 @@ class LabfrontLoader(Loader):
         Returns:
             pd.DataFrame: Dataframe containing Garmin Connect sleep summary data.
         """
-        if _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_STRING in self.get_available_metrics(participant_id):
-            data = self.get_data_from_datetime(participant_id, _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_STRING,
-                                               start_date, end_date)
-            data[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATA_COL] = pd.to_datetime(
-                data[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATA_COL], format='%Y-%m-%d')
-        else:
-            data = pd.DataFrame()
+        data = self.get_data_from_datetime(participant_id, _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_STRING,
+                                           start_date, end_date)
+        data[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATA_COL] = pd.to_datetime(
+            data[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATA_COL], format='%Y-%m-%d')
         return data
 
     def load_garmin_connect_stress(self, participant_id, start_date=None, end_date=None):
@@ -829,7 +826,7 @@ class LabfrontLoader(Loader):
         data = self.get_data_from_datetime(participant_id, _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STRING,
                                            start_date, end_date)
         return data
-    
+
     def load_garmin_connect_epoch(self, participant_id, start_date=None, end_date=None):
         """Load Garmin Connect epoch data.
 
@@ -844,8 +841,8 @@ class LabfrontLoader(Loader):
         Returns:
             pd.DataFrame: Dataframe containing Garmin Connect epoch data.
         """
-        data = self.get_data_from_datetime(participant_id, _LABFRONT_GARMIN_CONNECT_EPOCH_STRING, 
-                                                start_date, end_date)
+        data = self.get_data_from_datetime(participant_id, _LABFRONT_GARMIN_CONNECT_EPOCH_STRING,
+                                           start_date, end_date)
         return data
 
     def load_todo(self, participant_id, start_date=None, end_date=None, task_name=None):
@@ -863,8 +860,8 @@ class LabfrontLoader(Loader):
         Returns:
             pd.DataFrame: Dataframe containing todo data.
         """
-        data = self.get_data_from_datetime(participant_id, _LABFRONT_TODO_STRING, 
-                                                start_date, end_date, is_todo=True, task_name=task_name)
+        data = self.get_data_from_datetime(participant_id, _LABFRONT_TODO_STRING,
+                                           start_date, end_date, is_todo=True, task_name=task_name)
         return data
 
     def load_questionnaire(self, participant_id, start_date=None, end_date=None, task_name=None):
@@ -882,8 +879,8 @@ class LabfrontLoader(Loader):
         Returns:
             pd.DataFrame: Dataframe containing questionnaire data.
         """
-        data = self.get_data_from_datetime(participant_id, _LABFRONT_QUESTIONNAIRE_STRING, 
-                                                start_date, end_date, is_questionnaire=True, task_name=task_name)
+        data = self.get_data_from_datetime(participant_id, _LABFRONT_QUESTIONNAIRE_STRING,
+                                           start_date, end_date, is_questionnaire=True, task_name=task_name)
         return data
 
     def load_hypnogram(self, participant_id, calendar_day, resolution=1):
@@ -913,17 +910,21 @@ class LabfrontLoader(Loader):
         # Load sleep summary and sleep stages data
         sleep_summary = self.load_garmin_connect_sleep_summary(participant_id=participant_id,
                                                                start_date=start_date, end_date=end_date)
-        sleep_stages = self.load_garmin_connect_sleep_stage(participant_id=participant_id,
-                                                            start_date=start_date, end_date=end_date)
 
-        sleep_sumary_row = sleep_summary[sleep_summary.calendarDate == calendar_day]
-        sleep_start_time = pd.to_datetime((sleep_sumary_row[_LABFRONT_UNIXTIMESTAMP_MS_KEY] +
-                                           sleep_sumary_row[_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY]),
+        sleep_summary_row = sleep_summary[sleep_summary.calendarDate == calendar_day].reset_index(
+            drop=True)
+
+        sleep_start_time = pd.to_datetime((sleep_summary_row[_LABFRONT_UNIXTIMESTAMP_MS_KEY] +
+                                           sleep_summary_row[_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY]),
                                           unit='ms', utc=True).dt.tz_localize(None).iloc[0]
-        sleep_end_time = pd.to_datetime((sleep_sumary_row[_LABFRONT_UNIXTIMESTAMP_MS_KEY] +
-                                         sleep_sumary_row[_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY] +
-                                         sleep_sumary_row[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_IN_MS_COL]),
+
+        sleep_end_time = pd.to_datetime((sleep_summary_row[_LABFRONT_UNIXTIMESTAMP_MS_KEY] +
+                                         sleep_summary_row[_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY] +
+                                         sleep_summary_row[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_IN_MS_COL]),
                                         unit='ms', utc=True).dt.tz_localize(None).iloc[0]
+
+        sleep_stages = self.load_garmin_connect_sleep_stage(participant_id=participant_id,
+                                                            start_date=sleep_start_time, end_date=sleep_end_time)
 
         intervals = int(
             divmod((sleep_end_time - sleep_start_time).total_seconds(), resolution*60)[0])
@@ -969,4 +970,3 @@ class LabfrontLoader(Loader):
             return 3
         else:
             return 1
-        
