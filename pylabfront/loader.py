@@ -20,6 +20,8 @@ _LABFRONT_TODO_STRING = 'todo'
 _LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY = 'timezoneOffsetInMs'
 _LABFRONT_GARMIN_DEVICE_TIMEZONEOFFSET_MS_KEY = 'timezone'
 _LABFRONT_UNIXTIMESTAMP_MS_KEY = 'unixTimestampInMs'
+_LABFRONT_TODO_NAME_KEY = 'todoName'
+_LABFRONT_QUESTIONNAIRE_NAME_KEY = 'questionnaireName'
 
 ###################################################
 # Garmin Connect metrics - Labfront folder names  #
@@ -90,6 +92,7 @@ class LabfrontLoader(Loader):
         self.ids_dict = self.get_ids(return_dict=True)
         self.ids_list = self.get_participant_list()
         self.data_dictionary = self.get_time_dictionary()
+        self.tasks_dict = self.get_available_questionnaires(return_dict=True) | self.get_available_todos(return_dict=True)
 
     def get_user_ids(self):
         return self.ids
@@ -133,12 +136,14 @@ class LabfrontLoader(Loader):
                            v in self.get_ids(return_dict=True).items()]
         return participant_ids
 
-    def get_available_questionnaires(self, participant_ids="all"):
+    def get_available_questionnaires(self, participant_ids="all",return_dict=False):
         """Get the list of available questionnaires.
 
         Args:
             participant_ids (list):  IDs of participants. Defaults to "all".
-
+            return_dict (bool): Whether to return a dictionary of the name of the questionnaires
+            and their full ids, or simply a sorted list of the available questionnaires. Defaults to False.
+        
         Returns:
             list: alphabetically sorted names of the questionnaires for the participant(s).
         """
@@ -146,6 +151,7 @@ class LabfrontLoader(Loader):
             raise FileNotFoundError
 
         questionnaires = set()
+        questionnaires_dict = {}
 
         if participant_ids == "all":
             participant_ids = self.get_user_ids()
@@ -158,18 +164,29 @@ class LabfrontLoader(Loader):
             participant_path = self.data_path / \
                 participant_id / _LABFRONT_QUESTIONNAIRE_STRING
             if participant_path.exists():
-                participant_questionnaires = set(
-                    os.listdir(str(participant_path)))
+                participant_questionnaires = set(os.listdir(str(participant_path)))
+                if return_dict:
+                    # for every new questionnaire
+                    for questionnaire in (participant_questionnaires - questionnaires):
+                        # get its name
+                        questionnaire_name = pd.read_csv(list((participant_path / questionnaire).iterdir())[0]
+                                                         , nrows=1, skiprows=_LABFRONT_CSV_STATS_SKIP_ROWS)[_LABFRONT_QUESTIONNAIRE_NAME_KEY][0]
+                        questionnaires_dict[questionnaire_name.lower()] = questionnaire
                 questionnaires |= participant_questionnaires
-
-        return sorted(list(questionnaires))
-
-    def get_available_todos(self, participant_ids="all"):
+        
+        if return_dict:
+            return questionnaires_dict
+        else:
+            return sorted(list(questionnaires))
+    
+    def get_available_todos(self, participant_ids="all",return_dict=False):
         """ Get the lit of available todos.
 
         Args:
-            participant_ids (list):  IDs of participants. Defaults to "all",
-
+            participant_ids (list):  IDs of participants. Defaults to "all".
+            return_dict (bool): Whether to return a dictionary of the name of the todos
+            and their full ids, or simply a sorted list of the available todos. Defaults to False.
+        
         Returns:
             list: alphabetically sorted names of the todos for the participant(s).
         """
@@ -178,6 +195,7 @@ class LabfrontLoader(Loader):
             raise FileNotFoundError
 
         todos = set()
+        todos_dict = {}
 
         if participant_ids == "all":
             participant_ids = self.get_user_ids()
@@ -190,10 +208,20 @@ class LabfrontLoader(Loader):
             participant_path = self.data_path / participant_id / _LABFRONT_TODO_STRING
             if participant_path.exists():
                 participant_todos = set(os.listdir(str(participant_path)))
+                if return_dict:
+                    # for every new todo
+                    for todo in (participant_todos - todos):
+                        # get its name
+                        todo_name = pd.read_csv(list((participant_path / todo).iterdir())[0]
+                                                         , nrows=1, skiprows=_LABFRONT_CSV_STATS_SKIP_ROWS)[_LABFRONT_TODO_NAME_KEY][0]
+                        todos_dict[todo_name.lower()] = todo
                 todos |= participant_todos
-
-        return sorted(list(todos))
-
+        
+        if return_dict:
+            return todos_dict
+        else:
+            return sorted(list(todos))
+    
     def get_time_dictionary(self):
         """Create a dictionary with start and end times for all files.
 
@@ -382,7 +410,9 @@ class LabfrontLoader(Loader):
             raise ValueError("Select only questionnaire or todo.")
         if (is_questionnaire or is_todo) and (task_name is None):
             raise ValueError("Specify name of questionnaire or of todo.")
-
+        if is_questionnaire or is_todo:
+            task_name = self.get_task_full_id(task_name.lower())
+        
         if participant_id not in self.ids:
             raise ValueError(f"participant_id {participant_id} not found.")
 
@@ -503,6 +533,17 @@ class LabfrontLoader(Loader):
             str: Full participant ID.
         """
         return id + "_" + self.ids_dict[id]
+    
+    def get_task_full_id(self, task_id):
+        """Get full task ID.
+
+        Args:
+            task_id (str): Name of the task (questionnaire or todo).
+
+        Returns:
+            str: Full task ID.
+        """
+        return self.tasks_dict[task_id]
 
     def load_garmin_connect_heart_rate(self, participant_id, start_date=None, end_date=None):
         """Load Garmin Connect heart rate data.
