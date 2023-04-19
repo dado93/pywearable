@@ -171,7 +171,7 @@ class LabfrontLoader(Loader):
                         # get its name
                         questionnaire_name = pd.read_csv(list((participant_path / questionnaire).iterdir())[0]
                                                          , nrows=1, skiprows=_LABFRONT_CSV_STATS_SKIP_ROWS)[_LABFRONT_QUESTIONNAIRE_NAME_KEY][0]
-                        questionnaires_dict[questionnaire_name] = questionnaire
+                        questionnaires_dict[questionnaire_name.lower()] = questionnaire
                 questionnaires |= participant_questionnaires
         
         if return_dict:
@@ -214,7 +214,7 @@ class LabfrontLoader(Loader):
                         # get its name
                         todo_name = pd.read_csv(list((participant_path / todo).iterdir())[0]
                                                          , nrows=1, skiprows=_LABFRONT_CSV_STATS_SKIP_ROWS)[_LABFRONT_TODO_NAME_KEY][0]
-                        todos_dict[todo_name] = todo
+                        todos_dict[todo_name.lower()] = todo
                 todos |= participant_todos
         
         if return_dict:
@@ -411,7 +411,7 @@ class LabfrontLoader(Loader):
         if (is_questionnaire or is_todo) and (task_name is None):
             raise ValueError("Specify name of questionnaire or of todo.")
         if is_questionnaire or is_todo:
-            task_name = self.get_task_full_id(task_name)
+            task_name = self.get_task_full_id(task_name.lower())
         
         if participant_id not in self.ids:
             raise ValueError(f"participant_id {participant_id} not found.")
