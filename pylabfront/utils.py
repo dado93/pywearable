@@ -1,6 +1,22 @@
 import time
 import pandas as pd
 
+
+def get_user_ids(loader, user_ids):
+    if user_ids == "all":
+        user_ids = loader.get_user_ids()
+
+    if isinstance(user_ids, str):
+        if user_ids not in loader.get_user_ids():
+            raise ValueError("User not found")
+        else:
+            user_ids = [user_ids]
+
+    if not isinstance(user_ids, list):
+        raise TypeError("participant_ids has to be a list.")
+    
+    return user_ids
+
 def get_summary(loader):
     # TODO COMPLETELY CHANGE ??
     """ Returns a general summary of the latest update of every metric for every participant
@@ -64,13 +80,13 @@ def is_task_repetable(file_path):
             line = f.readline().split(",")
     return line[7] == "true"
 
-def is_workday(day):
-    """ Indication if the day considered is a normally a working day (Mon to Fri) or not (Sat/Sun).
+def is_weekend(day):
+    """ Indication if the day considered is either a Saturday or Sunday.
 
     Args:
         day (datatime): date of interest.
 
     Returns:
-        bool: True/False depending if day is a working day or not.
+        bool: True/False depending if day is a weekend day or not.
     """
-    pass
+    return day.weekday() in [5,6]
