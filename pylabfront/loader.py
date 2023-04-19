@@ -40,6 +40,7 @@ _LABFRONT_GARMIN_CONNECT_SLEEP_RESPIRATION_STRING = _LABFRONT_GARMIN_CONNECT_STR
 _LABFRONT_GARMIN_CONNECT_SLEEP_STAGE_STRING = _LABFRONT_GARMIN_CONNECT_STRING + '-sleep-stage'
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_STRING = _LABFRONT_GARMIN_CONNECT_STRING + '-sleep-summary'
 _LABFRONT_GARMIN_CONNECT_EPOCH_STRING = _LABFRONT_GARMIN_CONNECT_STRING + "-epoch"
+_LABFRONT_GARMIN_CONNECT_STRESS_STRING = _LABFRONT_GARMIN_CONNECT_STRING + "-stress"
 
 ###################################################
 #  Garmin Connect metrics - Labfront csv columns  #
@@ -684,25 +685,7 @@ class LabfrontLoader(Loader):
         Returns:
             pd.DataFrame: Dataframe containing Garmin Connect stress data.
         """
-        data = self.get_data_from_datetime(participant_id, _LABFRONT_GARMIN_CONNECT_SLEEP_STAGE_STRING,
-                                           start_date, end_date)
-        return data
-
-    def load_garmin_connect_stress(self, participant_id, start_date=None, end_date=None):
-        """Load Garmin Connect stress data.
-
-        This function loads Garmin Connect stress data from a given
-        participant and within a specified date and time range.
-
-        Args:
-            participant_id (str): Full ID of the participant
-            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
-
-        Returns:
-            pd.DataFrame: Dataframe containing Garmin Connect stress data.
-        """
-        data = self.get_data_from_datetime(participant_id, _LABFRONT_GARMIN_CONNECT_SLEEP_STAGE_STRING,
+        data = self.get_data_from_datetime(participant_id, _LABFRONT_GARMIN_CONNECT_STRESS_STRING,
                                            start_date, end_date)
         return data
 
