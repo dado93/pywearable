@@ -9,10 +9,6 @@ import numpy as np
 
 from datetime import timedelta
 
-
-_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_FOLDER = "garmin-connect-daily-summary"
-_LABFRONT_GARMIN_CONNECT_EPOCH_FOLDER = "garmin-connect-epoch"
-
 _LABFRONT_ISO_DATE_KEY = 'isoDate'
 _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL = 'calendarDate'
 _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STEPS_COL = 'steps'
@@ -56,7 +52,7 @@ def get_highly_active(loader, start_dt, end_dt, participant_ids="all"):
 def get_sedentary(loader, start_dt, end_dt, participant_ids="all"):
     return get_activity_by_period(loader, "SEDENTARY", start_dt, end_dt, participant_ids)
 
-def get_steps_per_day(loader, start_dt=None, end_dt=None, participant_ids="all"):
+def get_steps_per_day(loader, start_dt=None, end_dt=None, participant_ids="all",average=False):
     """Get steps for each day.
 
     This function returns the total daily steps for the given participant(s) 
@@ -67,6 +63,7 @@ def get_steps_per_day(loader, start_dt=None, end_dt=None, participant_ids="all")
         start_dt (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
         end_dt (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
         participant_ids (list, optional): List of participants of interest. Defaults to "all".
+        average (bool, optional): Indication whather to calculate the average. Defaults to False.
 
     Returns:
         dict: Dictionary of daily number of steps for participants of interest
@@ -82,12 +79,17 @@ def get_steps_per_day(loader, start_dt=None, end_dt=None, participant_ids="all")
     for participant_id in participant_ids: 
         participant_daily_summary = loader.load_garmin_connect_daily_summary(participant_id, start_dt, end_dt)
         if len(participant_daily_summary) > 0:
-            data_dict[participant_id] = pd.Series(participant_daily_summary[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STEPS_COL].values, 
+            if average:
+                data_dict[participant_id] = int(participant_daily_summary[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STEPS_COL].values.mean())
+            else:
+                data_dict[participant_id] = pd.Series(participant_daily_summary[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STEPS_COL].values, 
                                               index=participant_daily_summary[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL]).to_dict()
+        else:
+            data_dict[participant_id] = None
         
     return data_dict
 
-def get_distance_per_day(loader, start_dt=None, end_dt=None, participant_ids="all"):
+def get_distance_per_day(loader, start_dt=None, end_dt=None, participant_ids="all",average=False):
     """Get distance covered for each day.
 
     This function returns the amount of meters covered for the given participant(s) 
@@ -98,6 +100,7 @@ def get_distance_per_day(loader, start_dt=None, end_dt=None, participant_ids="al
         start_dt (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
         end_dt (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
         participant_ids (list, optional): List of participants of interest. Defaults to "all".
+        average (bool, optional): Indication whather to calculate the average. Defaults to False.
 
     Returns:
         dict: Dictionary of daily meters covered by participants of interest
@@ -112,52 +115,15 @@ def get_distance_per_day(loader, start_dt=None, end_dt=None, participant_ids="al
     for participant_id in participant_ids: 
         participant_daily_summary = loader.load_garmin_connect_daily_summary(participant_id, start_dt, end_dt)
         if len(participant_daily_summary) > 0:
-            data_dict[participant_id] = pd.Series(participant_daily_summary[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_DISTANCE_COL].values, 
+            if average:
+                data_dict[participant_id] = int(participant_daily_summary[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_DISTANCE_COL].values.mean())
+            else:
+                data_dict[participant_id] = pd.Series(participant_daily_summary[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_DISTANCE_COL].values, 
                                               index=participant_daily_summary[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL]).to_dict()
-        
+        else:
+            data_dict[participant_id] = None
+
     return data_dict
-
-def get_average_distance(loader, start_dt=None, end_dt=None, participant_ids="all"):
-    """Get average distance covered daily.
-
-    This function returns the average daily amount of meters covered
-    by the given participant(s) in a time period from ``start_date`` to ``end_date``
-
-    Args:
-        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_dat (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
-        end_dt (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
-        participant_ids (list, optional): List of participants of interest. Defaults to "all".
-
-    Returns:
-        dict: Dictionary of average daily meters covered by participants of interest
-    """
-    data_dict = get_distance_per_day(loader, start_dt, end_dt, participant_ids)
-    average_dict = {}
-    for participant in data_dict.keys():
-        average_dict[participant] = round(np.array(list(data_dict[participant].values())).mean())
-    return average_dict
-
-def get_average_steps(loader, start_dt=None, end_dt=None, participant_ids="all"):
-    """Get average daily steps.
-
-    This function returns the amount of steps done by the given participant(s) 
-    in a time period from ``start_date`` to ``end_date``
-
-    Args:
-        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_dt (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
-        end_dt (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
-        participant_ids (list, optional): List of participants of interest. Defaults to "all".
-
-    Returns:
-        dict: Dictionary of average daily steps done by participants of interest
-    """
-    data_dict = get_steps_per_day(loader, start_dt, end_dt, participant_ids)
-    average_dict = {}
-    for participant in data_dict.keys():
-        average_dict[participant] = round(np.array(list(data_dict[participant].values())).mean())
-    return average_dict
 
 def get_avg_daily_activities(loader, start_dt=None, end_dt=None, participant_ids="all",return_as_ratio=False):
     """Create a dictionary reporting for every participant of interest
