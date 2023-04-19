@@ -52,6 +52,50 @@ def get_highly_active(loader, start_dt, end_dt, participant_ids="all"):
 def get_sedentary(loader, start_dt, end_dt, participant_ids="all"):
     return get_activity_by_period(loader, "SEDENTARY", start_dt, end_dt, participant_ids)
 
+def get_steps(loader, start_dt, end_dt, participant_ids="all"):
+    
+    steps_dict = {}
+
+    if participant_ids == "all":
+        participant_ids = loader.get_user_ids()
+
+    if isinstance(participant_ids, str):
+        participant_ids = [participant_ids]
+
+    if not isinstance(participant_ids, list):
+        raise TypeError("participant_ids has to be a list.")
+    
+    for participant_id in participant_ids:
+        try:
+            df = loader.load_garmin_connect_epoch(participant_id,start_dt,end_dt-timedelta(minutes=15))
+            steps_dict[participant_id] = df.groupby(_LABFRONT_ISO_DATE_KEY)[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STEPS_COL].sum()
+        except:
+            steps_dict[participant_id] = None
+
+    return steps_dict
+
+def get_distance(loader, start_dt, end_dt, participant_ids="all"):
+    
+    distance_dict = {}
+
+    if participant_ids == "all":
+        participant_ids = loader.get_user_ids()
+
+    if isinstance(participant_ids, str):
+        participant_ids = [participant_ids]
+
+    if not isinstance(participant_ids, list):
+        raise TypeError("participant_ids has to be a list.")
+    
+    for participant_id in participant_ids:
+        try:
+            df = loader.load_garmin_connect_epoch(participant_id,start_dt,end_dt-timedelta(minutes=15))
+            distance_dict[participant_id] = df.groupby(_LABFRONT_ISO_DATE_KEY)[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_DISTANCE_COL ].sum()
+        except:
+            distance_dict[participant_id] = None
+
+    return distance_dict    
+
 def get_steps_per_day(loader, start_dt=None, end_dt=None, participant_ids="all",average=False):
     """Get steps for each day.
 
