@@ -154,11 +154,7 @@ class LabfrontLoader(Loader):
         questionnaires = set()
         questionnaires_dict = {}
 
-        if participant_ids == "all":
-            participant_ids = self.get_user_ids()
-
-        if not isinstance(participant_ids, list):
-            raise TypeError("participant_ids must be a list.")
+        participant_ids = utils.get_user_ids(self, participant_ids)
 
         for participant_id in participant_ids:
             participant_id = self.get_full_id(participant_id)
@@ -198,11 +194,7 @@ class LabfrontLoader(Loader):
         todos = set()
         todos_dict = {}
 
-        if participant_ids == "all":
-            participant_ids = self.get_user_ids()
-
-        if not isinstance(participant_ids, list):
-            raise TypeError("participant_ids has to be a list.")
+        participant_ids = utils.get_user_ids(self,participant_ids)
 
         for participant_id in participant_ids:
             participant_id = self.get_full_id(participant_id)
@@ -507,15 +499,7 @@ class LabfrontLoader(Loader):
         """
         metrics = set()
 
-        if participant_ids == "all":
-            # get all participant ids automatically
-            participant_ids = self.get_user_ids()
-
-        if isinstance(participant_ids, str):
-            participant_ids = [participant_ids]
-
-        if not isinstance(participant_ids, list):
-            raise TypeError("participant_ids has to be a list.")
+        participant_ids = utils.get_user_ids(self,participant_ids)
 
         for participant_id in participant_ids:
             participant_id = self.get_full_id(participant_id)

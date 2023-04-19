@@ -126,73 +126,65 @@ def get_daily_stress_metrics(loader, start_date=None, end_date=None, participant
 
     return data_dict
 
-def get_daily_stress_profiles(loader, start_date=None, end_date=None, participant_ids="all"):
-    pass
-
-
-def get_sleep_summary_stage_by_day(loader, sleep_stage, start_date=None, end_date=None, participant_id="all"):
-    """Get total time spent in a sleep stage for each day.
-
-    This function returns the absolute time spent in a certain sleep stage for
-    the given participant(s) for each given day from ``start_date`` to
-    ``end_date``, in units of milliseconds.
+def get_average_stress_weekday(loader, start_date=None, end_date=None, participant_ids="all"):
+    """ Gets the average daily stress in working days (Mon-Fri)
 
     Args:
         loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        sleep_stage (str): Type of sleep stage or metric to be extracted.
-                            'REM': REM sleep stage.
-                            'LIGHT_SLEEP': Light sleep stage.
-                            'DEEP_SLEEP': Deep sleep stage.
-                            'AWAKE': Awake sleep stage.
-                            'UNMEASURABLE': Unmeasureable sleep stage.
-                            'DURATION': Total duration of sleep.
-                            'SLEEP_SCORE': Sleep score computed by Garmin.
-        start_date (:class:`datetime.datetime`, optional): Start date from which sleep stages should be extracted. Defaults to None.
-        end_date (:class:`datetime.datetime`, optional): End date from which sleep stages should be extracted. Defaults to None.
-        participant_id (:class:`str`, optional): ID of the participants. Defaults to "all".
+        start_date (:class:`datetime.datetime`, optional): Start date from which REM data should be extracted. Defaults to None.
+        end_date (:class:`datetime.datetime`, optional): End date from which REM data should be extracted. Defaults to None.
+        participant_ids (str, optional): ID of the participants. Defaults to "all".
 
     Returns:
-        dict: Dictionary with calendar day as key, and time spent in `sleep_stage` as value.
+        dict: Dictionary with participant ID(s) as key(s) and average workday stress as value(s)
     """
     data_dict = {}
-    if participant_id == "all":
-        # get all participant ids automatically
-        participant_id = loader.get_user_ids()
+    participant_ids = utils.get_user_ids(loader,participant_ids)
 
-    if isinstance(participant_id, str):
-        participant_id = [participant_id]
-
-    if not isinstance(participant_id, list):
-        raise TypeError("participant_ids has to be a list.")
-    if sleep_stage == 'REM':
-        column = _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_REM_MS_COL
-    elif sleep_stage == 'LIGHT_SLEEP':
-        column = _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_LIGHT_SLEEP_MS_COL
-    elif sleep_stage == 'DEEP_SLEEP':
-        column = _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_DEEP_SLEEP_MS_COL
-    elif sleep_stage == 'AWAKE':
-        column = _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_AWAKE_SLEEP_MS_COL
-    elif sleep_stage == 'UNMEASURABLE':
-        column = _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_UNMEASURABLE_SLEEP_MS_COL
-    elif sleep_stage == 'DURATION':
-        column = _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_MS_COL
-    elif sleep_stage == 'SLEEP_SCORE':
-        column = _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SCORE_COL
-    else:
-        raise ValueError("Invalid metric")
-
-    for participant in participant_id:
-        # Load sleep summary data
-        participant_sleep_summary = loader.load_garmin_connect_sleep_summary(
-            participant, start_date, end_date)
-        if len(participant_sleep_summary) > 0:
-            data_dict[participant] = pd.Series(participant_sleep_summary[column].values,
-                                               index=participant_sleep_summary[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL]).to_dict()
+    for partecipant_id in participant_ids:
+        df =loader.load_garmin_connect_daily_summary(partecipant_id,
+                                                     start_date,
+                                                     end_date-timedelta(minutes=15))
+        if len(df) > 0:
+            df["weekday"] = df[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.weekday())
+            df.groupby("weekday")[_LABFRONT_AVERAGE_STRESS_KEY].mean().reset_index()
+            df["isWeekend"] = ~df["weekday"].isin(range(0,5))
+            data_dict[partecipant_id] = round(df.groupby("isWeekend")["averageStressInStressLevel"].mean()[False],1)
+        else:
+            data_dict[partecipant_id] = None
 
     return data_dict
 
-def get_stress_per_weekday():
-    pass
+def get_average_stress_weekend(loader, start_date=None, end_date=None, participant_ids="all"):
+    """ Gets the average daily stress in weekends (Sat-Sun)
 
-def get_stress_per_weekend():
+    Args:
+        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
+        start_date (:class:`datetime.datetime`, optional): Start date from which REM data should be extracted. Defaults to None.
+        end_date (:class:`datetime.datetime`, optional): End date from which REM data should be extracted. Defaults to None.
+        participant_ids (str, optional): ID of the participants. Defaults to "all".
+
+    Returns:
+        dict: Dictionary with participant ID(s) as key(s) and average weekend stress as value(s)
+    """
+    data_dict = {}
+    participant_ids = utils.get_user_ids(loader,participant_ids)
+
+    for partecipant_id in participant_ids:
+        df = loader.load_garmin_connect_daily_summary(partecipant_id,
+                                                     start_date,
+                                                     end_date-timedelta(minutes=15))
+        if len(df) > 0:
+            df["weekday"] = df[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.weekday())
+            df.groupby("weekday")[_LABFRONT_AVERAGE_STRESS_KEY].mean().reset_index()
+            df["isWeekend"] = ~df["weekday"].isin(range(0,5))
+            data_dict[partecipant_id] = round(df.groupby("isWeekend")["averageStressInStressLevel"].mean()[True],1)
+        else:
+            data_dict[partecipant_id] = None
+
+    return data_dict
+
+
+def get_daily_stress_profiles(loader, start_date=None, end_date=None, participant_ids="all"):
+    # take inspiration from sleep summary stage by day for this one
     pass
