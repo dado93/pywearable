@@ -24,14 +24,7 @@ def get_activity_by_period(loader, activity, start_dt, end_dt, participant_ids="
 
     activity_dict = {}
 
-    if participant_ids == "all":
-        participant_ids = loader.get_user_ids()
-
-    if isinstance(participant_ids, str):
-        participant_ids = [participant_ids]
-
-    if not isinstance(participant_ids, list):
-        raise TypeError("participant_ids has to be a list.")
+    participant_ids = utils.get_user_ids(loader,participant_ids)
 
     for participant_id in participant_ids:
         try:
@@ -56,14 +49,7 @@ def get_steps(loader, start_dt, end_dt, participant_ids="all"):
     
     steps_dict = {}
 
-    if participant_ids == "all":
-        participant_ids = loader.get_user_ids()
-
-    if isinstance(participant_ids, str):
-        participant_ids = [participant_ids]
-
-    if not isinstance(participant_ids, list):
-        raise TypeError("participant_ids has to be a list.")
+    participant_ids = utils.get_user_ids(loader,participant_ids)
     
     for participant_id in participant_ids:
         try:
@@ -78,14 +64,7 @@ def get_distance(loader, start_dt, end_dt, participant_ids="all"):
     
     distance_dict = {}
 
-    if participant_ids == "all":
-        participant_ids = loader.get_user_ids()
-
-    if isinstance(participant_ids, str):
-        participant_ids = [participant_ids]
-
-    if not isinstance(participant_ids, list):
-        raise TypeError("participant_ids has to be a list.")
+    participant_ids = utils.get_user_ids(loader,participant_ids)
     
     for participant_id in participant_ids:
         try:
@@ -114,11 +93,8 @@ def get_steps_per_day(loader, start_dt=None, end_dt=None, participant_ids="all",
     """
 
     data_dict = {}
-    if participant_ids == "all":
-        participant_ids = loader.get_user_ids()
-
-    if isinstance(participant_ids, str):
-        participant_ids = [participant_ids]
+    
+    participant_ids = utils.get_user_ids(loader,participant_ids)
 
     for participant_id in participant_ids: 
         participant_daily_summary = loader.load_garmin_connect_daily_summary(participant_id, start_dt, end_dt-timedelta(minutes=15))
@@ -150,11 +126,8 @@ def get_distance_per_day(loader, start_dt=None, end_dt=None, participant_ids="al
         dict: Dictionary of daily meters covered by participants of interest
     """
     data_dict = {}
-    if participant_ids == "all":
-        participant_ids = loader.get_user_ids()
-
-    if isinstance(participant_ids, str):
-        participant_ids = [participant_ids]
+    
+    participant_ids = utils.get_user_ids(loader,participant_ids)
 
     for participant_id in participant_ids: 
         participant_daily_summary = loader.load_garmin_connect_daily_summary(participant_id, start_dt, end_dt-timedelta(minutes=15))
@@ -187,14 +160,7 @@ def get_avg_daily_activities(loader, start_dt=None, end_dt=None, participant_ids
 
     activities_dict = {}
 
-    if participant_ids == "all":
-        participant_ids = loader.get_user_ids()
-
-    if isinstance(participant_ids, str):
-        participant_ids = [participant_ids]
-    
-    if not isinstance(participant_ids, list):
-        raise TypeError("participant_ids has to be a list.")
+    participant_ids = utils.get_user_ids(loader,participant_ids)
     
     for participant_id in participant_ids:
         try:
@@ -319,14 +285,7 @@ def get_avg_weekly_activities(loader, start_dt=None, end_dt=None, participant_id
 
     weekday_activities_dict = {}
 
-    if participant_ids == "all":
-        participant_ids = loader.get_user_ids()
-
-    if isinstance(participant_ids, str):
-        participant_ids = [participant_ids]
-
-    if not isinstance(participant_ids, list):
-        raise TypeError("participant_ids has to be a list.")
+    participant_ids = utils.get_user_ids(loader,participant_ids)
 
     for participant_id in participant_ids:
         try:
