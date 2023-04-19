@@ -528,7 +528,7 @@ class LabfrontLoader(Loader):
         Returns:
             str: Full task ID.
         """
-        return self.tasks_dict[task_id]
+        return self.tasks_dict[task_id.lower()]
 
     def load_garmin_connect_heart_rate(self, participant_id, start_date=None, end_date=None):
         """Load Garmin Connect heart rate data.

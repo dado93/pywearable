@@ -186,5 +186,5 @@ def get_average_stress_weekend(loader, start_date=None, end_date=None, participa
 
 
 def get_daily_stress_profiles(loader, start_date=None, end_date=None, participant_ids="all"):
-    # take inspiration from sleep summary stage by day for this one
+    # take inspiration from sleep summary stage by day in sleep submodule for this one
     pass
