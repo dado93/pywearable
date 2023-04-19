@@ -39,3 +39,6 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/', None),
     'numpy': ('http://docs.scipy.org/doc/numpy/', None)
 }
+
+napoleon_google_docstring = False
+napoleon_numpy_docstring = True

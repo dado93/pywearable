@@ -1,14 +1,18 @@
-from pathlib import Path
-import datetime
-import matplotlib.pyplot as plt
-import pandas as pd
-import seaborn as sns
-import pylabfront.sleep as sleep
-import pylabfront.loader as loader
+
 import sys
 import os
 
 sys.path.insert(0, os.path.abspath('../pylabfront'))
+
+
+import pylabfront.loader as loader
+import pylabfront.sleep as sleep
+import seaborn as sns
+import pandas as pd
+import matplotlib.pyplot as plt
+import datetime
+from pathlib import Path
+import pandas as pd
 
 
 BASE_FOLDER = Path('data') / 'pmi-mini_pilot' / \
@@ -18,9 +22,16 @@ BASE_FOLDER = Path('data') / 'pmi-mini_pilot' / \
 id = 'WRSD-PMI-01'
 
 start_dt = datetime.datetime(2023, 3, 24)
-end_dt = datetime.datetime(2023, 4, 28)
+end_dt = datetime.datetime(2023, 3, 30)
 
 labfront_loader = loader.LabfrontLoader(BASE_FOLDER)
 
-sleep_stats = sleep.get_sleep_statistics(labfront_loader, start_dt, end_dt, id)
+sleep_stats = sleep.get_sleep_statistics(labfront_loader, start_dt, end_dt, id, average=True)
+#print(sleep_stats[id])
+
+#sleep_stats_df = pd.DataFrame.from_dict(sleep_stats[id], orient='index')
+
 print(sleep_stats)
+
+tib = sleep.get_time_in_bed(labfront_loader, start_dt, end_dt, id, average=False)
+print(tib)
