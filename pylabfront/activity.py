@@ -77,7 +77,7 @@ def get_steps_per_day(loader, start_dt=None, end_dt=None, participant_ids="all",
         participant_ids = [participant_ids]
 
     for participant_id in participant_ids: 
-        participant_daily_summary = loader.load_garmin_connect_daily_summary(participant_id, start_dt, end_dt)
+        participant_daily_summary = loader.load_garmin_connect_daily_summary(participant_id, start_dt, end_dt-timedelta(minutes=15))
         if len(participant_daily_summary) > 0:
             if average:
                 data_dict[participant_id] = int(participant_daily_summary[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STEPS_COL].values.mean())
@@ -113,7 +113,7 @@ def get_distance_per_day(loader, start_dt=None, end_dt=None, participant_ids="al
         participant_ids = [participant_ids]
 
     for participant_id in participant_ids: 
-        participant_daily_summary = loader.load_garmin_connect_daily_summary(participant_id, start_dt, end_dt)
+        participant_daily_summary = loader.load_garmin_connect_daily_summary(participant_id, start_dt, end_dt-timedelta(minutes=15))
         if len(participant_daily_summary) > 0:
             if average:
                 data_dict[participant_id] = int(participant_daily_summary[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_DISTANCE_COL].values.mean())
