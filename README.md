@@ -14,8 +14,11 @@ At this stage of development, the package can be installed only through `setup.p
 2. `cd pylabfront`
 3. `python setup.py` or, if you want to contribute to the project, `python setup.py develop`
 
+## Contributing
+
 ## Documentation
-The documentation of the package can be built locally using [sphinx](www.sphinx-doc.org)
+The format for documentation is [numpy-style](https://numpydoc.readthedocs.io/en/latest/format.html).
+The documentation of the package can be built locally using [sphinx](www.sphinx-doc.org).
 1. `cd docs`
 2. `make html`
 3. Open in your browser the file index.html that you can find in docs/_build/html
