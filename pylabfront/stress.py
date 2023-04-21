@@ -4,6 +4,7 @@ of Labfront stress data.
 """
 
 import pylabfront.utils as utils
+import pylabfront.sleep as sleep
 import pandas as pd
 import numpy as np
 
@@ -45,7 +46,7 @@ def get_body_battery(loader, start_date=None, end_date=None, participant_ids="al
         try:
             df = loader.load_garmin_connect_stress(participant_id,
                                                    start_date,
-                                                   end_date-timedelta(minutes=15))
+                                                   end_date)
             data_dict[participant_id] = pd.Series(df[_LABFRONT_BODY_BATTERY_KEY].values,index=df[_LABFRONT_ISO_DATE_KEY])
         except:
             data_dict[participant_id] = None
@@ -438,3 +439,64 @@ def get_stress_score(loader, start_date=None, end_date=None, user_ids="all"):
             - ``day`` : ``daily stress qualifier``
     """
     return get_daily_stress_metric(loader, "score", start_date, end_date, user_ids)
+
+def get_battery_recovery(loader, start_date=None, end_date=None, user_ids="all"):
+
+    data_dict = {}
+
+    user_ids = utils.get_user_ids(loader, user_ids)
+
+    for user_id in user_ids:
+        df = loader.load_garmin_connect_stress(user_id,start_date,end_date+timedelta(hours=23,minutes=45))
+        if len(df) > 0:
+            data_dict[user_id] = {}
+            sleep_timestamps = sleep.get_sleep_timestamps(loader,start_date,end_date,user_id)[user_id]
+            filtered_df = df[~df[_LABFRONT_BODY_BATTERY_KEY].isna()].copy()
+            filtered_df["date"] = filtered_df.isoDate.apply(lambda x: x.date())
+            for k,v in sleep_timestamps.items():
+                sleep_onset, awake_time = v[0],v[1]
+                # find body battery the closest possible to those times, restricte search to plausible timestamps
+                restricted_filtered_df = filtered_df[np.logical_or(filtered_df["date"] == sleep_onset.date(),
+                                                                   filtered_df["date"] == sleep_onset.date()+timedelta(days=1))]
+                before_sleep_valid_timestamp = utils.find_nearest_date(sleep_onset, restricted_filtered_df.isoDate)
+                bb_before_sleep = filtered_df[filtered_df.isoDate == before_sleep_valid_timestamp].bodyBattery.mean()
+                after_sleep_valid_timestamp = utils.find_nearest_date(awake_time, restricted_filtered_df.isoDate)
+                bb_after_sleep = filtered_df[filtered_df.isoDate == after_sleep_valid_timestamp].bodyBattery.mean()
+                data_dict[user_id][k] = (bb_after_sleep - bb_before_sleep)
+        else:
+            data_dict[user_id] = None
+
+    return data_dict
+
+
+def get_min_body_battery(loader, start_date, end_date, user_ids="all"):
+
+    data_dict = {}
+
+    user_ids = utils.get_user_ids(loader, user_ids)
+
+    for user_id in user_ids:
+        df = loader.load_garmin_connect_stress(user_id,start_date,end_date-timedelta(minutes=1))
+        if len(df) > 0:
+            df["date"] = df[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.date())
+            data_dict[user_id] = pd.Series(df.groupby("date")[_LABFRONT_BODY_BATTERY_KEY].min()).to_dict()
+        else:
+            data_dict[user_id] = None
+
+    return data_dict
+
+def get_max_body_battery(loader, start_date, end_date, user_ids="all"):
+
+    data_dict = {}
+
+    user_ids = utils.get_user_ids(loader, user_ids)
+
+    for user_id in user_ids:
+        df = loader.load_garmin_connect_stress(user_id,start_date,end_date-timedelta(minutes=1))
+        if len(df) > 0:
+            df["date"] = df[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.date())
+            data_dict[user_id] = pd.Series(df.groupby("date")[_LABFRONT_BODY_BATTERY_KEY].max()).to_dict()
+        else:
+            data_dict[user_id] = None
+
+    return data_dict
