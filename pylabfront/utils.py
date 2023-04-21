@@ -102,3 +102,6 @@ def is_weekend(day):
         bool: True/False depending if day is a weekend day or not.
     """
     return day.weekday() in [5,6]
+
+def find_nearest_date(date, dates_array):
+    return min(dates_array, key=lambda x: abs(x - date))
