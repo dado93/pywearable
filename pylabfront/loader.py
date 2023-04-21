@@ -86,6 +86,9 @@ class Loader:
     def load_respiration_data(self, user_id, start_date, end_date):
         pass
 
+    def load_sleep_stages(self, user_id, start_date, end_date):
+        pass
+
     pass
 
 
