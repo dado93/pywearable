@@ -89,10 +89,10 @@ def get_time_in_sleep_stage(
     data_dict = {}
     if average:
         average_dict = {}
+
     if user_id == "all":
         # get all participant ids automatically
         user_id = loader.get_user_ids()
-
     if isinstance(user_id, str):
         user_id = [user_id]
 
@@ -128,7 +128,16 @@ def get_time_in_sleep_stage(
                 ],
             ).to_dict()
             if average:
-                average_dict[user] = np.array(list(data_dict[user].values())).mean()
+                sleep_data_df = pd.DataFrame.from_dict(data_dict[user], orient="index")
+                average_dict[user] = {}
+                average_dict[user]["values"] = np.array(
+                    list(data_dict[user].values())
+                ).nanmean()
+                average_dict[user]["days"] = [
+                    datetime.datetime.strftime(x, "%Y-%m-%d")
+                    for x in sleep_data_df.index
+                ]
+
     if average:
         return average_dict
     return data_dict
@@ -273,6 +282,7 @@ def get_deep_sleep_duration(
         with the following structure:
             - ``day`` : ``Deep Sleep Time``
     """
+
     return get_time_in_sleep_stage(
         loader, "DEEP_SLEEP", start_date, end_date, user_id, average
     )
@@ -315,11 +325,15 @@ def get_awake_sleep_duration(
         The primary key of the dictionary is always ``user_id``.
         If ``average`` is set to True, each value is a nested dictionary
         with the following structure:
+
             - ``AWAKE``: containing awake sleep times
             - ``days``: days over which awake sleep times were averaged
+
         If ``average`` is set to False,  each value is a nested dictionary
         with the following structure:
+
             - ``day`` : ``Awake Sleep Time``
+
     """
     return get_time_in_sleep_stage(
         loader, "AWAKE", start_date, end_date, participant_id
@@ -361,10 +375,13 @@ def get_sleep_duration(loader, start_date=None, end_date=None, participant_id="a
         The primary key of the dictionary is always ``user_id``.
         If ``average`` is set to True, each value is a nested dictionary
         with the following structure:
+
             - ``DURATION``: containing sleep durations
             - ``days``: days over which awake duration values were averaged
+
         If ``average`` is set to False,  each value is a nested dictionary
         with the following structure:
+
         - ``day`` : ``Sleep Duration``
     """
     return get_time_in_sleep_stage(
@@ -407,11 +424,15 @@ def get_sleep_score(loader, start_date=None, end_date=None, participant_id="all"
         The primary key of the dictionary is always ``user_id``.
         If ``average`` is set to True, each value is a nested dictionary
         with the following structure:
+
             - ``SLEEP_SCORE``: containing sleep score values
             - ``days``: days over which awake scores values were averaged
+
         If ``average`` is set to False, each value of the dictionary is a nested dictionary
         with the following structure:
+
         - ``day`` : ``Sleep Duration``
+
     """
     return get_time_in_sleep_stage(
         loader, "SLEEP_SCORE", start_date, end_date, participant_id
@@ -425,6 +446,7 @@ def get_sleep_statistics(
 
     This function computes the following sleep statistics from the hypnogram
     extracted from sleep data:
+
         - Time In Bed (TIM): total duration of the hypnogram
         - Sleep Period Time (SPT): duration from first to last period of sleep.
         - Wake After Sleep Onset (WASO): duration of wake periods within SPT.
