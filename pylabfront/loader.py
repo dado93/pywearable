@@ -3,6 +3,7 @@ This module contains all the functions related to handling of data from Labfront
 """
 import datetime
 import os
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -133,12 +134,16 @@ class LabfrontLoader(Loader):
     def get_ids(self, return_dict=False):
         """Get participant IDs from folder with data.
 
-        Args:
-            folder (str): Path to folder containing data from participants.
-            return_dict (bool): Whether to return a dictionary or two lists. Defaults to False.
+        Parameters
+        ----------
+        folder: :class:`str`
+            Path to folder containing data from participants.
+        return_dict: :class:`bool`, optional
+            Whether to return a dictionary or two separate lists, by default False.
 
-        Returns:
-            list: IDs of participants (set by study coordinator)
+        Returns
+        -------
+            list: User IDs of participants (set by study coordinator)
             list: Labfront IDs of participants
         """
         # Get the names of the folder in root_folder
@@ -148,9 +153,17 @@ class LabfrontLoader(Loader):
         for folder_name in folder_names:
             # Check that we have a folder
             if os.path.isdir(os.path.join(self.data_path, folder_name)):
-                labfront_id = folder_name[-_LABFRONT_ID_LENGHT + 1 :]
+                # Check if we have a Labfront ID
+                regex_match = re.search(".{8}-.{4}-.{4}-.{4}-.{12}", folder_name)
+                if regex_match:
+                    labfront_id = folder_name[regex_match.span()[0]:regex_match.span()[1]]
+                    id = folder_name[:regex_match.span()[0]-1]
+                else:
+                    labfront_id = ''
+                    id = folder_name
+                #labfront_id = folder_name[-_LABFRONT_ID_LENGHT + 1 :]
+                #id = folder_name[: (len(folder_name) - _LABFRONT_ID_LENGHT)]
                 labfront_ids.append(labfront_id)
-                id = folder_name[: (len(folder_name) - _LABFRONT_ID_LENGHT)]
                 ids.append(id)
         if return_dict:
             return dict(zip(ids, labfront_ids))
