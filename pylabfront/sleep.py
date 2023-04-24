@@ -8,6 +8,8 @@ import pandas as pd
 import datetime
 import yasa
 
+import pylabfront.utils as utils
+
 _LABFRONT_GARMIN_CONNECT_SLEEP_STAGE_REM_MS_COL = "remSleepInMs"
 _LABFRONT_GARMIN_CONNECT_SLEEP_STAGE_DEEP_SLEEP_MS_COL = "deepSleepDurationInMs"
 _LABFRONT_GARMIN_CONNECT_SLEEP_STAGE_LIGHT_SLEEP_MS_COL = "lightSleepDurationInMs"
@@ -24,6 +26,7 @@ _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_UNMEASURABLE_SLEEP_MS_COL = (
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_MS_COL = "durationInMs"
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SCORE_COL = "overallSleepScore"
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL = "calendarDate"
+_LABFRONT_ISO_DATE_KEY = 'isoDate'
 
 
 _YASA_TIME_IN_BED = "TIB"
@@ -1360,3 +1363,23 @@ def get_nrem_sleep_percentage(
         resolution=resolution,
         average=average,
     )
+
+def get_sleep_timestamps(loader, start_date=None, end_date=None, user_ids="all"):
+    data_dict = {}
+
+    user_ids = utils.get_user_ids(loader,user_ids)
+
+    for user_id in user_ids:
+        # better to give a bit of rooms before and after start_date and end_date to ensure they're included
+        df = loader.load_garmin_connect_sleep_summary(user_id,
+                                                      start_date-datetime.timedelta(hours=6),
+                                                      end_date+datetime.timedelta(hours=6))
+        if len(df) > 0:
+            df["waking_time"] = df[_LABFRONT_ISO_DATE_KEY] + \
+                  df[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_MS_COL].astype(int).apply(lambda x: datetime.timedelta(milliseconds=x))
+            data_dict[user_id] = pd.Series(zip(df[_LABFRONT_ISO_DATE_KEY],df["waking_time"]),
+                                           df[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL]).to_dict()
+        else:
+            data_dict[user_id] = None
+
+    return data_dict

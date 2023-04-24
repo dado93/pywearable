@@ -55,6 +55,7 @@ _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_STRING = (
     _LABFRONT_GARMIN_CONNECT_STRING + "-sleep-summary"
 )
 _LABFRONT_GARMIN_CONNECT_EPOCH_STRING = _LABFRONT_GARMIN_CONNECT_STRING + "-epoch"
+_LABFRONT_GARMIN_CONNECT_STRESS_STRING = _LABFRONT_GARMIN_CONNECT_STRING + "-stress"
 
 ###################################################
 #  Garmin Connect metrics - Labfront csv columns  #
@@ -183,11 +184,7 @@ class LabfrontLoader(Loader):
         questionnaires = set()
         questionnaires_dict = {}
 
-        if participant_ids == "all":
-            participant_ids = self.get_user_ids()
-
-        if not isinstance(participant_ids, list):
-            raise TypeError("participant_ids must be a list.")
+        participant_ids = utils.get_user_ids(self, participant_ids)
 
         for participant_id in participant_ids:
             participant_id = self.get_full_id(participant_id)
@@ -231,11 +228,7 @@ class LabfrontLoader(Loader):
         todos = set()
         todos_dict = {}
 
-        if participant_ids == "all":
-            participant_ids = self.get_user_ids()
-
-        if not isinstance(participant_ids, list):
-            raise TypeError("participant_ids has to be a list.")
+        participant_ids = utils.get_user_ids(self,participant_ids)
 
         for participant_id in participant_ids:
             participant_id = self.get_full_id(participant_id)
@@ -613,15 +606,7 @@ class LabfrontLoader(Loader):
         """
         metrics = set()
 
-        if participant_ids == "all":
-            # get all participant ids automatically
-            participant_ids = self.get_user_ids()
-
-        if isinstance(participant_ids, str):
-            participant_ids = [participant_ids]
-
-        if not isinstance(participant_ids, list):
-            raise TypeError("participant_ids has to be a list.")
+        participant_ids = utils.get_user_ids(self,participant_ids)
 
         for participant_id in participant_ids:
             participant_id = self.get_full_id(participant_id)
@@ -650,7 +635,7 @@ class LabfrontLoader(Loader):
         Returns:
             str: Full task ID.
         """
-        return self.tasks_dict[task_id]
+        return self.tasks_dict[task_id.lower()]
 
     def load_garmin_connect_heart_rate(
         self, participant_id, start_date=None, end_date=None
@@ -847,41 +832,11 @@ class LabfrontLoader(Loader):
         Returns:
             pd.DataFrame: Dataframe containing Garmin Connect stress data.
         """
-        data = self.get_data_from_datetime(
-            participant_id,
-            _LABFRONT_GARMIN_CONNECT_SLEEP_STAGE_STRING,
-            start_date,
-            end_date,
-        )
+        data = self.get_data_from_datetime(participant_id, _LABFRONT_GARMIN_CONNECT_STRESS_STRING,
+                                           start_date, end_date)
         return data
 
-    def load_garmin_connect_stress(
-        self, participant_id, start_date=None, end_date=None
-    ):
-        """Load Garmin Connect stress data.
-
-        This function loads Garmin Connect stress data from a given
-        participant and within a specified date and time range.
-
-        Args:
-            participant_id (str): Full ID of the participant
-            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
-
-        Returns:
-            pd.DataFrame: Dataframe containing Garmin Connect stress data.
-        """
-        data = self.get_data_from_datetime(
-            participant_id,
-            _LABFRONT_GARMIN_CONNECT_SLEEP_STAGE_STRING,
-            start_date,
-            end_date,
-        )
-        return data
-
-    def load_garmin_device_heart_rate(
-        self, participant_id, start_date=None, end_date=None
-    ):
+    def load_garmin_device_heart_rate(self, participant_id, start_date=None, end_date=None):
         """Load Garmin device heart rate data.
 
         This function loads Garmin device heart rate data from a given

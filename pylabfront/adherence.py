@@ -6,6 +6,7 @@ of Labfront adherence.
 
 import pylabfront.utils as utils
 import pandas as pd
+import datetime
 
 from pathlib import Path
 
@@ -37,25 +38,28 @@ def get_questionnaire_dict(loader, start_dt, end_dt, participant_ids="all", ques
 
     if not (isinstance(participant_ids, list) and isinstance(questionnaire_names, list)):
         raise TypeError("participant_ids and questionnaire_names have to be lists.")
+    
+    inv_map = {v: k for k, v in loader.tasks_dict.items()}
 
     for participant_id in participant_ids:
         adherence_dict[participant_id] = {}
         participant_questionnaires = loader.get_available_questionnaires([participant_id])
         for questionnaire in questionnaire_names:
-            adherence_dict[participant_id][questionnaire] = {}
+            questionnaire_name = inv_map[questionnaire]
+            adherence_dict[participant_id][questionnaire_name] = {}
             if questionnaire in participant_questionnaires:
-                questionnaire_df = loader.load_questionnaire(participant_id,start_dt,end_dt,task_name=questionnaire)
+                questionnaire_df = loader.load_questionnaire(participant_id,start_dt,end_dt,task_name=questionnaire_name)
                 timestamps = questionnaire_df.unixTimestampInMs
                 count = 0
                 for i in range(len(timestamps)):
                     if i == 0 or timestamps[i]-timestamps[i-1] > _MS_TO_HOURS_CONVERSION*safe_delta:
                         count += 1
-                adherence_dict[participant_id][questionnaire]["n_filled"] = count
+                adherence_dict[participant_id][questionnaire_name]["n_filled"] = count
                 is_repeatable = utils.is_task_repetable((loader.data_path/loader.get_full_id(participant_id)/_LABFRONT_QUESTIONNAIRE_STRING/questionnaire))
-                adherence_dict[participant_id][questionnaire][_LABFRONT_TASK_SCHEDULE_KEY] = is_repeatable
+                adherence_dict[participant_id][questionnaire_name][_LABFRONT_TASK_SCHEDULE_KEY] = is_repeatable
             else:
-                adherence_dict[participant_id][questionnaire]["n_filled"] = 0
-                adherence_dict[participant_id][questionnaire][_LABFRONT_TASK_SCHEDULE_KEY] = None
+                adherence_dict[participant_id][questionnaire_name]["n_filled"] = 0
+                adherence_dict[participant_id][questionnaire_name][_LABFRONT_TASK_SCHEDULE_KEY] = None
 
     return adherence_dict
 
@@ -102,6 +106,8 @@ def get_todo_dict(loader, start_dt=None, end_dt=None, participant_ids="all", tod
         dict: Dictionary with adherence data for the partecipants and todos required.
     """
 
+    adherence_dict = {}
+
     if participant_ids == "all":
         participant_ids = loader.get_user_ids()
 
@@ -111,26 +117,27 @@ def get_todo_dict(loader, start_dt=None, end_dt=None, participant_ids="all", tod
     if not (isinstance(participant_ids, list) and isinstance(todo_names, list)):
         raise TypeError("participant_ids and todo_names have to be lists.")
 
-    adherence_dict = {}
+    inv_map = {v: k for k, v in loader.tasks_dict.items()}
 
     for participant_id in participant_ids:
         adherence_dict[participant_id] = {}
         participant_todos = loader.get_available_todos([participant_id])
         for todo in todo_names:
-            adherence_dict[participant_id][todo] = {}
+            todo_name = inv_map[todo]
+            adherence_dict[participant_id][todo_name] = {}
             if todo in participant_todos:
-                todo_df = loader.load_todo(participant_id,start_dt,end_dt,task_name=todo)
+                todo_df = loader.load_todo(participant_id,start_dt,end_dt,task_name=todo_name)
                 timestamps = todo_df.unixTimestampInMs
                 count = 0
                 for i in range(len(timestamps)):
                     if i == 0 or timestamps[i]-timestamps[i-1] > _MS_TO_HOURS_CONVERSION*safe_delta:
                         count += 1
-                adherence_dict[participant_id][todo]["n_filled"] = count
+                adherence_dict[participant_id][todo_name]["n_filled"] = count
                 is_repeatable = utils.is_task_repetable((loader.data_path/loader.get_full_id(participant_id)/_LABFRONT_TODO_STRING/todo))
-                adherence_dict[participant_id][todo][_LABFRONT_TASK_SCHEDULE_KEY]= is_repeatable
+                adherence_dict[participant_id][todo_name][_LABFRONT_TASK_SCHEDULE_KEY]= is_repeatable
             else:
-                adherence_dict[participant_id][todo]["n_filled"] = 0
-                adherence_dict[participant_id][todo][_LABFRONT_TASK_SCHEDULE_KEY] = None
+                adherence_dict[participant_id][todo_name]["n_filled"] = 0
+                adherence_dict[participant_id][todo_name][_LABFRONT_TASK_SCHEDULE_KEY] = None
 
     return adherence_dict
 
@@ -163,6 +170,12 @@ def get_todo_adherence(loader, number_of_days, start_dt=None, end_dt=None, parti
     
     return todo_adherence
 
-def get_metric_adherence(metric_names, num_days):
+def get_metric_adherence(loader,
+                         loader_metric_fn,
+                         expected_fs,
+                         start_date=None,
+                         end_date=None,
+                         user_id="all"):
     '''total hours for device, int for connect ???'''
-    pass
+    metric_df = loader_metric_fn(user_id,start_date,end_date+datetime.timedelta(hours=23,minutes=59))
+    return metric_df.groupby(metric_df[loader.date_column].dt.date)[loader.date_column].nunique() / (60*60*24 / expected_fs) * 100

@@ -20,50 +20,170 @@ _MS_TO_HOURS_CONVERSION = 1000*60*60
 _MS_TO_MINUTES_CONVERSION = 1000*60
 
 
-def get_activity_by_period(loader, activity, start_dt, end_dt, participant_ids="all"):
+def get_activity_by_period(loader, activity, start_dt, end_dt, user_ids="all"):
+    """Get a general activity time series.
 
+    This function returns the activity required as a time series
+    for the users and period of interest.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader`
+        Initialized instance of :class:`pylabfront.loader`, required in order to properly load data.
+    start_date : :class:`datetime.datetime`, optional
+        Start date from which should be extracted, by default None.
+        If None is used, then the ``start_date`` will be the first day with available data
+        for the given ``user_ids``.
+    end_date : :class:`datetime.datetime`, optional
+        End date up to which data should be extracted, by default None.
+        If None is used, then the ``end_date`` will be the last day with available data
+        for the given ``user_ids``.
+    user_ids : :class:`str`, optional
+        IDs of the users for which data have to extracted, by default "all"
+
+    Returns
+    -------
+    :class:`dict`
+        The returned dictionary contains the activity time series for the given ``user_ids``.
+        The primary key of the dictionary is the id of the user of interest.
+        Each value is a time series of the desired activity level between start_date and end_date.
+    """
     activity_dict = {}
 
-    if participant_ids == "all":
-        participant_ids = loader.get_user_ids()
+    user_ids = utils.get_user_ids(loader,user_ids)
 
-    if isinstance(participant_ids, str):
-        participant_ids = [participant_ids]
-
-    if not isinstance(participant_ids, list):
-        raise TypeError("participant_ids has to be a list.")
-
-    for participant_id in participant_ids:
+    for user_id in user_ids:
         try:
-            df = loader.load_garmin_connect_epoch(participant_id,start_dt,end_dt-timedelta(minutes=15))
-            activity_dict[participant_id] = pd.Series(df[df[_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL] == activity][_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].values,
+            df = loader.load_garmin_connect_epoch(user_id,start_dt,end_dt-timedelta(minutes=15))
+            activity_dict[user_id] = pd.Series(df[df[_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL] == activity][_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].values,
                                                       index= df[df.intensity == activity].isoDate)
         except:
-            activity_dict[participant_id] = None
+            activity_dict[user_id] = None
 
     return activity_dict
 
 def get_active(loader, start_dt, end_dt, participant_ids="all"):
+    """Get activity time series.
+
+    This function returns the amount of activity as a time series
+    for the users and period of interest.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader`
+        Initialized instance of :class:`pylabfront.loader`, required in order to properly load data.
+    start_date : :class:`datetime.datetime`, optional
+        Start date from which should be extracted, by default None.
+        If None is used, then the ``start_date`` will be the first day with available data
+        for the given ``user_ids``.
+    end_date : :class:`datetime.datetime`, optional
+        End date up to which data should be extracted, by default None.
+        If None is used, then the ``end_date`` will be the last day with available data
+        for the given ``user_ids``.
+    user_ids : :class:`str`, optional
+        IDs of the users for which data have to extracted, by default "all"
+
+    Returns
+    -------
+    :class:`dict`
+        The returned dictionary contains the activity time series for the given ``user_ids``.
+        The primary key of the dictionary is the id of the user of interest.
+        Each value is a time series of the desired activity level between start_date and end_date.
+    """
     return get_activity_by_period(loader, "ACTIVE", start_dt, end_dt, participant_ids)
 
 def get_highly_active(loader, start_dt, end_dt, participant_ids="all"):
+    """Get intensive activity time series.
+
+    This function returns the amount of activity as a time series
+    for the users and period of interest.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader`
+        Initialized instance of :class:`pylabfront.loader`, required in order to properly load data.
+    start_date : :class:`datetime.datetime`, optional
+        Start date from which should be extracted, by default None.
+        If None is used, then the ``start_date`` will be the first day with available data
+        for the given ``user_ids``.
+    end_date : :class:`datetime.datetime`, optional
+        End date up to which data should be extracted, by default None.
+        If None is used, then the ``end_date`` will be the last day with available data
+        for the given ``user_ids``.
+    user_ids : :class:`str`, optional
+        IDs of the users for which data have to extracted, by default "all"
+
+    Returns
+    -------
+    :class:`dict`
+        The returned dictionary contains the time series for intensive activity for the given ``user_ids``.
+        The primary key of the dictionary is the id of the user of interest.
+        Each value is a time series of the desired activity level between start_date and end_date.
+    """
     return get_activity_by_period(loader, "HIGHLY_ACTIVE", start_dt, end_dt, participant_ids)
 
 def get_sedentary(loader, start_dt, end_dt, participant_ids="all"):
+    """Get sedentary activity time series.
+
+    This function returns the amount of sedentary activity as a time series
+    for the users and period of interest.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader`
+        Initialized instance of :class:`pylabfront.loader`, required in order to properly load data.
+    start_date : :class:`datetime.datetime`, optional
+        Start date from which should be extracted, by default None.
+        If None is used, then the ``start_date`` will be the first day with available data
+        for the given ``user_ids``.
+    end_date : :class:`datetime.datetime`, optional
+        End date up to which data should be extracted, by default None.
+        If None is used, then the ``end_date`` will be the last day with available data
+        for the given ``user_ids``.
+    user_ids : :class:`str`, optional
+        IDs of the users for which data have to extracted, by default "all"
+
+    Returns
+    -------
+    :class:`dict`
+        The returned dictionary contains the time series for sedentary activity for the given ``user_ids``.
+        The primary key of the dictionary is the id of the user of interest.
+        Each value is a time series of the desired activity level between start_date and end_date.
+    """
     return get_activity_by_period(loader, "SEDENTARY", start_dt, end_dt, participant_ids)
 
 def get_steps(loader, start_dt, end_dt, participant_ids="all"):
+    """Get steps time series.
+
+    This function returns the amount of steps as a time series
+    with a granularity of 15 minutes for the users and period of interest.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader`
+        Initialized instance of :class:`pylabfront.loader`, required in order to properly load data.
+    start_date : :class:`datetime.datetime`, optional
+        Start date from which should be extracted, by default None.
+        If None is used, then the ``start_date`` will be the first day with available data
+        for the given ``user_ids``.
+    end_date : :class:`datetime.datetime`, optional
+        End date up to which data should be extracted, by default None.
+        If None is used, then the ``end_date`` will be the last day with available data
+        for the given ``user_ids``.
+    user_ids : :class:`str`, optional
+        IDs of the users for which data have to extracted, by default "all"
+
+    Returns
+    -------
+    :class:`dict`
+        The returned dictionary contains the steps time series for the given ``user_ids``.
+        The primary key of the dictionary is the id of the user of interest.
+        Each value is a time series of the steps done between start_date and end_date.
+    """
     
     steps_dict = {}
 
-    if participant_ids == "all":
-        participant_ids = loader.get_user_ids()
-
-    if isinstance(participant_ids, str):
-        participant_ids = [participant_ids]
-
-    if not isinstance(participant_ids, list):
-        raise TypeError("participant_ids has to be a list.")
+    participant_ids = utils.get_user_ids(loader,participant_ids)
     
     for participant_id in participant_ids:
         try:
@@ -75,17 +195,36 @@ def get_steps(loader, start_dt, end_dt, participant_ids="all"):
     return steps_dict
 
 def get_distance(loader, start_dt, end_dt, participant_ids="all"):
-    
+    """Get distance time series.
+
+    This function returns the distance travelled by foot in meters as a time series
+    with a granularity of 15 minutes for the users and period of interest.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader`
+        Initialized instance of :class:`pylabfront.loader`, required in order to properly load data.
+    start_date : :class:`datetime.datetime`, optional
+        Start date from which should be extracted, by default None.
+        If None is used, then the ``start_date`` will be the first day with available data
+        for the given ``user_ids``.
+    end_date : :class:`datetime.datetime`, optional
+        End date up to which data should be extracted, by default None.
+        If None is used, then the ``end_date`` will be the last day with available data
+        for the given ``user_ids``.
+    user_ids : :class:`str`, optional
+        IDs of the users for which data have to extracted, by default "all"
+
+    Returns
+    -------
+    :class:`dict`
+        The returned dictionary contains the distance time series for the given ``user_ids``.
+        The primary key of the dictionary is the id of the user of interest.
+        Each value is a time series of the distance walked between start_date and end_date.
+    """    
     distance_dict = {}
 
-    if participant_ids == "all":
-        participant_ids = loader.get_user_ids()
-
-    if isinstance(participant_ids, str):
-        participant_ids = [participant_ids]
-
-    if not isinstance(participant_ids, list):
-        raise TypeError("participant_ids has to be a list.")
+    participant_ids = utils.get_user_ids(loader,participant_ids)
     
     for participant_id in participant_ids:
         try:
@@ -102,23 +241,35 @@ def get_steps_per_day(loader, start_dt=None, end_dt=None, participant_ids="all",
     This function returns the total daily steps for the given participant(s) 
     for each given day from ``start_date`` to ``end_date``
 
-    Args:
-        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_dt (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
-        end_dt (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
-        participant_ids (list, optional): List of participants of interest. Defaults to "all".
-        average (bool, optional): Indication whather to calculate the average. Defaults to False.
+    Parameters
+    ----------
+        loader : :class:`pylabfront.loader`
+            Initialized instance of :class:`pylabfront.loader`, required in order to properly load data.
+        start_dt :  :class:`datetime.datetime`, optional
+            Start date from which should be extracted, by default None.
+            If None is used, then the ``start_date`` will be the first day with available data
+            for the given ``user_ids``.
+        end_date : :class:`datetime.datetime`, optional
+            End date up to which data should be extracted, by default None.
+            If None is used, then the ``end_date`` will be the last day with available data
+            for the given ``user_ids``.
+        user_ids : :class:`str`, optional
+            IDs of the users for which data have to extracted, by default "all"
+        average: :class:'bool', optional
+            Whether to average the statistic or not, by default False.
+            If set to True, then the statistic is returned as the average from
+            ``start_date`` to ``end_date``. If set to False, then a single value
+            is returned for each day from ``start_date`` to ``end_date``.
 
-    Returns:
-        dict: Dictionary of daily number of steps for participants of interest
+     Returns
+    -------
+    :class:`dict`
+        Dictionary of daily number of steps for participants of interest
     """
 
     data_dict = {}
-    if participant_ids == "all":
-        participant_ids = loader.get_user_ids()
-
-    if isinstance(participant_ids, str):
-        participant_ids = [participant_ids]
+    
+    participant_ids = utils.get_user_ids(loader,participant_ids)
 
     for participant_id in participant_ids: 
         participant_daily_summary = loader.load_garmin_connect_daily_summary(participant_id, start_dt, end_dt-timedelta(minutes=15))
@@ -150,11 +301,8 @@ def get_distance_per_day(loader, start_dt=None, end_dt=None, participant_ids="al
         dict: Dictionary of daily meters covered by participants of interest
     """
     data_dict = {}
-    if participant_ids == "all":
-        participant_ids = loader.get_user_ids()
-
-    if isinstance(participant_ids, str):
-        participant_ids = [participant_ids]
+    
+    participant_ids = utils.get_user_ids(loader,participant_ids)
 
     for participant_id in participant_ids: 
         participant_daily_summary = loader.load_garmin_connect_daily_summary(participant_id, start_dt, end_dt-timedelta(minutes=15))
@@ -187,14 +335,7 @@ def get_avg_daily_activities(loader, start_dt=None, end_dt=None, participant_ids
 
     activities_dict = {}
 
-    if participant_ids == "all":
-        participant_ids = loader.get_user_ids()
-
-    if isinstance(participant_ids, str):
-        participant_ids = [participant_ids]
-    
-    if not isinstance(participant_ids, list):
-        raise TypeError("participant_ids has to be a list.")
+    participant_ids = utils.get_user_ids(loader,participant_ids)
     
     for participant_id in participant_ids:
         try:
@@ -319,14 +460,7 @@ def get_avg_weekly_activities(loader, start_dt=None, end_dt=None, participant_id
 
     weekday_activities_dict = {}
 
-    if participant_ids == "all":
-        participant_ids = loader.get_user_ids()
-
-    if isinstance(participant_ids, str):
-        participant_ids = [participant_ids]
-
-    if not isinstance(participant_ids, list):
-        raise TypeError("participant_ids has to be a list.")
+    participant_ids = utils.get_user_ids(loader,participant_ids)
 
     for participant_id in participant_ids:
         try:
