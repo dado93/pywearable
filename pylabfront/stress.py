@@ -82,34 +82,15 @@ def get_stress(loader, start_date=None, end_date=None, participant_ids="all"):
 
     return data_dict
 
-
-def get_minmax_body_battery_per_day(loader, start_date=None, end_date=None, participant_ids="all"):
-    """ Get minmax daily body battery for a given time period
-
-    Args:
-        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_date (:class:`datetime.datetime`, optional): Start date from which REM data should be extracted. Defaults to None.
-        end_date (:class:`datetime.datetime`, optional): End date from which REM data should be extracted. Defaults to None.
-        participant_ids (str, optional): ID of the participants. Defaults to "all".
-
-    Returns:
-        dict: Dictionary with participant id(s) as key(s), and (min,max) body battery as values.
-    """
-
-
-    bb_dict = {}
-
-    return bb_dict
-
-def get_daily_stress_metrics(loader, start_date=None, end_date=None, participant_ids="all", entire_period=False):
-    """ Get avg/max metrics for daily stress.
+def get_daily_stress_statistics(loader, start_date=None, end_date=None, participant_ids="all", entire_period=False):
+    """ Get avg/max statistics for daily stress.
 
     Args:
         loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
         start_date (:class:`datetime.datetime`, optional): Start date from which REM data should be extracted. Defaults to None.
         end_date (:class:`datetime.datetime`, optional): End date from which REM data should be extracted. Defaults to None.
         participant_ids (str, optional): ID of the participants. Defaults to "all".
-        entire_period (bool, optional): Indication if metrics are computed over the entire period, not daily. Defaults to False.
+        entire_period (bool, optional): Indication if statistics are computed over the entire period, not daily. Defaults to False.
 
     Returns:
         dict: Dictionary reporting information about daily levels of stress.
