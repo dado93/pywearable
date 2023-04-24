@@ -40,7 +40,7 @@ def get_rest_spO2(
         End date to which rest spO2 must be computed, by default None.
     user_id: :class:`str`, optional
         ID of the user for which spO2 must be computed, by default "all".
-    average: :class:'boo', optional
+    average: :class:'bool', optional
         Whether to average the statistic or not, by default False.
         If set to True, then the statistic is returned as the average from
         ``start_date`` to ``end_date``. If set to False, then a single value
@@ -185,7 +185,7 @@ def get_rest_heart_rate(loader,
         End date to which rest heart rate must be computed, by default None.
     user_id: :class:`str`, optional
         ID of the user for which resting heart rate must be computed, by default "all".
-    average: :class:'boo', optional
+    average: :class:'bool', optional
         Whether to average the statistic or not, by default False.
         If set to True, then the statistic is returned as the average from
         ``start_date`` to ``end_date``. If set to False, then a single value
@@ -220,7 +220,7 @@ def get_max_heart_rate(loader,
         End date to which max heart rate must be computed, by default None.
     user_id: :class:`str`, optional
         ID of the user for which max heart rate must be computed, by default "all".
-    average: :class:'boo', optional
+    average: :class:'bool', optional
         Whether to average the statistic or not, by default False.
         If set to True, then the statistic is returned as the average from
         ``start_date`` to ``end_date``. If set to False, then a single value
@@ -255,7 +255,7 @@ def get_min_heart_rate(loader,
         End date to which min heart rate must be computed, by default None.
     user_id: :class:`str`, optional
         ID of the user for which min heart rate must be computed, by default "all".
-    average: :class:'boo', optional
+    average: :class:'bool', optional
         Whether to average the statistic or not, by default False.
         If set to True, then the statistic is returned as the average from
         ``start_date`` to ``end_date``. If set to False, then a single value
@@ -289,7 +289,7 @@ def get_avg_heart_rate(loader,
         End date to which average heart rate must be computed, by default None.
     user_id: :class:`str`, optional
         ID of the user for which average heart rate must be computed, by default "all".
-    average: :class:'boo', optional
+    average: :class:'bool', optional
         Whether to average the statistic or not, by default False.
         If set to True, then the statistic is returned as the average from
         ``start_date`` to ``end_date``. If set to False, then a single value
