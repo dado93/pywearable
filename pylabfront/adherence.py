@@ -176,6 +176,9 @@ def get_metric_adherence(loader,
                          start_date=None,
                          end_date=None,
                          user_id="all"):
-    '''total hours for device, int for connect ???'''
+    '''Given an expected sampling frequency for a metric, returns the percentage of adherence for that metric
+
+    
+    '''
     metric_df = loader_metric_fn(user_id,start_date,end_date+datetime.timedelta(hours=23,minutes=59))
     return metric_df.groupby(metric_df[loader.date_column].dt.date)[loader.date_column].nunique() / (60*60*24 / expected_fs) * 100

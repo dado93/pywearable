@@ -1,3 +1,8 @@
+"""
+This module contains utility functions that don't directly load/compute metrics
+"""
+
+
 import time
 import pandas as pd
 
@@ -103,5 +108,14 @@ def is_weekend(day):
     """
     return day.weekday() in [5,6]
 
-def find_nearest_date(date, dates_array):
-    return min(dates_array, key=lambda x: abs(x - date))
+def find_nearest_timestamp(timestamp, timestamp_array):
+    """ Finds the closest time between a set of timestamps to a given timestamp.
+
+    Args:
+        timestamp (datetime): Date of interest, of which to find closest timestamp.
+        timestamp_array (datetime): Array of datetimes
+
+    Returns:
+        datetime: Closest datetime in timestamp_array to timestamp
+    """
+    return min(timestamp_array, key=lambda x: abs(x - timestamp))
