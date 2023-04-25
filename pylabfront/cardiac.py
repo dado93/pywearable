@@ -142,6 +142,7 @@ def get_cardiac_statistic(loader,
         try:
             daily_summary_data = loader.load_garmin_connect_daily_summary(user,start_date,end_date)
             if len(daily_summary_data) > 0:
+                daily_summary_data = daily_summary_data.groupby(_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATA_COL).tail(1)
                 data_dict[user] = pd.Series(daily_summary_data[statistic].values,
                                             index=daily_summary_data[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATA_COL]).to_dict()
         
