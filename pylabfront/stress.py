@@ -232,7 +232,7 @@ def get_daily_stress_metric(loader, stress_metric, start_date=None, end_date=Non
         if len(user_daily_summary) > 0:
             user_daily_summary = user_daily_summary.groupby(_LABFRONT_CALENDAR_DAY_KEY).tail(1) # consider last summary
             data_dict[user] = pd.Series(
-                user_daily_summary[column].values,
+                user_daily_summary[column].replace(np.nan, None).values,
                 index=user_daily_summary[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL]
             ).to_dict()
         else:
