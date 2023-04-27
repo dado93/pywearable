@@ -253,13 +253,14 @@ class LabfrontLoader(Loader):
                 if return_dict:
                     # for every new todo
                     for todo in participant_todos - todos:
-                        # get its name
-                        todo_name = pd.read_csv(
-                            list((participant_path / todo).iterdir())[0],
-                            nrows=1,
-                            skiprows=_LABFRONT_CSV_STATS_SKIP_ROWS,
-                        )[_LABFRONT_TODO_NAME_KEY][0]
-                        todos_dict[todo_name.lower()] = todo
+                        if os.path.isfile(todo) and str(todo)[-3:] == "csv":
+                            # get its name
+                            todo_name = pd.read_csv(
+                                list((participant_path / todo).iterdir())[0],
+                                nrows=1,
+                                skiprows=_LABFRONT_CSV_STATS_SKIP_ROWS,
+                            )[_LABFRONT_TODO_NAME_KEY][0]
+                            todos_dict[todo_name.lower()] = todo
                 todos |= participant_todos
 
         if return_dict:
