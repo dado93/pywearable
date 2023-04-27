@@ -121,9 +121,9 @@ class LabfrontLoader(Loader):
         self.ids_dict = self.get_ids(return_dict=True)
         self.ids_list = self.get_participant_list()
         self.data_dictionary = self.get_time_dictionary()
-        self.tasks_dict = self.get_available_questionnaires(
-            return_dict=True
-        ) | self.get_available_todos(return_dict=True)
+        # self.tasks_dict = self.get_available_questionnaires(
+        #    return_dict=True
+        # ) | self.get_available_todos(return_dict=True)
 
     def get_user_ids(self):
         return self.ids
@@ -156,13 +156,15 @@ class LabfrontLoader(Loader):
                 # Check if we have a Labfront ID
                 regex_match = re.search(".{8}-.{4}-.{4}-.{4}-.{12}", folder_name)
                 if regex_match:
-                    labfront_id = folder_name[regex_match.span()[0]:regex_match.span()[1]]
-                    id = folder_name[:regex_match.span()[0]-1]
+                    labfront_id = folder_name[
+                        regex_match.span()[0] : regex_match.span()[1]
+                    ]
+                    id = folder_name[: regex_match.span()[0] - 1]
                 else:
-                    labfront_id = ''
+                    labfront_id = ""
                     id = folder_name
-                #labfront_id = folder_name[-_LABFRONT_ID_LENGHT + 1 :]
-                #id = folder_name[: (len(folder_name) - _LABFRONT_ID_LENGHT)]
+                # labfront_id = folder_name[-_LABFRONT_ID_LENGHT + 1 :]
+                # id = folder_name[: (len(folder_name) - _LABFRONT_ID_LENGHT)]
                 labfront_ids.append(labfront_id)
                 ids.append(id)
         if return_dict:
@@ -241,7 +243,7 @@ class LabfrontLoader(Loader):
         todos = set()
         todos_dict = {}
 
-        participant_ids = utils.get_user_ids(self,participant_ids)
+        participant_ids = utils.get_user_ids(self, participant_ids)
 
         for participant_id in participant_ids:
             participant_id = self.get_full_id(participant_id)
@@ -427,32 +429,41 @@ class LabfrontLoader(Loader):
             end_dt = end_date
 
         # Then, convert it to UNIX timestamp
-        start_dt_timestamp = (start_dt - datetime.timedelta(hours=12)).timestamp()
-        end_dt_timestamp = (end_dt + datetime.timedelta(hours=12)).timestamp()
+        start_dt_timestamp = (
+            int((start_dt - datetime.timedelta(hours=12)).timestamp()) * 1000
+        )
+        end_dt_timestamp = (
+            int((end_dt + datetime.timedelta(hours=12)).timestamp()) * 1000
+        )
+
+        temp_pd["before_start_date"] = temp_pd[
+            _LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY
+        ].apply(lambda x: True if x <= start_dt_timestamp else False)
+
+        temp_pd["after_end_date"] = temp_pd[
+            _LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY
+        ].apply(lambda x: True if x >= end_dt_timestamp else False)
+
         # Compute difference with first and last columns
-        temp_pd["min_diff"] = (
+        temp_pd["min_diff"] = abs(
             temp_pd[_LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY]
             - start_dt_timestamp
         )
-        temp_pd["max_diff"] = (
+        temp_pd["max_diff"] = abs(
             temp_pd[_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY] - end_dt_timestamp
         )
 
         # For the first time stamp, let's check if we have some files that start before date
-        temp_pd_min = temp_pd[temp_pd["min_diff"] < 0]
-        if len(temp_pd_min) > 0:
-            min_row = temp_pd_min["min_diff"].idxmin()
-        else:
+        try:
+            min_row = temp_pd[temp_pd["before_start_date"] == True]["min_diff"].idxmin()
+        except:
             min_row = temp_pd["min_diff"].idxmin()
 
         # For last time stamp, let's check if we have some files that start after date
-        temp_pd_max = temp_pd[temp_pd["max_diff"] > 0]
-        # Find rows with lowest difference
-        if len(temp_pd_max) > 0:
-            max_row = temp_pd_max["max_diff"].idxmin()
-        else:
+        try:
+            max_row = temp_pd[temp_pd["after_end_date"] == True]["max_diff"].idxmin()
+        except:
             max_row = temp_pd["max_diff"].idxmin()
-
         return list(temp_pd.loc[min_row:max_row].index)
 
     def get_data_from_datetime(
@@ -619,7 +630,7 @@ class LabfrontLoader(Loader):
         """
         metrics = set()
 
-        participant_ids = utils.get_user_ids(self,participant_ids)
+        participant_ids = utils.get_user_ids(self, participant_ids)
 
         for participant_id in participant_ids:
             participant_id = self.get_full_id(participant_id)
@@ -637,7 +648,10 @@ class LabfrontLoader(Loader):
         Returns:
             str: Full participant ID.
         """
-        return id + "_" + self.ids_dict[id]
+        if self.ids_dict[id] == "":
+            return id
+        else:
+            return id + "_" + self.ids_dict[id]
 
     def get_task_full_id(self, task_id):
         """Get full task ID.
@@ -761,21 +775,24 @@ class LabfrontLoader(Loader):
         ).reset_index(drop=True)
         if len(sleep_data) > 0:
             sleep_data.loc[:, "sleep"] = 1
-        sleep_data = sleep_data.drop(
-            [
-                x
-                for x in sleep_data.columns
-                if (not x in ([_LABFRONT_ISO_DATE_KEY, "sleep"]))
-            ],
-            axis=1,
-        )
-        # Merge dataframes
-        # We need to merge the dataframes because the daily_data already contain sleep_data
-        merged_data = daily_data.merge(
-            sleep_data, on=_LABFRONT_ISO_DATE_KEY, how="left"
-        )
-        merged_data.loc[merged_data.sleep != 1, "sleep"] = 0
-        return merged_data
+            sleep_data = sleep_data.drop(
+                [
+                    x
+                    for x in sleep_data.columns
+                    if (not x in ([_LABFRONT_ISO_DATE_KEY, "sleep"]))
+                ],
+                axis=1,
+            )
+            # Merge dataframes
+            # We need to merge the dataframes because the daily_data already contain sleep_data
+            merged_data = daily_data.merge(
+                sleep_data, on=_LABFRONT_ISO_DATE_KEY, how="left"
+            )
+            merged_data.loc[merged_data.sleep != 1, "sleep"] = 0
+            return merged_data
+        else:
+            daily_data.loc[:, "sleep"] = 0
+            return daily_data
 
     def load_garmin_connect_sleep_stage(
         self, participant_id, start_date=None, end_date=None
@@ -845,11 +862,14 @@ class LabfrontLoader(Loader):
         Returns:
             pd.DataFrame: Dataframe containing Garmin Connect stress data.
         """
-        data = self.get_data_from_datetime(participant_id, _LABFRONT_GARMIN_CONNECT_STRESS_STRING,
-                                           start_date, end_date)
+        data = self.get_data_from_datetime(
+            participant_id, _LABFRONT_GARMIN_CONNECT_STRESS_STRING, start_date, end_date
+        )
         return data
 
-    def load_garmin_device_heart_rate(self, participant_id, start_date=None, end_date=None):
+    def load_garmin_device_heart_rate(
+        self, participant_id, start_date=None, end_date=None
+    ):
         """Load Garmin device heart rate data.
 
         This function loads Garmin device heart rate data from a given
