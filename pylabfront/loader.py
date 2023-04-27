@@ -121,9 +121,9 @@ class LabfrontLoader(Loader):
         self.ids_dict = self.get_ids(return_dict=True)
         self.ids_list = self.get_participant_list()
         self.data_dictionary = self.get_time_dictionary()
-        # self.tasks_dict = self.get_available_questionnaires(
-        #    return_dict=True
-        # ) | self.get_available_todos(return_dict=True)
+        self.tasks_dict = self.get_available_questionnaires(
+            return_dict=True
+        ) | self.get_available_todos(return_dict=True)
 
     def get_user_ids(self):
         return self.ids
