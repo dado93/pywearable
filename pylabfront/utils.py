@@ -82,8 +82,8 @@ def get_summary(loader, comparison_date=time.time()):
     df = pd.DataFrame(features_dictionary)
     return df.T
 
-def is_task_repetable(file_path):
-    """Returns boolean indication of questionnaire/todo repetability
+def is_task_repeatable(file_path):
+    """Returns boolean indication of questionnaire/todo repeatability
 
     Args:
         file_path (Path): path to the folder of the questionnaire/todo csv files
@@ -101,7 +101,7 @@ def is_weekend(day):
     """ Indication if the day considered is either a Saturday or Sunday.
 
     Args:
-        day (datatime): date of interest.
+        day (datetime): date of interest.
 
     Returns:
         bool: True/False depending if day is a weekend day or not.
