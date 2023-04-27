@@ -130,9 +130,9 @@ def get_time_in_sleep_stage(
             if average:
                 sleep_data_df = pd.DataFrame.from_dict(data_dict[user], orient="index")
                 average_dict[user] = {}
-                average_dict[user]["values"] = np.array(
+                average_dict[user]["values"] = np.nanmean(np.array(
                     list(data_dict[user].values())
-                ).nanmean()
+                ))
                 average_dict[user]["days"] = [
                     datetime.datetime.strftime(x, "%Y-%m-%d")
                     for x in sleep_data_df.index
@@ -289,7 +289,7 @@ def get_deep_sleep_duration(
 
 
 def get_awake_sleep_duration(
-    loader, start_date=None, end_date=None, participant_id="all"
+    loader, start_date=None, end_date=None, participant_id="all", average=False
 ):
     """Get awake sleep time.
 
@@ -1365,6 +1365,24 @@ def get_nrem_sleep_percentage(
     )
 
 def get_sleep_timestamps(loader, start_date=None, end_date=None, user_ids="all"):
+    """_summary_
+
+    Parameters
+    ----------
+    loader : _type_
+        _description_
+    start_date : _type_, optional
+        _description_, by default None
+    end_date : _type_, optional
+        _description_, by default None
+    user_ids : str, optional
+        _description_, by default "all"
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     data_dict = {}
 
     user_ids = utils.get_user_ids(loader,user_ids)
