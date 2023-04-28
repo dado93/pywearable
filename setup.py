@@ -13,7 +13,8 @@ config = {
     'install_requires': ['nose', 'pandas', 'yasa'],
     'packages': ['pylabfront'],
     'scripts': [],
-    'name': 'pylabfront'
+    'name': 'pylabfront',
+    'python_requires': '>=3.9.0'
 }
 
 setup(**config)
