@@ -472,11 +472,11 @@ def get_battery_recovery(loader, start_date=None, end_date=None, user_ids="all")
                 # find body battery the closest possible to those times, restricte search to plausible timestamps
                 restricted_filtered_df = filtered_df[np.logical_or(filtered_df["date"] == sleep_onset.date(),
                                                                    filtered_df["date"] == sleep_onset.date()+timedelta(days=1))]
-                before_sleep_valid_timestamp = utils.find_nearest_date(sleep_onset, restricted_filtered_df.isoDate)
+                before_sleep_valid_timestamp = utils.find_nearest_timestamp(sleep_onset, restricted_filtered_df.isoDate)
                 bb_before_sleep = filtered_df[filtered_df.isoDate == before_sleep_valid_timestamp].bodyBattery.mean()
-                after_sleep_valid_timestamp = utils.find_nearest_date(awake_time, restricted_filtered_df.isoDate)
+                after_sleep_valid_timestamp = utils.find_nearest_timestamp(awake_time, restricted_filtered_df.isoDate)
                 bb_after_sleep = filtered_df[filtered_df.isoDate == after_sleep_valid_timestamp].bodyBattery.mean()
-                data_dict[user_id][k] = (bb_after_sleep - bb_before_sleep)
+                data_dict[user_id][k] = int(bb_after_sleep - bb_before_sleep)
         else:
             data_dict[user_id] = None
 

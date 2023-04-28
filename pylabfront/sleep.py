@@ -336,7 +336,7 @@ def get_awake_sleep_duration(
 
     """
     return get_time_in_sleep_stage(
-        loader, "AWAKE", start_date, end_date, participant_id
+        loader, "AWAKE", start_date, end_date, participant_id, average
     )
 
 
