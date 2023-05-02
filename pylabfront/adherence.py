@@ -13,6 +13,7 @@ from pathlib import Path
 _LABFRONT_TASK_SCHEDULE_KEY = "taskScheduleRepeat"
 _LABFRONT_TODO_STRING = 'todo'
 _LABFRONT_QUESTIONNAIRE_STRING = 'questionnaire'
+_LABFRONT_GARMIN_CONNECT_CALENDAR_DAY_COL = 'calendarDate'
 _MS_TO_HOURS_CONVERSION = 1000*60*60
 
 def get_questionnaire_dict(loader, start_dt, end_dt, participant_ids="all", questionnaire_names="all", safe_delta=6):
@@ -196,5 +197,54 @@ def get_garmin_device_adherence(loader,
             data_dict[user] = (df.groupby(df["isoDate"].dt.date).bbi.sum() / _MS_TO_HOURS_CONVERSION).to_dict()
         except:
             data_dict[user] = None
+
+    return data_dict
+
+def get_night_adherence(loader,
+                        start_date=None,
+                        end_date=None,
+                        user_id="all",
+                        as_pct = False):
+    """Get adherence in terms of amount of sleeping data gathered
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader`
+        Initialized instance of :class:`pylabfront.loader`, required in order to properly load data.
+    start_date : :class:`datetime.datetime`, optional
+        Start date from which should be extracted, by default None.
+        If None is used, then the ``start_date`` will be the first day with available data
+        for the given ``user_id``.
+    end_date : class:`datetime.datetime`, optional
+        End date up to which data should be extracted (inclusive of the whole day), by default None.
+        If None is used, then the ``end_date`` will be the last day with available data
+        for the given ``user_id``.
+    user_id : :class:`str`, optional
+        IDs of the users for which data have to extracted, by default "all"
+    as_pct : :class:`bool`, optional
+        Whether to return the adherence as a percentage wrt to the amount of expected nights.
+
+    Returns
+    -------
+    _class:`dict`
+        Dictionary with user id as primary key and night adherence (in days or pct) as value.
+    """
+    
+    user_id = utils.get_user_ids(loader,user_id)
+
+    data_dict = {}
+
+    for user in user_id:
+        try:
+            sleep_df = loader.load_garmin_connect_sleep_summary(user,start_date,end_date)
+            # just to be sure we check that there's only one row per day
+            sleep_summaries = len(sleep_df.groupby(_LABFRONT_GARMIN_CONNECT_CALENDAR_DAY_COL).tail(1))
+            if as_pct:
+                num_nights = (end_date-start_date).days -1
+                data_dict[user] = round(sleep_summaries/num_nights*100,2)
+            else:
+                data_dict[user] = sleep_summaries
+        except:
+            data_dict[user] = 0
 
     return data_dict
