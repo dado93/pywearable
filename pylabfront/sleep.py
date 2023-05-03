@@ -389,7 +389,7 @@ def get_sleep_duration(loader, start_date=None, end_date=None, participant_id="a
     )
 
 
-def get_sleep_score(loader, start_date=None, end_date=None, participant_id="all"):
+def get_sleep_score(loader, start_date=None, end_date=None, participant_id="all",average=False):
     """Get sleep score.
 
     This function returns the sleep score for
@@ -413,7 +413,7 @@ def get_sleep_score(loader, start_date=None, end_date=None, participant_id="all"
         IDs of the users for which sleep scores have to extracted, by default "all"
     average : :class:`bool`, optional
         Average sleep scores across nights, by default False.
-        If set to ``True``, then the average sleep scores frrom ``start_date`` to ``end_date`` is
+        If set to ``True``, then the average sleep scores from ``start_date`` to ``end_date`` is
         returned. Otherwise, sleep scores for each night from ``start_date`` to ``end_date`` is
         returned.
 
@@ -435,7 +435,7 @@ def get_sleep_score(loader, start_date=None, end_date=None, participant_id="all"
 
     """
     return get_time_in_sleep_stage(
-        loader, "SLEEP_SCORE", start_date, end_date, participant_id
+        loader, "SLEEP_SCORE", start_date, end_date, participant_id, average
     )
 
 
@@ -1407,6 +1407,31 @@ def get_awakenings(loader,
                    end_date,
                    user_ids="all",
                    average=False):
+    """Get the number of awakenings
+
+    Returns the number of times the user(s) of interest woke up during the night.
+    This is checked considering the hypnogram and checking variations in sleep stages
+    and awake status detection. If ``average`` is set to True, the average number of
+    awakenings per night during the period between ``start_date`` and ``end_date`` is returned.
+
+    Parameters
+    ----------
+    loader : _type_
+        _description_
+    start_date : _type_
+        _description_
+    end_date : _type_
+        _description_
+    user_ids : str, optional
+        _description_, by default "all"
+    average : bool, optional
+        _description_, by default False
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     
     user_ids = utils.get_user_ids(loader, user_ids)
 
