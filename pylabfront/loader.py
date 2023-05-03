@@ -65,6 +65,7 @@ _LABFRONT_SPO2_COLUMN = "spo2"
 _LABFRONT_RESPIRATION_COLUMN = "breathsPerMinute"
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATA_COL = "calendarDate"
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_IN_MS_COL = "durationInMs"
+_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL = "awakeDurationInMs"
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_STAGE_COL = "type"
 
 # Garmin device metrics - Labfront folder names
@@ -207,8 +208,13 @@ class LabfrontLoader(Loader):
                 self.data_path / participant_id / _LABFRONT_QUESTIONNAIRE_STRING
             )
             if participant_path.exists():
-                participant_questionnaires = set([dir for dir in os.listdir(str(participant_path))
-                                                  if os.path.isdir(participant_path / dir)])
+                participant_questionnaires = set(
+                    [
+                        dir
+                        for dir in os.listdir(str(participant_path))
+                        if os.path.isdir(participant_path / dir)
+                    ]
+                )
                 if return_dict:
                     # for every new questionnaire
                     for questionnaire in participant_questionnaires - questionnaires:
@@ -250,8 +256,13 @@ class LabfrontLoader(Loader):
             participant_id = self.get_full_id(participant_id)
             participant_path = self.data_path / participant_id / _LABFRONT_TODO_STRING
             if participant_path.exists():
-                participant_todos = set([dir for dir in os.listdir(participant_path) 
-                                         if os.path.isdir(participant_path / dir)])
+                participant_todos = set(
+                    [
+                        dir
+                        for dir in os.listdir(participant_path)
+                        if os.path.isdir(participant_path / dir)
+                    ]
+                )
                 if return_dict:
                     # for every new todo
                     for todo in participant_todos - todos:
@@ -637,8 +648,13 @@ class LabfrontLoader(Loader):
         for participant_id in participant_ids:
             participant_id = self.get_full_id(participant_id)
             participant_path = self.data_path / participant_id
-            participant_metrics = set([dir for dir in os.listdir(str(participant_path)) 
-                                       if os.path.isdir(participant_path / dir)])
+            participant_metrics = set(
+                [
+                    dir
+                    for dir in os.listdir(str(participant_path))
+                    if os.path.isdir(participant_path / dir)
+                ]
+            )
             metrics |= participant_metrics
         return sorted(list(metrics))
 
@@ -1122,13 +1138,16 @@ class LabfrontLoader(Loader):
         This function loads questionnaire data from a given
         participant and within a specified date and time range.
 
-        Args:
-            participant_id (str): Full ID of the participant
+        Parameters
+        ----------
+            participant_id: :class:`str`
+                ID of the participant
             start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
             end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
             task_name (str, optional): Name of the questionnaire of interest. Defaults to None.
 
-        Returns:
+        Returns
+        -------
             pd.DataFrame: Dataframe containing questionnaire data.
         """
         data = self.get_data_from_datetime(
@@ -1195,6 +1214,9 @@ class LabfrontLoader(Loader):
                     + sleep_summary_row[
                         _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_IN_MS_COL
                     ]
+                    + sleep_summary_row[
+                        _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL
+                    ]
                 ),
                 unit="ms",
                 utc=True,
@@ -1210,12 +1232,10 @@ class LabfrontLoader(Loader):
         )
 
         intervals = int(
-            divmod(
-                (sleep_end_time - sleep_start_time).total_seconds(), resolution * 60
-            )[0]
+            divmod((sleep_end_time - sleep_start_time).total_seconds(), 60)[0]
         )
         time_delta_intervals = [
-            sleep_start_time + i * datetime.timedelta(minutes=1)
+            sleep_start_time + i * datetime.timedelta(minutes=resolution)
             for i in range(intervals)
         ]
 
