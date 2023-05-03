@@ -207,7 +207,8 @@ class LabfrontLoader(Loader):
                 self.data_path / participant_id / _LABFRONT_QUESTIONNAIRE_STRING
             )
             if participant_path.exists():
-                participant_questionnaires = set(os.listdir(str(participant_path)))
+                participant_questionnaires = set([dir for dir in os.listdir(str(participant_path))
+                                                  if os.path.isdir(participant_path / dir)])
                 if return_dict:
                     # for every new questionnaire
                     for questionnaire in participant_questionnaires - questionnaires:
@@ -249,18 +250,18 @@ class LabfrontLoader(Loader):
             participant_id = self.get_full_id(participant_id)
             participant_path = self.data_path / participant_id / _LABFRONT_TODO_STRING
             if participant_path.exists():
-                participant_todos = set(os.listdir(str(participant_path)))
+                participant_todos = set([dir for dir in os.listdir(participant_path) 
+                                         if os.path.isdir(participant_path / dir)])
                 if return_dict:
                     # for every new todo
                     for todo in participant_todos - todos:
-                        if os.path.isfile(todo) and str(todo)[-3:] == "csv":
-                            # get its name
-                            todo_name = pd.read_csv(
-                                list((participant_path / todo).iterdir())[0],
-                                nrows=1,
-                                skiprows=_LABFRONT_CSV_STATS_SKIP_ROWS,
-                            )[_LABFRONT_TODO_NAME_KEY][0]
-                            todos_dict[todo_name.lower()] = todo
+                        # get its name
+                        todo_name = pd.read_csv(
+                            list((participant_path / todo).iterdir())[0],
+                            nrows=1,
+                            skiprows=_LABFRONT_CSV_STATS_SKIP_ROWS,
+                        )[_LABFRONT_TODO_NAME_KEY][0]
+                        todos_dict[todo_name.lower()] = todo
                 todos |= participant_todos
 
         if return_dict:
@@ -636,7 +637,8 @@ class LabfrontLoader(Loader):
         for participant_id in participant_ids:
             participant_id = self.get_full_id(participant_id)
             participant_path = self.data_path / participant_id
-            participant_metrics = set(os.listdir(str(participant_path)))
+            participant_metrics = set([dir for dir in os.listdir(str(participant_path)) 
+                                       if os.path.isdir(participant_path / dir)])
             metrics |= participant_metrics
         return sorted(list(metrics))
 

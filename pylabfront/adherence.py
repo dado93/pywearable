@@ -13,6 +13,7 @@ from pathlib import Path
 _LABFRONT_TASK_SCHEDULE_KEY = "taskScheduleRepeat"
 _LABFRONT_TODO_STRING = 'todo'
 _LABFRONT_QUESTIONNAIRE_STRING = 'questionnaire'
+_LABFRONT_GARMIN_CONNECT_CALENDAR_DAY_COL = 'calendarDate'
 _MS_TO_HOURS_CONVERSION = 1000*60*60
 
 def get_questionnaire_dict(loader, start_dt, end_dt, participant_ids="all", questionnaire_names="all", safe_delta=6):
@@ -26,7 +27,7 @@ def get_questionnaire_dict(loader, start_dt, end_dt, participant_ids="all", ques
         safe_delta (int): Amount of hours needed to consider two successive filled questionnaires valid. Defaults to 6.
 
     Returns:
-        dict: Dictionary with adherence data for the partecipants and questionnaires required.
+        dict: Dictionary with adherence data for the participants and questionnaires required.
     """
     adherence_dict = {}
 
@@ -55,7 +56,7 @@ def get_questionnaire_dict(loader, start_dt, end_dt, participant_ids="all", ques
                     if i == 0 or timestamps[i]-timestamps[i-1] > _MS_TO_HOURS_CONVERSION*safe_delta:
                         count += 1
                 adherence_dict[participant_id][questionnaire_name]["n_filled"] = count
-                is_repeatable = utils.is_task_repetable((loader.data_path/loader.get_full_id(participant_id)/_LABFRONT_QUESTIONNAIRE_STRING/questionnaire))
+                is_repeatable = utils.is_task_repeatable((loader.data_path/loader.get_full_id(participant_id)/_LABFRONT_QUESTIONNAIRE_STRING/questionnaire))
                 adherence_dict[participant_id][questionnaire_name][_LABFRONT_TASK_SCHEDULE_KEY] = is_repeatable
             else:
                 adherence_dict[participant_id][questionnaire_name]["n_filled"] = 0
@@ -103,7 +104,7 @@ def get_todo_dict(loader, start_dt=None, end_dt=None, participant_ids="all", tod
         safe_delta (int): Amount of hours needed to consider two successive filled todos valid. Defaults to 6.
 
     Returns:
-        dict: Dictionary with adherence data for the partecipants and todos required.
+        dict: Dictionary with adherence data for the participants and todo required.
     """
 
     adherence_dict = {}
@@ -133,7 +134,7 @@ def get_todo_dict(loader, start_dt=None, end_dt=None, participant_ids="all", tod
                     if i == 0 or timestamps[i]-timestamps[i-1] > _MS_TO_HOURS_CONVERSION*safe_delta:
                         count += 1
                 adherence_dict[participant_id][todo_name]["n_filled"] = count
-                is_repeatable = utils.is_task_repetable((loader.data_path/loader.get_full_id(participant_id)/_LABFRONT_TODO_STRING/todo))
+                is_repeatable = utils.is_task_repeatable((loader.data_path/loader.get_full_id(participant_id)/_LABFRONT_TODO_STRING/todo))
                 adherence_dict[participant_id][todo_name][_LABFRONT_TASK_SCHEDULE_KEY]= is_repeatable
             else:
                 adherence_dict[participant_id][todo_name]["n_filled"] = 0
@@ -142,7 +143,7 @@ def get_todo_dict(loader, start_dt=None, end_dt=None, participant_ids="all", tod
     return adherence_dict
 
 def get_todo_adherence(loader, number_of_days, start_dt=None, end_dt=None, participant_ids="all",todo_names="all",safe_delta=6):
-    """Returns adherence of the partecipant(s) for the todo(s). Assumes daily adherence is necessary for repetitive todos.
+    """Returns adherence of the participant(s) for the todo(s). Assumes daily adherence is necessary for repetitive todos.
 
     Args:
         loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
@@ -176,6 +177,74 @@ def get_metric_adherence(loader,
                          start_date=None,
                          end_date=None,
                          user_id="all"):
-    '''total hours for device, int for connect ???'''
+    '''Given an expected sampling frequency for a metric, returns the percentage of adherence for that metric
+    '''
+    # TODO MOSTLY, for now it's only for one user at a time
     metric_df = loader_metric_fn(user_id,start_date,end_date+datetime.timedelta(hours=23,minutes=59))
     return metric_df.groupby(metric_df[loader.date_column].dt.date)[loader.date_column].nunique() / (60*60*24 / expected_fs) * 100
+
+def get_garmin_device_adherence(loader,
+                                start_dt=None,
+                                end_dt=None,
+                                user_id="all"):
+    # currently broken due to issue with get_files_timerange, but should work in principle
+    data_dict = {}
+    user_id = utils.get_user_ids(loader,user_id)
+    
+    for user in user_id:
+        try:
+            df = loader.load_garmin_device_bbi(user, start_dt, end_dt)
+            data_dict[user] = (df.groupby(df["isoDate"].dt.date).bbi.sum() / _MS_TO_HOURS_CONVERSION).to_dict()
+        except:
+            data_dict[user] = None
+
+    return data_dict
+
+def get_night_adherence(loader,
+                        start_date=None,
+                        end_date=None,
+                        user_id="all",
+                        as_pct = False):
+    """Get adherence in terms of amount of sleeping data gathered
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader`
+        Initialized instance of :class:`pylabfront.loader`, required in order to properly load data.
+    start_date : :class:`datetime.datetime`, optional
+        Start date from which should be extracted, by default None.
+        If None is used, then the ``start_date`` will be the first day with available data
+        for the given ``user_id``.
+    end_date : class:`datetime.datetime`, optional
+        End date up to which data should be extracted (inclusive of the whole day), by default None.
+        If None is used, then the ``end_date`` will be the last day with available data
+        for the given ``user_id``.
+    user_id : :class:`str`, optional
+        IDs of the users for which data have to extracted, by default "all"
+    as_pct : :class:`bool`, optional
+        Whether to return the adherence as a percentage wrt to the amount of expected nights.
+
+    Returns
+    -------
+    _class:`dict`
+        Dictionary with user id as primary key and night adherence (in days or pct) as value.
+    """
+    
+    user_id = utils.get_user_ids(loader,user_id)
+
+    data_dict = {}
+
+    for user in user_id:
+        try:
+            sleep_df = loader.load_garmin_connect_sleep_summary(user,start_date,end_date)
+            # just to be sure we check that there's only one row per day
+            sleep_summaries = len(sleep_df.groupby(_LABFRONT_GARMIN_CONNECT_CALENDAR_DAY_COL).tail(1))
+            if as_pct:
+                num_nights = (end_date-start_date).days -1
+                data_dict[user] = round(sleep_summaries/num_nights*100,2)
+            else:
+                data_dict[user] = sleep_summaries
+        except:
+            data_dict[user] = 0
+
+    return data_dict

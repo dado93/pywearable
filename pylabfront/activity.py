@@ -12,9 +12,10 @@ from datetime import timedelta
 _LABFRONT_ISO_DATE_KEY = 'isoDate'
 _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL = 'calendarDate'
 _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STEPS_COL = 'steps'
+_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STEPS_GOAL_COL = 'stepsGoal'
 _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_DISTANCE_COL = "distanceInMeters"
 _LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL = "intensity"
-_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL = "activeTimeInMs"
+_LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL = "activeTimeInMs"
 
 _MS_TO_HOURS_CONVERSION = 1000*60*60
 _MS_TO_MINUTES_CONVERSION = 1000*60
@@ -55,7 +56,7 @@ def get_activity_by_period(loader, activity, start_dt, end_dt, user_ids="all"):
     for user_id in user_ids:
         try:
             df = loader.load_garmin_connect_epoch(user_id,start_dt,end_dt-timedelta(minutes=15))
-            activity_dict[user_id] = pd.Series(df[df[_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL] == activity][_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].values,
+            activity_dict[user_id] = pd.Series(df[df[_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL] == activity][_LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].values,
                                                       index= df[df.intensity == activity].isoDate)
         except:
             activity_dict[user_id] = None
@@ -274,6 +275,7 @@ def get_steps_per_day(loader, start_dt=None, end_dt=None, participant_ids="all",
     for participant_id in participant_ids: 
         participant_daily_summary = loader.load_garmin_connect_daily_summary(participant_id, start_dt, end_dt-timedelta(minutes=15))
         if len(participant_daily_summary) > 0:
+            participant_daily_summary = participant_daily_summary.groupby(_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL).tail(1)
             if average:
                 data_dict[participant_id] = int(participant_daily_summary[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STEPS_COL].values.mean())
             else:
@@ -295,7 +297,7 @@ def get_distance_per_day(loader, start_dt=None, end_dt=None, participant_ids="al
         start_dt (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
         end_dt (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
         participant_ids (list, optional): List of participants of interest. Defaults to "all".
-        average (bool, optional): Indication whather to calculate the average. Defaults to False.
+        average (bool, optional): Indication whether to calculate the average. Defaults to False.
 
     Returns:
         dict: Dictionary of daily meters covered by participants of interest
@@ -307,6 +309,7 @@ def get_distance_per_day(loader, start_dt=None, end_dt=None, participant_ids="al
     for participant_id in participant_ids: 
         participant_daily_summary = loader.load_garmin_connect_daily_summary(participant_id, start_dt, end_dt-timedelta(minutes=15))
         if len(participant_daily_summary) > 0:
+            participant_daily_summary = participant_daily_summary.groupby(_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL).tail(1)
             if average:
                 data_dict[participant_id] = int(participant_daily_summary[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_DISTANCE_COL].values.mean())
             else:
@@ -316,6 +319,44 @@ def get_distance_per_day(loader, start_dt=None, end_dt=None, participant_ids="al
             data_dict[participant_id] = None
 
     return data_dict
+
+def get_steps_goal_per_day(loader, start_dt=None, end_dt=None, participant_ids="all"):
+    """Get daily steps goal
+
+    This function returns the steps goal for every day within the period of interest
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    start_dt : :class:`datetime.datetime`, optional
+        Start date from which daily steps goal is retrieved, by default None.
+    end_dt : :class:`datetime.datetime`, optional
+        End date to which daily steps goal is retrieved, by default None.
+    participant_ids : :class:`str`, optional
+        ID of the user for which daily steps goal is retrieved, by default "all".
+
+    Returns
+    ----------
+    :class:`dict`
+        Dictionary with participant id as primary key, calendar days as secondary keys,
+        and steps goal as value.
+    """
+    data_dict = {}
+    
+    participant_ids = utils.get_user_ids(loader,participant_ids)
+
+    for participant_id in participant_ids: 
+        participant_daily_summary = loader.load_garmin_connect_daily_summary(participant_id, start_dt, end_dt-timedelta(minutes=15))
+        if len(participant_daily_summary) > 0:
+            participant_daily_summary = participant_daily_summary.groupby(_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL).tail(1)
+            data_dict[participant_id] = pd.Series(participant_daily_summary[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STEPS_GOAL_COL].values, 
+                                              index=participant_daily_summary[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL]).to_dict()
+        else:
+            data_dict[participant_id] = None
+
+    return data_dict
+    
 
 def get_avg_daily_activities(loader, start_dt=None, end_dt=None, participant_ids="all",return_as_ratio=False):
     """Create a dictionary reporting for every participant of interest
@@ -345,15 +386,15 @@ def get_avg_daily_activities(loader, start_dt=None, end_dt=None, participant_ids
                 raise Exception
             df["date"] = df[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.date())
             # group per date and type of activity
-            df = df.groupby(["date",_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL])[_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].sum().reset_index()
+            df = df.groupby(["date",_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL])[_LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].sum().reset_index()
             if return_as_ratio:
-                time_collected_per_day = df.groupby(["date"])[_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].sum().reset_index()
+                time_collected_per_day = df.groupby(["date"])[_LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].sum().reset_index()
                 # pivot the data so to be in dimensions that allow for division with pandas funcs
-                activity_durations_per_day = df.pivot(index="date",columns=_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL,values=_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL).reset_index()
+                activity_durations_per_day = df.pivot(index="date",columns=_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL,values=_LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL).reset_index()
                 ratio_df = (activity_durations_per_day.iloc[:,1:].div(time_collected_per_day.activeTimeInMs,axis=0)*100).fillna(0)
                 activities_dict[participant_id] = ratio_df.mean().round(1)
             else:
-                activities_dict[participant_id] = round(df.groupby([_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL])[_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].mean() / _MS_TO_MINUTES_CONVERSION, 1)
+                activities_dict[participant_id] = round(df.groupby([_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL])[_LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].mean() / _MS_TO_MINUTES_CONVERSION, 1)
         except:
             activities_dict[participant_id] = None
 
@@ -472,20 +513,20 @@ def get_avg_weekly_activities(loader, start_dt=None, end_dt=None, participant_id
             df["date"] = df[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.date())
             df["weekday"] = df[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.weekday())
             # calculate for every calendar date the total amount time for each activity
-            df = df.groupby(["date", _LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL, "weekday"])[_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].sum().reset_index() 
+            df = df.groupby(["date", _LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL, "weekday"])[_LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].sum().reset_index() 
             if return_as_ratio:
                 activity_df = df.pivot(index=["date","weekday"],
                                        columns=_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL,
-                                         values=_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL).reset_index()
-                time_collected_df = df.groupby(["date"])[_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].sum().reset_index()
-                ratio_df = pd.concat([activity_df.iloc[:,2:].div(time_collected_df[_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL],axis=0).fillna(0),
+                                         values=_LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL).reset_index()
+                time_collected_df = df.groupby(["date"])[_LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].sum().reset_index()
+                ratio_df = pd.concat([activity_df.iloc[:,2:].div(time_collected_df[_LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL],axis=0).fillna(0),
                                       activity_df.weekday],axis=1)
                 weekday_activities_dict[participant_id] = (ratio_df.groupby("weekday").mean()*100).round(1)
             else:       
                 # calculate for every weekday the mean amount of time for each activity
-                df = df.groupby([_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL, "weekday"])[_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].mean().reset_index()
+                df = df.groupby([_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL, "weekday"])[_LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL].mean().reset_index()
                 # make it more readable and transform MS to minutes
-                df = df.pivot(index="weekday", columns=_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL, values=_LABFRONT_GARMING_CONNECT_EPOCH_ACTIVE_TIME_MS_COL) / _MS_TO_MINUTES_CONVERSION
+                df = df.pivot(index="weekday", columns=_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL, values=_LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL) / _MS_TO_MINUTES_CONVERSION
                 weekday_activities_dict[participant_id] = df.fillna(0).round(1)
         except:
             weekday_activities_dict[participant_id] = None

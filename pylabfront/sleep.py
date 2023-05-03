@@ -130,9 +130,9 @@ def get_time_in_sleep_stage(
             if average:
                 sleep_data_df = pd.DataFrame.from_dict(data_dict[user], orient="index")
                 average_dict[user] = {}
-                average_dict[user]["values"] = np.array(
+                average_dict[user]["values"] = np.nanmean(np.array(
                     list(data_dict[user].values())
-                ).nanmean()
+                ))
                 average_dict[user]["days"] = [
                     datetime.datetime.strftime(x, "%Y-%m-%d")
                     for x in sleep_data_df.index
@@ -289,7 +289,7 @@ def get_deep_sleep_duration(
 
 
 def get_awake_sleep_duration(
-    loader, start_date=None, end_date=None, participant_id="all"
+    loader, start_date=None, end_date=None, participant_id="all", average=False
 ):
     """Get awake sleep time.
 
@@ -336,7 +336,7 @@ def get_awake_sleep_duration(
 
     """
     return get_time_in_sleep_stage(
-        loader, "AWAKE", start_date, end_date, participant_id
+        loader, "AWAKE", start_date, end_date, participant_id, average
     )
 
 
@@ -1365,6 +1365,24 @@ def get_nrem_sleep_percentage(
     )
 
 def get_sleep_timestamps(loader, start_date=None, end_date=None, user_ids="all"):
+    """_summary_
+
+    Parameters
+    ----------
+    loader : _type_
+        _description_
+    start_date : _type_, optional
+        _description_, by default None
+    end_date : _type_, optional
+        _description_, by default None
+    user_ids : str, optional
+        _description_, by default "all"
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     data_dict = {}
 
     user_ids = utils.get_user_ids(loader,user_ids)
@@ -1382,4 +1400,42 @@ def get_sleep_timestamps(loader, start_date=None, end_date=None, user_ids="all")
         else:
             data_dict[user_id] = None
 
+    return data_dict
+
+def get_awakenings(loader,
+                   start_date,
+                   end_date,
+                   user_ids="all",
+                   average=False):
+    
+    user_ids = utils.get_user_ids(loader, user_ids)
+
+    data_dict = {}
+    if average:
+        average_dict = {}
+
+    for user in user_ids:
+        data_dict[user] = {}
+        if average:
+            average_dict[user] = {}
+        try:
+            df = loader.load_garmin_connect_sleep_summary(user,start_date,end_date)
+            nights_available = df.calendarDate
+            for night in nights_available:
+                hypnogram = loader.load_hypnogram(user,night)
+                # check if there a difference in stage between successive observations (first one defaults to no change)
+                hypnogram["stages_diff"] = np.concatenate([[0],hypnogram.iloc[1:,:].stage.values - hypnogram.iloc[:-1,:].stage.values])
+                # if there has been a negative change and the current stage is awake, then count it as awakening
+                hypnogram["awakening"] = np.logical_and(hypnogram.stage == 0, hypnogram.stages_diff < 0)
+                num_awakenings = hypnogram.awakening.sum()
+                data_dict[user][night] = num_awakenings
+            if average:
+                average_dict[user]["value"] = np.nanmean(list(data_dict[user].values()))
+                average_dict[user]["days"] = [datetime.datetime.strftime(night, "%Y-%m-%d") 
+                                            for night in nights_available]
+        except:
+            data_dict[user] = None
+
+    if average:
+        return average_dict
     return data_dict

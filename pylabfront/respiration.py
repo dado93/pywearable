@@ -6,6 +6,8 @@ import datetime
 import numpy as np
 import pandas as pd
 
+import pylabfront.utils as utils
+
 
 def get_breaths_per_minute(
     loader,
@@ -44,12 +46,7 @@ def get_breaths_per_minute(
         Dictionary with participant id as primary key, calendar days as secondary keys, and average breaths per minute as value.
     """
 
-    if user_id == "all":
-        # get all participant ids automatically
-        user_id = loader.get_user_ids()
-
-    if isinstance(user_id, str):
-        user_id = [user_id]
+    user_id = utils.get_user_ids(loader,user_id)
 
     data_dict = {}
     if average:
