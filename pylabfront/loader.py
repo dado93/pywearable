@@ -703,10 +703,75 @@ class LabfrontLoader(Loader):
                 continue
             question_options = []
             for col in option_cols:
-                if not row[col] == "":
+                if not pd.isna(row[col]):
                     question_options.append(row[col])
             questions_dict[question_id]["options"] = question_options
         return questions_dict
+
+    def process_questionnaire(self, questionnaire):
+        questionnaire_df = pd.DataFrame()
+        questionnaire_questions = self.get_questionnaire_questions(questionnaire)
+        questions = [
+            questionnaire_questions[k]["description"]
+            for k in questionnaire_questions.keys()
+        ]
+
+        for participant in self.ids:
+            try:
+                questionnaire_data = self.load_questionnaire(
+                    participant, task_name=questionnaire
+                )
+            except KeyError:
+                print(
+                    f"Could not load {questionnaire} from {participant} as the questionnaire is not available."
+                )
+                continue
+            if len(questionnaire_data) > 0:
+                questionnaire_data.loc[:, "userId"] = participant
+                for question_key in questionnaire_questions.keys():
+                    if questionnaire_questions[question_key]["type"] == "radio":
+                        options_dict = {
+                            (k + 1): v
+                            for k, v in enumerate(
+                                questionnaire_questions[question_key]["options"]
+                            )
+                        }
+                        questionnaire_data[question_key] = questionnaire_data[
+                            question_key
+                        ].map(options_dict)
+                        questionnaire_data.loc[
+                            :,
+                            f'{question_key}-{questionnaire_questions[question_key]["description"]}',
+                        ] = questionnaire_data[question_key]
+
+                    if questionnaire_questions[question_key]["type"] == "multi_select":
+                        # We may have multiple options here, separated by a comma
+                        # We create new columns based on question name - option name and set the values to default False
+                        options_list = questionnaire_questions[question_key]["options"]
+                        for option in options_list:
+                            questionnaire_data.loc[
+                                :,
+                                f'{question_key}-{questionnaire_questions[question_key]["description"]}-{option}',
+                            ] = False
+                        # If we have the option, then set the corresponding column value to True
+                        for idx, row in questionnaire_data.iterrows():
+                            for option in range(len(options_list)):
+                                if isinstance(row[question_key], str):
+                                    if str(option + 1) in row[question_key]:
+                                        questionnaire_data.loc[
+                                            idx,
+                                            f'{question_key}-{questionnaire_questions[question_key]["description"]}-{options_list[option]}',
+                                        ] = True
+                                elif row[question_key] == option + 1:
+                                    questionnaire_data.loc[
+                                        idx,
+                                        f'{question_key}-{questionnaire_questions[question_key]["description"]}-{option}',
+                                    ] = True
+                    questionnaire_data = questionnaire_data.drop([question_key], axis=1)
+                questionnaire_df = pd.concat(
+                    [questionnaire_df, questionnaire_data], ignore_index=True
+                )
+        return questionnaire_df
 
     def get_header_length(self, file_path):
         """Get header length of Labfront csv file.
