@@ -92,7 +92,7 @@ _LABFRONT_QUESTIONNAIRE_QUESTION_INDEX_COL = "questionIndex"
 ###################################################
 
 _LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_RADIO_VAL = "radio"
-_LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_MULTI_SELECT_VAL = "multi_sel"
+_LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_MULTI_SELECT_VAL = "multi_select"
 _LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_TEXT_VAL = "text"
 
 
@@ -662,7 +662,6 @@ class LabfrontLoader(Loader):
             is_todo=False,
             task_name=questionnaire_name,
         )
-        print(files)
 
         if len(files) == 0:
             return {}
