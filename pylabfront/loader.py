@@ -729,7 +729,10 @@ class LabfrontLoader(Loader):
             if len(questionnaire_data) > 0:
                 questionnaire_data.loc[:, "userId"] = participant
                 for question_key in questionnaire_questions.keys():
-                    if questionnaire_questions[question_key]["type"] == "radio":
+                    if (
+                        questionnaire_questions[question_key]["type"]
+                        == _LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_RADIO_VAL
+                    ):
                         options_dict = {
                             (k + 1): v
                             for k, v in enumerate(
@@ -743,15 +746,26 @@ class LabfrontLoader(Loader):
                             :,
                             f'{question_key}-{questionnaire_questions[question_key]["description"]}',
                         ] = questionnaire_data[question_key]
+                    elif (
+                        questionnaire_questions[question_key]["type"]
+                        == _LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_TEXT_VAL
+                    ):
+                        questionnaire_data.loc[
+                            :,
+                            f'{question_key}-{questionnaire_questions[question_key]["description"]}',
+                        ] = questionnaire_data[question_key]
 
-                    if questionnaire_questions[question_key]["type"] == "multi_select":
+                    elif (
+                        questionnaire_questions[question_key]["type"]
+                        == _LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_MULTI_SELECT_VAL
+                    ):
                         # We may have multiple options here, separated by a comma
                         # We create new columns based on question name - option name and set the values to default False
                         options_list = questionnaire_questions[question_key]["options"]
-                        for option in options_list:
+                        for option in range(len(options_list)):
                             questionnaire_data.loc[
                                 :,
-                                f'{question_key}-{questionnaire_questions[question_key]["description"]}-{option}',
+                                f'{question_key}-{questionnaire_questions[question_key]["description"]}-{options_list[int(option)]}',
                             ] = False
                         # If we have the option, then set the corresponding column value to True
                         for idx, row in questionnaire_data.iterrows():
@@ -760,12 +774,12 @@ class LabfrontLoader(Loader):
                                     if str(option + 1) in row[question_key]:
                                         questionnaire_data.loc[
                                             idx,
-                                            f'{question_key}-{questionnaire_questions[question_key]["description"]}-{options_list[option]}',
+                                            f'{question_key}-{questionnaire_questions[question_key]["description"]}-{options_list[int(option)]}',
                                         ] = True
                                 elif row[question_key] == option + 1:
                                     questionnaire_data.loc[
                                         idx,
-                                        f'{question_key}-{questionnaire_questions[question_key]["description"]}-{option}',
+                                        f'{question_key}-{questionnaire_questions[question_key]["description"]}-{options_list[int(option)]}',
                                     ] = True
                     questionnaire_data = questionnaire_data.drop([question_key], axis=1)
                 questionnaire_df = pd.concat(
