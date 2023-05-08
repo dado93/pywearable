@@ -81,6 +81,20 @@ _LABFRONT_GARMIN_DEVICE_RESPIRATION_STRING = (
 _LABFRONT_GARMIN_DEVICE_STEP_STRING = _LABFRONT_GARMIN_DEVICE_STRING + "-step"
 _LABFRONT_GARMIN_DEVICE_STRESS_STRING = _LABFRONT_GARMIN_DEVICE_STRING + "-stress"
 
+_LABFRONT_QUESTIONNAIRE_QUESTION_DESCRIPTION_COL = "questionDescription"
+_LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_COL = "questionType"
+_LABFRONT_QUESTIONNAIRE_QUESTION_NAME_REGEX = "option\dName"
+_LABFRONT_QUESTIONNAIRE_SECTION_INDEX_COL = "sectionIndex"
+_LABFRONT_QUESTIONNAIRE_QUESTION_INDEX_COL = "questionIndex"
+
+###################################################
+#         Labfront questionnaires columns         #
+###################################################
+
+_LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_RADIO_VAL = "radio"
+_LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_MULTI_SELECT_VAL = "multi_select"
+_LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_TEXT_VAL = "text"
+
 
 class Loader:
     def __init__(self, data_path):
@@ -125,6 +139,15 @@ class LabfrontLoader(Loader):
         self.tasks_dict = self.get_available_questionnaires(
             return_dict=True
         ) | self.get_available_todos(return_dict=True)
+
+    def get_user_id(self, full_id):
+        regex_match = re.search(".{8}-.{4}-.{4}-.{4}-.{12}", full_id)
+        if regex_match:
+            labfront_id = full_id[regex_match.span()[0] : regex_match.span()[1]]
+            id = full_id[: regex_match.span()[0] - 1]
+        else:
+            raise ValueError("Could not extract user id.")
+        return id
 
     def get_user_ids(self):
         return self.ids
@@ -420,7 +443,9 @@ class LabfrontLoader(Loader):
 
         if is_questionnaire or is_todo:
             if task_name not in self.data_dictionary[participant_id][metric].keys():
-                return []
+                task_name = self.get_task_full_id(task_name)
+                if task_name not in self.data_dictionary[participant_id][metric].keys():
+                    return []
             temp_dict = self.data_dictionary[participant_id][metric][task_name]
         else:
             temp_dict = self.data_dictionary[participant_id][metric]
@@ -607,6 +632,147 @@ class LabfrontLoader(Loader):
         else:
             return data.reset_index(drop=True)
 
+    def get_questionnaire_questions(self, questionnaire_name):
+        no_user_id = True
+        full_task_id = self.get_task_full_id(questionnaire_name)
+        for user_id in self.data_dictionary.keys():
+            if _LABFRONT_QUESTIONNAIRE_STRING in self.data_dictionary[user_id].keys():
+                if (
+                    full_task_id
+                    in self.data_dictionary[user_id][
+                        _LABFRONT_QUESTIONNAIRE_STRING
+                    ].keys()
+                ):
+                    no_user_id = False
+                    participant_id = user_id
+                    break
+        if no_user_id:
+            raise ValueError(
+                f"Could not find questions for questionnaire {questionnaire_name}"
+            )
+        # From full ID to user ID
+        participant_id = self.get_user_id(participant_id)
+
+        files = self.get_files_timerange(
+            participant_id,
+            _LABFRONT_QUESTIONNAIRE_STRING,
+            start_date=None,
+            end_date=None,
+            is_questionnaire=True,
+            is_todo=False,
+            task_name=questionnaire_name,
+        )
+
+        if len(files) == 0:
+            return {}
+        # Convert participant id to full ID
+        participant_id = self.get_full_id(participant_id)
+
+        path_to_folder = (
+            self.data_path
+            / participant_id
+            / _LABFRONT_QUESTIONNAIRE_STRING
+            / full_task_id
+        )
+
+        questionnaire_info_file = path_to_folder / files[0]
+        header_length = self.get_header_length(questionnaire_info_file)
+        key_length = self.get_key_length(questionnaire_info_file)
+
+        questions_df = pd.read_csv(
+            questionnaire_info_file, skiprows=header_length + 2, nrows=key_length - 2
+        )
+
+        questions_dict = {}
+        # For each row, we need to get the question and all the options
+        option_cols = []
+        for col in questions_df.columns:
+            regex_match = re.search(_LABFRONT_QUESTIONNAIRE_QUESTION_NAME_REGEX, col)
+            if regex_match:
+                option_cols.append(col)
+        for idx, row in questions_df.iterrows():
+            question_id = f"{row[_LABFRONT_QUESTIONNAIRE_SECTION_INDEX_COL]}_{row[_LABFRONT_QUESTIONNAIRE_QUESTION_INDEX_COL]}"
+            questions_dict[question_id] = {
+                "type": row[_LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_COL],
+                "description": row[_LABFRONT_QUESTIONNAIRE_QUESTION_DESCRIPTION_COL],
+            }
+            if (
+                row[_LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_COL]
+                == _LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_TEXT_VAL
+            ):
+                continue
+            question_options = []
+            for col in option_cols:
+                if not pd.isna(row[col]):
+                    question_options.append(row[col])
+            questions_dict[question_id]["options"] = question_options
+        return questions_dict
+
+    def process_questionnaire(self, questionnaire):
+        questionnaire_df = pd.DataFrame()
+        questionnaire_questions = self.get_questionnaire_questions(questionnaire)
+        questions = [
+            questionnaire_questions[k]["description"]
+            for k in questionnaire_questions.keys()
+        ]
+
+        for participant in self.ids:
+            try:
+                questionnaire_data = self.load_questionnaire(
+                    participant, task_name=questionnaire
+                )
+            except KeyError:
+                print(
+                    f"Could not load {questionnaire} from {participant} as the questionnaire is not available."
+                )
+                continue
+            if len(questionnaire_data) > 0:
+                questionnaire_data.loc[:, "userId"] = participant
+                for question_key in questionnaire_questions.keys():
+                    if questionnaire_questions[question_key]["type"] == "radio":
+                        options_dict = {
+                            (k + 1): v
+                            for k, v in enumerate(
+                                questionnaire_questions[question_key]["options"]
+                            )
+                        }
+                        questionnaire_data[question_key] = questionnaire_data[
+                            question_key
+                        ].map(options_dict)
+                        questionnaire_data.loc[
+                            :,
+                            f'{question_key}-{questionnaire_questions[question_key]["description"]}',
+                        ] = questionnaire_data[question_key]
+
+                    if questionnaire_questions[question_key]["type"] == "multi_select":
+                        # We may have multiple options here, separated by a comma
+                        # We create new columns based on question name - option name and set the values to default False
+                        options_list = questionnaire_questions[question_key]["options"]
+                        for option in options_list:
+                            questionnaire_data.loc[
+                                :,
+                                f'{question_key}-{questionnaire_questions[question_key]["description"]}-{option}',
+                            ] = False
+                        # If we have the option, then set the corresponding column value to True
+                        for idx, row in questionnaire_data.iterrows():
+                            for option in range(len(options_list)):
+                                if isinstance(row[question_key], str):
+                                    if str(option + 1) in row[question_key]:
+                                        questionnaire_data.loc[
+                                            idx,
+                                            f'{question_key}-{questionnaire_questions[question_key]["description"]}-{options_list[option]}',
+                                        ] = True
+                                elif row[question_key] == option + 1:
+                                    questionnaire_data.loc[
+                                        idx,
+                                        f'{question_key}-{questionnaire_questions[question_key]["description"]}-{option}',
+                                    ] = True
+                    questionnaire_data = questionnaire_data.drop([question_key], axis=1)
+                questionnaire_df = pd.concat(
+                    [questionnaire_df, questionnaire_data], ignore_index=True
+                )
+        return questionnaire_df
+
     def get_header_length(self, file_path):
         """Get header length of Labfront csv file.
 
@@ -614,7 +780,7 @@ class LabfrontLoader(Loader):
             file_path (str): Path to csv file.
         """
         # Read first line of file
-        with open(file_path, "r") as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             line = f.readline().split(",")
         header_length = int(line[1])
         return header_length
@@ -625,7 +791,7 @@ class LabfrontLoader(Loader):
         Args:
             file_path (str): Path to csv file of the questionnaire.
         """
-        with open(file_path, "r") as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             while True:
                 line = f.readline().split(",")
                 if line[0] == "Key Length":
