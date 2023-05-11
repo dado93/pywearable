@@ -26,7 +26,7 @@ _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_UNMEASURABLE_SLEEP_MS_COL = (
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_MS_COL = "durationInMs"
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SCORE_COL = "overallSleepScore"
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL = "calendarDate"
-_LABFRONT_ISO_DATE_KEY = 'isoDate'
+_LABFRONT_ISO_DATE_KEY = "isoDate"
 
 
 _YASA_TIME_IN_BED = "TIB"
@@ -130,9 +130,9 @@ def get_time_in_sleep_stage(
             if average:
                 sleep_data_df = pd.DataFrame.from_dict(data_dict[user], orient="index")
                 average_dict[user] = {}
-                average_dict[user]["values"] = np.nanmean(np.array(
-                    list(data_dict[user].values())
-                ))
+                average_dict[user]["values"] = np.nanmean(
+                    np.array(list(data_dict[user].values()))
+                )
                 average_dict[user]["days"] = [
                     datetime.datetime.strftime(x, "%Y-%m-%d")
                     for x in sleep_data_df.index
@@ -1364,6 +1364,7 @@ def get_nrem_sleep_percentage(
         average=average,
     )
 
+
 def get_sleep_timestamps(loader, start_date=None, end_date=None, user_ids="all"):
     """_summary_
 
@@ -1385,29 +1386,30 @@ def get_sleep_timestamps(loader, start_date=None, end_date=None, user_ids="all")
     """
     data_dict = {}
 
-    user_ids = utils.get_user_ids(loader,user_ids)
+    user_ids = utils.get_user_ids(loader, user_ids)
 
     for user_id in user_ids:
         # better to give a bit of rooms before and after start_date and end_date to ensure they're included
-        df = loader.load_garmin_connect_sleep_summary(user_id,
-                                                      start_date-datetime.timedelta(hours=6),
-                                                      end_date+datetime.timedelta(hours=6))
+        df = loader.load_garmin_connect_sleep_summary(
+            user_id,
+            start_date - datetime.timedelta(hours=6),
+            end_date + datetime.timedelta(hours=6),
+        )
         if len(df) > 0:
-            df["waking_time"] = df[_LABFRONT_ISO_DATE_KEY] + \
-                  df[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_MS_COL].astype(int).apply(lambda x: datetime.timedelta(milliseconds=x))
-            data_dict[user_id] = pd.Series(zip(df[_LABFRONT_ISO_DATE_KEY],df["waking_time"]),
-                                           df[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL]).to_dict()
+            df["waking_time"] = df[_LABFRONT_ISO_DATE_KEY] + df[
+                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_MS_COL
+            ].astype(int).apply(lambda x: datetime.timedelta(milliseconds=x))
+            data_dict[user_id] = pd.Series(
+                zip(df[_LABFRONT_ISO_DATE_KEY], df["waking_time"]),
+                df[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL],
+            ).to_dict()
         else:
             data_dict[user_id] = None
 
     return data_dict
 
-def get_awakenings(loader,
-                   start_date,
-                   end_date,
-                   user_ids="all",
-                   average=False):
-    
+
+def get_awakenings(loader, start_date, end_date, user_ids="all", average=False):
     user_ids = utils.get_user_ids(loader, user_ids)
 
     data_dict = {}
@@ -1419,20 +1421,30 @@ def get_awakenings(loader,
         if average:
             average_dict[user] = {}
         try:
-            df = loader.load_garmin_connect_sleep_summary(user,start_date,end_date)
+            df = loader.load_garmin_connect_sleep_summary(user, start_date, end_date)
             nights_available = df.calendarDate
             for night in nights_available:
-                hypnogram = loader.load_hypnogram(user,night)
+                hypnogram = loader.load_hypnogram(user, night)
                 # check if there a difference in stage between successive observations (first one defaults to no change)
-                hypnogram["stages_diff"] = np.concatenate([[0],hypnogram.iloc[1:,:].stage.values - hypnogram.iloc[:-1,:].stage.values])
+                hypnogram["stages_diff"] = np.concatenate(
+                    [
+                        [0],
+                        hypnogram.iloc[1:, :].stage.values
+                        - hypnogram.iloc[:-1, :].stage.values,
+                    ]
+                )
                 # if there has been a negative change and the current stage is awake, then count it as awakening
-                hypnogram["awakening"] = np.logical_and(hypnogram.stage == 0, hypnogram.stages_diff < 0)
+                hypnogram["awakening"] = np.logical_and(
+                    hypnogram.stage == 0, hypnogram.stages_diff < 0
+                )
                 num_awakenings = hypnogram.awakening.sum()
                 data_dict[user][night] = num_awakenings
             if average:
                 average_dict[user]["value"] = np.nanmean(list(data_dict[user].values()))
-                average_dict[user]["days"] = [datetime.datetime.strftime(night, "%Y-%m-%d") 
-                                            for night in nights_available]
+                average_dict[user]["days"] = [
+                    datetime.datetime.strftime(night, "%Y-%m-%d")
+                    for night in nights_available
+                ]
         except:
             data_dict[user] = None
 
