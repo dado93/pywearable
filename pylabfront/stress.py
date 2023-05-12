@@ -30,8 +30,8 @@ def get_body_battery(loader, start_date=None, end_date=None, participant_ids="al
 
     Args:
         loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_date (:class:`datetime.datetime`, optional): Start date from which REM data should be extracted. Defaults to None.
-        end_date (:class:`datetime.datetime`, optional): End date from which REM data should be extracted. Defaults to None.
+        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
+        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
         participant_ids (str, optional): ID of the participants. Defaults to "all".
 
     Returns:
@@ -58,8 +58,8 @@ def get_stress(loader, start_date=None, end_date=None, participant_ids="all"):
 
     Args:
         loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_date (:class:`datetime.datetime`, optional): Start date from which REM data should be extracted. Defaults to None.
-        end_date (:class:`datetime.datetime`, optional): End date from which REM data should be extracted. Defaults to None.
+        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
+        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
         participant_ids (str, optional): ID of the participants. Defaults to "all".
 
     Returns:
@@ -87,8 +87,8 @@ def get_daily_stress_statistics(loader, start_date=None, end_date=None, particip
 
     Args:
         loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_date (:class:`datetime.datetime`, optional): Start date from which REM data should be extracted. Defaults to None.
-        end_date (:class:`datetime.datetime`, optional): End date from which REM data should be extracted. Defaults to None.
+        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
+        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
         participant_ids (str, optional): ID of the participants. Defaults to "all".
         entire_period (bool, optional): Indication if statistics are computed over the entire period, not daily. Defaults to False.
 
@@ -103,7 +103,7 @@ def get_daily_stress_statistics(loader, start_date=None, end_date=None, particip
     for participant_id in participant_ids:
         df = loader.load_garmin_connect_daily_summary(participant_id,
                                                           start_date,
-                                                          end_date-timedelta(minutes=15))
+                                                          end_date+timedelta(hours=23,minutes=45))
         if len(df) > 0:
             df = df.groupby(_LABFRONT_CALENDAR_DAY_KEY).tail(1) # consider the last reading of every day
             if entire_period:
@@ -121,8 +121,8 @@ def get_average_stress_weekday(loader, start_date=None, end_date=None, participa
 
     Args:
         loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_date (:class:`datetime.datetime`, optional): Start date from which REM data should be extracted. Defaults to None.
-        end_date (:class:`datetime.datetime`, optional): End date from which REM data should be extracted. Defaults to None.
+        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
+        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
         participant_ids (str, optional): ID of the participants. Defaults to "all".
 
     Returns:
@@ -151,8 +151,8 @@ def get_average_stress_weekend(loader, start_date=None, end_date=None, participa
 
     Args:
         loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_date (:class:`datetime.datetime`, optional): Start date from which REM data should be extracted. Defaults to None.
-        end_date (:class:`datetime.datetime`, optional): End date from which REM data should be extracted. Defaults to None.
+        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
+        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
         participant_ids (str, optional): ID of the participants. Defaults to "all".
 
     Returns:
