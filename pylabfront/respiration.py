@@ -8,6 +8,8 @@ import pandas as pd
 
 import pylabfront.utils as utils
 
+_LABFRONT_RESPIRATION_COLUMN = "breathsPerMinute"
+
 
 def get_breaths_per_minute(
     loader,
@@ -16,6 +18,7 @@ def get_breaths_per_minute(
     end_date=None,
     user_id="all",
     average=False,
+    remove_zero=False,
 ):
     """Get breaths per minute.
 
@@ -39,6 +42,10 @@ def get_breaths_per_minute(
         End date to which breaths per minute must be computed, by default None.
     user_id: :class:`str`, optional
         ID of the user for which breaths per minute must be computed, by default "all".
+    average: :class:`bool`, option
+        Whether to return the average across days/nights or return the average per day/night.
+    remove_zero: :class:`bool`, option
+        Whether to remove data with breathsPerMinute equal to 0 from the data.
 
     Returns
     -------
@@ -46,7 +53,7 @@ def get_breaths_per_minute(
         Dictionary with participant id as primary key, calendar days as secondary keys, and average breaths per minute as value.
     """
 
-    user_id = utils.get_user_ids(loader,user_id)
+    user_id = utils.get_user_ids(loader, user_id)
 
     data_dict = {}
     if average:
@@ -57,6 +64,10 @@ def get_breaths_per_minute(
             respiratory_data = loader.load_garmin_connect_respiration(
                 user, start_date=start_date, end_date=end_date
             )
+            if remove_zero:
+                respiratory_data = respiratory_data[
+                    respiratory_data[_LABFRONT_RESPIRATION_COLUMN] > 0
+                ]
             if day_or_night == "DAY":
                 respiratory_data = respiratory_data[respiratory_data.sleep == 0]
             elif day_or_night == "NIGHT":
@@ -65,7 +76,7 @@ def get_breaths_per_minute(
                 data_dict[user] = (
                     respiratory_data.groupby(
                         respiratory_data[loader.date_column].dt.date
-                    )[loader.respiration_column]
+                    )[_LABFRONT_RESPIRATION_COLUMN]
                     .mean()
                     .to_dict()
                 )
@@ -89,7 +100,12 @@ def get_breaths_per_minute(
 
 
 def get_rest_breaths_per_minute(
-    loader, start_date=None, end_date=None, user_id="all", average=False
+    loader,
+    start_date=None,
+    end_date=None,
+    user_id="all",
+    average=False,
+    remove_zero=False,
 ):
     """Get rest breaths per minute.
 
@@ -109,6 +125,8 @@ def get_rest_breaths_per_minute(
             thus returing a dictionary with the average breaths per minute and the valid days
             over which the average was computed. If set to `False`, the dictionary contains
             the breaths per minute value for each day.
+        remove_zero: :class:`bool`, option
+            Whether to remove data with breathsPerMinute equal to 0 from the data.
 
     Returns
     -------
@@ -122,11 +140,17 @@ def get_rest_breaths_per_minute(
         end_date=end_date,
         user_id=user_id,
         average=average,
+        remove_zero=remove_zero,
     )
 
 
 def get_waking_breaths_per_minute(
-    loader, start_date=None, end_date=None, user_id="all", average=False
+    loader,
+    start_date=None,
+    end_date=None,
+    user_id="all",
+    average=False,
+    remove_zero=False,
 ):
     """Get average waking breaths per minute across timerange.
 
@@ -140,6 +164,14 @@ def get_waking_breaths_per_minute(
             End date to which breaths per minute must be computed, by default None.
         participant_id :class:`str`, optional
             ID of the user for which breaths per minute must be computed, by default "all".
+        average: :class:`bool`, optional
+            Whether to average the breaths per minute over the timerange, by default false.
+            If set to `True`, then the breaths per minute are averaged across the timerange,
+            thus returing a dictionary with the average breaths per minute and the valid days
+            over which the average was computed. If set to `False`, the dictionary contains
+            the breaths per minute value for each day.
+        remove_zero: :class:`bool`, option
+            Whether to remove data with breathsPerMinute equal to 0 from the data.
 
     Returns:
         dict: Dictionary with participant id as primary key, calendar days as secondary keys, and average breaths per minute as value.
@@ -151,4 +183,5 @@ def get_waking_breaths_per_minute(
         end_date=end_date,
         user_id=user_id,
         average=average,
+        remove_zero=remove_zero,
     )

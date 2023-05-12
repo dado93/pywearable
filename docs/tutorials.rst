@@ -1,4 +1,4 @@
 Tutorials
 =========
 
-List of tutorials with pylabfront.
+You can follow the tutorials reported here below to understand how pylabfront works

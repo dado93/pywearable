@@ -63,10 +63,13 @@ _LABFRONT_GARMIN_CONNECT_STRESS_STRING = _LABFRONT_GARMIN_CONNECT_STRING + "-str
 ###################################################
 _LABFRONT_SPO2_COLUMN = "spo2"
 _LABFRONT_RESPIRATION_COLUMN = "breathsPerMinute"
-_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATA_COL = "calendarDate"
+_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL = "calendarDate"
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_IN_MS_COL = "durationInMs"
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL = "awakeDurationInMs"
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_STAGE_COL = "type"
+
+_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL = "calendarDate"
+
 
 # Garmin device metrics - Labfront folder names
 _LABFRONT_GARMIN_DEVICE_STRING = "garmin-device"
@@ -96,25 +99,16 @@ _LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_MULTI_SELECT_VAL = "multi_select"
 _LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_TEXT_VAL = "text"
 
 
-class Loader:
-    def __init__(self, data_path):
-        pass
+class LabfrontLoader:
+    """Loader for Labfront data.
 
-    def load_respiration_data(self, user_id, start_date, end_date):
-        pass
+    This is the main object for loading and analyzing data collected
+    with Labfront.
 
-    def load_sleep_stages(self, user_id, start_date, end_date):
-        pass
-
-    pass
-
-
-class LabfrontLoader(Loader):
-    """This class is required to manage all the loading operations of
-    Labfront data.
-
-    Args:
-        data_path (str): Path to folder containing Labfront data.
+    Parameters
+    ----------
+        data_path: `class:str`
+            Path to folder containing Labfront data.
     """
 
     def __init__(self, data_path):
@@ -124,10 +118,12 @@ class LabfrontLoader(Loader):
         self.respiration_column = _LABFRONT_RESPIRATION_COLUMN
 
     def set_path(self, data_path):
-        """Set path of Labfront data.
+        """Set path to folder containing Labfront data.
 
-        Args:
-            data_path (str): Path to folder containing Labfront data.
+        Parameters
+        ----------
+            data_path: :class:`str`
+                Path to folder containing Labfront data.
         """
         if not isinstance(data_path, Path):
             data_path = Path(data_path)
@@ -156,7 +152,12 @@ class LabfrontLoader(Loader):
         return self.labfront_ids
 
     def get_ids(self, return_dict=False):
-        """Get participant IDs from folder with data.
+        """Get user IDs from folder with data.
+
+        This function returns both user IDs (set in the Labfront dashboard
+        when inserting new participants by the study coordinator)
+        and Labfront IDs. You can either choose to get the IDs in a dictionary format,
+        or as two separate lists.
 
         Parameters
         ----------
@@ -196,26 +197,30 @@ class LabfrontLoader(Loader):
         return ids, labfront_ids
 
     def get_participant_list(self):
-        """Get list of participants in "[user_id]_[labfront_id]" format.
+        """Get list of users in "[user_id]_[labfront_id]" format.
 
         Returns:
-            list: List of participants IDs
+            list: List of user IDs.
         """
         participant_ids = [
             k + "_" + v for k, v in self.get_ids(return_dict=True).items()
         ]
         return participant_ids
 
-    def get_available_questionnaires(self, participant_ids="all", return_dict=False):
+    def get_available_questionnaires(self, user_id="all", return_dict=False):
         """Get the list of available questionnaires.
 
-        Args:
-            participant_ids (list):  IDs of participants. Defaults to "all".
-            return_dict (bool): Whether to return a dictionary of the name of the questionnaires
-            and their full ids, or simply a sorted list of the available questionnaires. Defaults to False.
+        Parameters
+        ----------
+            participant_ids: class:`list`
+                IDs of the users for which to return available questtionaires, by default "all".
+            return_dict: class:`bool`
+                Whether to return a dictionary of the name of the questionnaires and their full ids,
+                or simply a sorted list of the available questionnaires, by defaul False.
 
-        Returns:
-            list: alphabetically sorted names of the questionnaires for the participant(s).
+        Returns
+        -------
+            list: alphabetically sorted names of the questionnaires for the user(s).
         """
         if not self.data_path.exists():
             raise FileNotFoundError
@@ -223,7 +228,7 @@ class LabfrontLoader(Loader):
         questionnaires = set()
         questionnaires_dict = {}
 
-        participant_ids = utils.get_user_ids(self, participant_ids)
+        participant_ids = utils.get_user_ids(self, user_id)
 
         for participant_id in participant_ids:
             participant_id = self.get_full_id(participant_id)
@@ -255,16 +260,22 @@ class LabfrontLoader(Loader):
         else:
             return sorted(list(questionnaires))
 
-    def get_available_todos(self, participant_ids="all", return_dict=False):
-        """Get the lit of available todos.
+    def get_available_todos(self, user_id="all", return_dict=False):
+        """Get available todos for given users.
 
-        Args:
-            participant_ids (list):  IDs of participants. Defaults to "all".
+        Parameters
+        ----------
+            user_id (list):  IDs of participants. Defaults to "all".
             return_dict (bool): Whether to return a dictionary of the name of the todos
             and their full ids, or simply a sorted list of the available todos. Defaults to False.
 
-        Returns:
+        Returns
+        -------
             list: alphabetically sorted names of the todos for the participant(s).
+
+        Raises
+        ------
+            FileNotFoundError: if data path does not exist
         """
 
         if not self.data_path.exists():
@@ -273,7 +284,7 @@ class LabfrontLoader(Loader):
         todos = set()
         todos_dict = {}
 
-        participant_ids = utils.get_user_ids(self, participant_ids)
+        participant_ids = utils.get_user_ids(self, user_id)
 
         for participant_id in participant_ids:
             participant_id = self.get_full_id(participant_id)
@@ -304,15 +315,32 @@ class LabfrontLoader(Loader):
             return sorted(list(todos))
 
     def get_time_dictionary(self):
-        """Create a dictionary with start and end times for all files.
+        """Create a dictionary with start and end times for all files for all users.
 
         This function creates and returns a dictionary with start and
-        end unix times for all the files that are present in data folder.
+        end unix times for all the files that are present in Labfront
+        data folder for all the participants.
         This is useful to easily determine, based on an
         input time and date, which files need to be loaded.
+        The returned dictionary has the following structure::
 
-        Returns:
-            dict: Dictionary with start and end times for all files.
+            {
+                'participant-01': {
+                    'garmin-connect-pulse-ox':
+                    {
+                        '000000_garmin-connect-pulse-ox_sample-participant-01_6732ab82.csv':
+                        {
+                            'firstSampleUnixTimestampInMs': 1672740900000
+                            'lastSampleUnixTimestampInMs': 1675248720000
+                        }
+                    }
+                }
+            }
+
+
+        Returns
+        -------
+            class:`dict`: Dictionary with start and end times for all files.
         """
 
         if not self.data_path.exists():
@@ -394,7 +422,7 @@ class LabfrontLoader(Loader):
 
     def get_files_timerange(
         self,
-        participant_id,
+        user_id,
         metric,
         start_date,
         end_date,
@@ -409,21 +437,32 @@ class LabfrontLoader(Loader):
         contain data within this time range. This function is based on unix timestamps, thus it
         does not take into account timezones. In order to find the files containing data within
         the timerange, 12 hours are removed (added) from the start_date (end_date).
+        In case no files are available to be loaded, then an empty list is returned.
 
-        Args:
-            participant_id (str): Unique participant identifier, set by study coordinator.
-            metric (str): Metric of interest
-            start_date (datetime): Start date and time of interest
-            end_date (datetime): End date and time of interest
-            is_questionnaire (bool, optional): Metric of interest is a questionnaire. Defaults to False.
-            is_todo (bool, optional): Metric of interest is a todo. Defaults to False.
-            task_name (str, optional): Name of the questionnaire or of the todo. Defaults to None.
+        Parameters
+        ----------
+            participant_id: class:`str`
+                Unique participant identifier, set by study coordinator.
+            metric: class:`str`
+                Metric of interest.
+            start_date: class:`datetime.datetime`
+                Start date and time of interest
+            end_date: class:`datetime.datetime`
+                End date and time of interest
+            is_questionnaire: class:`bool`, optional
+                Metric of interest is a questionnaire, by default False.
+            is_todo: class:`bool`, optional
+                Metric of interest is a todo, by defaults False.
+            task_name: :class:`str`, optional
+                Name of the questionnaire or of the todo, by default None.
 
-        Raises:
-            ValueError: _description_
+        Raises
+        ------
+            ValueError: If both `is_questionnaire` and `is_todo` are set to True
 
-        Returns:
-            list: Array with files that are closest to the requested datetime.
+        Returns
+        -------
+            :class:`list`: Array with files that are closest to the requested datetime.
         """
         if is_questionnaire and is_todo:
             with ValueError as e:
@@ -432,11 +471,11 @@ class LabfrontLoader(Loader):
             with ValueError as e:
                 raise e + "Please specify name of questionnaire or of todo."
 
-        if participant_id not in self.ids:
+        if user_id not in self.ids:
             return []
 
         # Get full participant_id (user + labfront)
-        participant_id = self.get_full_id(participant_id)
+        participant_id = self.get_full_id(user_id)
 
         if metric not in self.data_dictionary[participant_id].keys():
             return []
@@ -506,7 +545,7 @@ class LabfrontLoader(Loader):
 
     def get_data_from_datetime(
         self,
-        participant_id,
+        user_id,
         metric,
         start_date=None,
         end_date=None,
@@ -514,14 +553,17 @@ class LabfrontLoader(Loader):
         is_todo=False,
         task_name=None,
     ):
-        """Load data from a given participant in a given time frame.
+        """Load data from a given user in a given time frame.
 
-        This function allows to load data of a given metric from a specified participant
-        only within a given timeframe. If start_date and end_date are set to None, then
-        all data are returned.
+        This function allows to load data of a given metric from a specified user
+        only within a given timeframe. If `start_date` and `end_date` are set to None, then
+        all data available for the user of interest are returned.
+        If no data are available, then an empty DataFrame is returned.
 
-        Args:
-            participant_id (str): Unique participant identifier, set by study coordinator.
+        Parameters
+        ----------
+            user_id: :class:`str`
+                User identifier, set by study coordinator.
             metric (str): Metric of interest
             start_date (datetime): Start date and time of interest. Defaults to None.
             end_date (datetime): End date and time of interest. Defaults to None.
@@ -529,13 +571,15 @@ class LabfrontLoader(Loader):
             is_todo (bool, optional): Metric of interest is a todo. Defaults to False.
             task_name (str, optional): Name of the questionnaire or of the todo. Defaults to None.
 
-        Raises:
+        Raises
+        ------
             ValueError: Not possible to load from both questionnaires and todos at the same time.
             ValueError: No name specified for questionnaire or todo.
             ValueError: The ID of the participant was not found among available IDs.
 
-        Returns:
-            pd.DataFrame: Dataframe with the data.
+        Returns
+        -------
+            :class:`pd.DataFrame`: Dataframe with the data of interest.
         """
 
         if is_questionnaire and is_todo:
@@ -545,11 +589,11 @@ class LabfrontLoader(Loader):
         if is_questionnaire or is_todo:
             task_name = self.get_task_full_id(task_name.lower())
 
-        if participant_id not in self.ids:
-            raise ValueError(f"participant_id {participant_id} not found.")
+        if user_id not in self.ids:
+            raise ValueError(f"participant_id {user_id} not found.")
 
         files = self.get_files_timerange(
-            participant_id,
+            user_id,
             metric,
             start_date,
             end_date,
@@ -559,7 +603,7 @@ class LabfrontLoader(Loader):
         )
 
         # Get full participant_id (user + labfront)
-        participant_id = self.get_full_id(participant_id)
+        participant_id = self.get_full_id(user_id)
 
         if len(files) == 0:
             return pd.DataFrame()
@@ -1033,16 +1077,39 @@ class LabfrontLoader(Loader):
         Returns:
             pd.DataFrame: Dataframe containing Garmin Connect sleep summary data.
         """
+        new_start_date = start_date - datetime.timedelta(days=1)
+        new_end_date = end_date + datetime.timedelta(days=1)
+
         data = self.get_data_from_datetime(
             participant_id,
             _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_STRING,
-            start_date,
-            end_date,
+            new_start_date,
+            new_end_date,
         )
-        data[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATA_COL] = pd.to_datetime(
-            data[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATA_COL],
+
+        start_date = datetime.datetime(
+            year=start_date.year, month=start_date.month, day=start_date.day
+        )
+        end_date = datetime.datetime(
+            year=end_date.year, month=end_date.month, day=end_date.day
+        )
+
+        data[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL] = pd.to_datetime(
+            data[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL],
             format="%Y-%m-%d",
         )
+
+        data = data[
+            (
+                data[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL]
+                >= start_date
+            )
+            & (
+                data[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL]
+                <= end_date
+            )
+        ]
+
         return data
 
     def load_garmin_connect_stress(
@@ -1258,12 +1325,36 @@ class LabfrontLoader(Loader):
         Returns:
             pd.DataFrame: Dataframe containing Garmin Connect daily summary data.
         """
+        new_start_date = start_date - datetime.timedelta(days=1)
+        new_end_date = end_date + datetime.timedelta(days=1)
         data = self.get_data_from_datetime(
             participant_id,
             _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STRING,
-            start_date,
-            end_date,
+            new_start_date,
+            new_end_date,
         )
+        start_date = datetime.datetime(
+            year=start_date.year, month=start_date.month, day=start_date.day
+        )
+        end_date = datetime.datetime(
+            year=end_date.year, month=end_date.month, day=end_date.day
+        )
+        data[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL] = pd.to_datetime(
+            data[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL],
+            format="%Y-%m-%d",
+        )
+
+        data = data[
+            (
+                data[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL]
+                >= start_date
+            )
+            & (
+                data[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL]
+                <= end_date
+            )
+        ]
+
         return data
 
     def load_garmin_connect_epoch(self, participant_id, start_date=None, end_date=None):
