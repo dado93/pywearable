@@ -570,7 +570,7 @@ def get_sleep_statistics(
     average_dict = {}
     intervals = int(divmod((end_date - start_date).total_seconds(), 3600 * 24)[0])
     calendar_days = [
-        start_date + i * datetime.timedelta(days=1) for i in range(intervals)
+        start_date + i * datetime.timedelta(days=1) for i in range(1, intervals+1)
     ]
     for participant in user_id:
         data_dict[participant] = {}
