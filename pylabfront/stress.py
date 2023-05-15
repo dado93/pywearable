@@ -106,6 +106,8 @@ def get_daily_stress_statistics(loader, start_date=None, end_date=None, particip
                                                           end_date+timedelta(hours=23,minutes=45))
         if len(df) > 0:
             df = df.groupby(_LABFRONT_CALENDAR_DAY_KEY).tail(1) # consider the last reading of every day
+            # need to filter out days where the info isn't available (nan or -1)
+            df = df[np.logical_and(~df["averageStressInStressLevel"].isna(), df["averageStressInStressLevel"]!= -1)] 
             if entire_period:
                 data_dict[participant_id] = round(df[_LABFRONT_AVERAGE_STRESS_KEY].mean(),1), round(df[_LABFRONT_MAXIMUM_STRESS_KEY].max(),1)
             else:
