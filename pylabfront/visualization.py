@@ -36,7 +36,7 @@ def get_steps_graph_and_stats(loader,start_dt,end_dt,user,verbose=False):
     percentage_goal = round(goal_reached/number_of_days*100,1)
     stats_dict = {"Mean daily steps": mean_steps,
                   "Mean daily distance": mean_distance,
-                  "Percentage goal completion": percentage_goal}
+                  "Percentage goal completion": f"{goal_reached}/{number_of_days} {percentage_goal}%"}
 
 
     with plt.style.context('ggplot'):
@@ -167,7 +167,7 @@ def get_rest_spo2_graph(loader,start_dt,end_dt,user):
 def get_stress_graph_and_stats(loader, start_dt, end_dt, user, verbose=False):
 
     # get stats
-    dates, metrics = zip(*stress.get_daily_stress_statistics(loader,start_dt,end_dt+datetime.timedelta(days=1),user)[user].items())
+    dates, metrics = zip(*stress.get_daily_stress_statistics(loader,start_dt,end_dt,user)[user].items())
     daily_avg_stress, daily_max_stress = list(zip(*metrics))
     avg_stress = round(np.mean(daily_avg_stress))
     stats_dict = {"Averege stress score": avg_stress}
@@ -288,11 +288,10 @@ def get_sleep_heatmap_and_stats(loader, start_dt, end_dt, user,verbose=True):
     avg_awakenings = sleep.get_awakenings(loader,start_dt,end_dt,user,average=True)[user]["value"]
     avg_score = sleep.get_sleep_score(loader,start_dt,end_dt,user,average=True)[user]["values"]
 
-    # average are reported in minutes
-    stats_dict = {"Average light sleep": int(avg_light / (1000*60)),
-                  "Average deep sleep": int(avg_deep / (1000*60)),
-                  "Average REM sleep": int(avg_rem / (1000*60)),
-                  "Average awake time": int(avg_awake / (1000*60)),
+    stats_dict = {"Average light sleep": f"{int((avg_light / (1000*60*60))% 24)} hr {int((avg_light / (1000*60))%60)}",
+                  "Average deep sleep": f"{int((avg_deep / (1000*60*60))% 24)} hr {int((avg_deep / (1000*60))% 60)}",
+                  "Average REM sleep":  f"{int((avg_rem / (1000*60*60))% 24)} hr {int((avg_rem / (1000*60))% 60)}",
+                  "Average awake time":  f"{int((avg_awake / (1000*60*60))% 24)} hr {int((avg_awake / (1000*60))% 60)}",
                   "Average sleep disruptions": round(avg_awakenings,1),
                   "Average sleep score": round(avg_score)}
 
@@ -309,8 +308,6 @@ def get_sleep_summary_graph(loader, start_dt, end_dt, user):
     ALPHA = 0.25
     POSITION = 1.3
 
-    fig, ax = plt.subplots(figsize=(12,21))
-
     time_period = pd.date_range(start_dt+datetime.timedelta(days=1), 
                         periods=(end_dt-start_dt).days,
                         freq="D")
@@ -325,8 +322,9 @@ def get_sleep_summary_graph(loader, start_dt, end_dt, user):
 
     # setup an internal fn to get appropriate sleep score colors:
     def get_color(score):
-        if score == "":
-            return "black"
+        # if it's null/nan hide it out, this happens for manual input by the user
+        if score == "" or np.isnan(score):
+            return "white"
         else:
             if score >= 90:
                 return "forestgreen"
@@ -336,6 +334,8 @@ def get_sleep_summary_graph(loader, start_dt, end_dt, user):
                 return "darkorange"
             else:
                 return "firebrick"
+            
+    fig, ax = plt.subplots(figsize=(12,21))
 
     # for every day in the period of interest, we plot the hypnogram
     for j, night in enumerate(time_period):
@@ -502,7 +502,29 @@ def process_evening_questionnaire(loader,start_dt,end_dt,user):
 
 
 
-def get_errorbar_graph(quest_df, questionnaire_dict, variable_of_interest, answer_of_interest, title, ylabel,answer_categories=None):
+def get_errorbar_graph(quest_df, questionnaire_dict, variable_of_interest, answer_of_interest, title="", ylabel="",answer_categories=None):
+    """Plots an errorbar graph with respect to the ``variable_of_interest`` for a specific question in a questionnaire
+
+    For every category of answer given
+    Parameters
+    ----------
+    quest_df : pd.DataFrame
+        DataFrame obtained from the pylabfront.loader.LabfrontLoader.process_questionnaire method for the questionnaire of interest,
+        filtered by user of interest, and possibly processed in some other way to obtain additional column(s) of interest.
+    questionnaire_dict : dict
+        Dictionary obtained from the pylabfront.loader.LabfrontLoader.get_questionnare_questions method for the questionnaire of interest
+    variable_of_interest : string
+        name of the column of ``quest_df`` against which to calculate stats
+    answer_of_interest : string
+        number of the answer in the questionaire in the format reported by Labfront
+    title : string, optional
+        title of the plot. Defaults to empty string.
+    ylabel : string, optional
+        label for the y-axis in the plot. Defaults to empty string.
+    answer_categories : list, optional
+        list of the answers, in the order desired for visaulization, by default None
+        if this is left as default, the order is defined by the order proposed in the Labfront questionnaire
+    """
     # if a specific order isn't explicitely given, get the order of the answers in the questionnaire
     if answer_categories is None:
         answer_categories = questionnaire_dict[answer_of_interest]["options"]
@@ -540,7 +562,9 @@ def get_errorbar_graph(quest_df, questionnaire_dict, variable_of_interest, answe
                 color='#333333',
                 weight='bold',
                 fontsize=20)
-    # to avoid overlapping of xlabels, we add newlines every 3 words
+    # to avoid overlapping of xlabels, we add newlines every jumprow words
+    # decide how often to insert a newline depending on the number of bars
+    jumprow = 3 if len(bar_df) < 5 else 2
     labels = bar_df.index.unique().values
     new_labels = []
     for label in labels:
@@ -548,7 +572,7 @@ def get_errorbar_graph(quest_df, questionnaire_dict, variable_of_interest, answe
         new_label = []
         for i in range(len(label)):
             new_label.append(label[i])
-            if (i+1) % 3 == 0:
+            if (i+1) % jumprow == 0:
                 new_label.append("\n")
         new_labels.append(" ".join(new_label))
     plt.xticks(labels,new_labels,rotation=0,fontsize=15)
