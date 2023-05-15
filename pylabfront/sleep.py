@@ -60,6 +60,14 @@ def get_time_in_sleep_stage(
     This function returns the absolute time spent in a certain sleep stage for
     the given participant(s) for each given day from ``start_date`` to
     ``end_date``, in units of milliseconds.
+    This function considers only the first entry of the sleep summary in a given
+    day. For example, consider the following sleep summary file::
+
+        x4bda8f5-644c5284-6540,2023-04-29,7200000,1682723460000,2023-04-29T01:11:00.000+02:00
+        x4bda8f5-644cf298-26e8,2023-04-29,7200000,1682764440000,2023-04-29T12:34:00.000+02:00
+
+    There were two separate rows for the same day. One was for a full night sleep, while the second
+    one was an afternoon nap. This function will consider only the first row.
 
     Parameters
     -----------
@@ -121,6 +129,9 @@ def get_time_in_sleep_stage(
             user, start_date, end_date
         )
         if len(participant_sleep_summary) > 0:
+            participant_sleep_summary = participant_sleep_summary.groupby(
+                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL
+            ).head(1)
             data_dict[user] = pd.Series(
                 participant_sleep_summary[column].values,
                 index=participant_sleep_summary[
@@ -557,7 +568,7 @@ def get_sleep_statistics(
 
     data_dict = {}
     average_dict = {}
-    intervals = int(divmod((end_date - start_date).total_seconds(), 3600 * 12)[0])
+    intervals = int(divmod((end_date - start_date).total_seconds(), 3600 * 24)[0])
     calendar_days = [
         start_date + i * datetime.timedelta(days=1) for i in range(intervals)
     ]
