@@ -307,9 +307,10 @@ def get_distance_per_day(loader, start_dt=None, end_dt=None, participant_ids="al
     participant_ids = utils.get_user_ids(loader,participant_ids)
 
     for participant_id in participant_ids: 
-        participant_daily_summary = loader.load_garmin_connect_daily_summary(participant_id, start_dt, end_dt-timedelta(minutes=15))
-        if len(participant_daily_summary) > 0:
-            participant_daily_summary = participant_daily_summary.groupby(_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL).tail(1)
+        participant_epochs = loader.load_garmin_connect_epoch(participant_id, start_dt, end_dt+timedelta(hours=23,minutes=45))
+        if len(participant_epochs) > 0:
+            participant_epochs[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL] = participant_epochs[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.date())
+            participant_daily_summary = participant_epochs.groupby(_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL)[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_DISTANCE_COL].sum().reset_index()
             if average:
                 data_dict[participant_id] = int(participant_daily_summary[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_DISTANCE_COL].values.mean())
             else:
