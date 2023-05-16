@@ -187,7 +187,6 @@ def get_garmin_device_adherence(loader,
                                 start_dt=None,
                                 end_dt=None,
                                 user_id="all"):
-    # currently broken due to issue with get_files_timerange, but should work in principle
     data_dict = {}
     user_id = utils.get_user_ids(loader,user_id)
     

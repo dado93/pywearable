@@ -23,10 +23,9 @@ date_form = DateFormatter("%m-%d")
 
 def get_steps_graph_and_stats(loader,start_dt,end_dt,user,verbose=False):
 
-    timedelta = datetime.timedelta(days=1)
     # get dates,steps,goals,compare steps to goal to get goal completion
-    dates, steps = zip(*activity.get_steps_per_day(loader,start_dt,end_dt+timedelta,user)[user].items())
-    goals = list(activity.get_steps_goal_per_day(loader,start_dt,end_dt+timedelta,user)[user].values())
+    dates, steps = zip(*activity.get_steps_per_day(loader,start_dt,end_dt,user)[user].items())
+    goals = list(activity.get_steps_goal_per_day(loader,start_dt,end_dt,user)[user].values())
     col = np.where(np.array(steps) > np.array(goals),"g","r")
     # get stats from the series
     mean_steps = activity.get_steps_per_day(loader,start_dt,end_dt,user,average=True)[user]
@@ -444,64 +443,6 @@ def get_sleep_summary_graph(loader, start_dt, end_dt, user):
     plt.show()
 
 
-def process_morning_questionnaire(loader,start_dt,end_dt,user):
-    # TODO check that questionnaires are filled in the right time range (?)
-    # QUITE LIKELY SHOULD BE MOVED TO LOADER OR QUESTIONNAIRES
-
-
-    # create questionnaire dataframe
-    quest_df = loader.process_questionnaire("morning questionnaire")
-    # restrict it to the user of interest
-    quest_df = quest_df.loc[quest_df.userId == user,:]
-    # restrict it to the period of interest
-    quest_df = quest_df.loc[np.logical_and(quest_df.isoDate>start_dt, quest_df.isoDate < end_dt),:]
-    # get the dictionary with relevant infos for all questions
-    questionnaire_dict = loader.get_questionnaire_questions("morning questionnaire")
-    # add to the DataFrame relevant information (morning body battery and sleep score)
-    timedelta = datetime.timedelta(hours=2) # select a time window to look for maximal body battery wrt time of questionnaire
-    quest_df["morning_bb"] = quest_df.isoDate.apply(lambda x: list(stress.get_max_body_battery(loader,x-timedelta,x+timedelta,user)[user].values())[0] 
-                                                        if stress.get_max_body_battery(loader,x-timedelta,x+timedelta,user)[user] is not None else None)
-    sleeping_scores_dict = sleep.get_sleep_score(loader,start_dt,end_dt,user)[user]
-    quest_df["sleep_score"] = quest_df.isoDate.apply(lambda x: sleeping_scores_dict.get(pd.Timestamp(x.date()),None))
-
-    return quest_df, questionnaire_dict                                       
-
-
-def process_evening_questionnaire(loader,start_dt,end_dt,user):
-    # TODO check that questionnaires are filled in the right time range (?)
-    # QUITE LIKELY SHOULD BE MOVED TO LOADER OR QUESTIONNAIRES
-
-    # create questionnaire dataframe
-    quest_df = loader.process_questionnaire("evening questionnaire")
-    # restrict it to the user of interest
-    quest_df = quest_df.loc[quest_df.userId == user,:]
-    # restrict it to the period of interest
-    quest_df = quest_df.loc[np.logical_and(quest_df.isoDate>start_dt, quest_df.isoDate < end_dt),:]
-    # get the dictionary with relevant infos for all questions
-    questionnaire_dict = loader.get_questionnaire_questions("evening questionnaire")
-    # sometimes people answer to the questionnaire later than midnight, we need to get to which day the questionnaire is referring
-    quest_df["calendar_day"] = quest_df.isoDate.apply(lambda x: x.date() if not 0 <= x.hour < 12 else x.date()-datetime.timedelta(days=1))
-    # get sleeping, stress scores, and sleep stages durations in the period of interest
-    sleeping_scores_dict = sleep.get_sleep_score(loader,start_dt,end_dt,user)[user]
-    stress_scores_dict = stress.get_daily_stress_statistics(loader,start_dt,end_dt,user)[user].to_dict()
-    rem_durations = sleep.get_rem_sleep_duration(loader,start_dt,end_dt,user)[user]
-    deep_sleep_durations = sleep.get_deep_sleep_duration(loader,start_dt,end_dt,user)[user]
-    # for every day when an evening questionnaire is filled, get the corresponding sleep score (which refers to the night just spent)
-    quest_df["prev_sleep_score"] = quest_df.calendar_day.apply(lambda x: sleeping_scores_dict.get(pd.Timestamp(x),None))
-    # for every day when an evening questionnaire is filled, get the sleep score for the following day (which refers to the subsequent night of sleep)
-    quest_df["next_sleep_score"] = quest_df.calendar_day.apply(lambda x: sleeping_scores_dict.get(pd.Timestamp(x+datetime.timedelta(days=1)),None))
-    # for every day when an evening questionnaire is filled, get the stress score (avg, max)
-    quest_df["stress_score_metrics"] = quest_df.calendar_day.apply(lambda x: stress_scores_dict.get(pd.Timestamp(x),None))
-    quest_df["stress_score"] = quest_df.stress_score_metrics.apply(lambda x: x[0])
-    # for every day when an evening questionnaire is filled, get the rem duration for the following night of sleep (can be useful to check with alcohol)
-    quest_df["next_rem_duration"] = quest_df.calendar_day.apply(lambda x: rem_durations.get(pd.Timestamp(x)+datetime.timedelta(days=1),None))
-    # same with deep sleep
-    quest_df["next_deep_sleep_duration"] = quest_df.calendar_day.apply(lambda x: deep_sleep_durations.get(pd.Timestamp(x)+datetime.timedelta(days=1),None))
-
-    return quest_df, questionnaire_dict
-
-
-
 def get_errorbar_graph(quest_df, questionnaire_dict, variable_of_interest, answer_of_interest, title="", ylabel="",answer_categories=None):
     """Plots an errorbar graph with respect to the ``variable_of_interest`` for a specific question in a questionnaire
 
@@ -510,7 +451,8 @@ def get_errorbar_graph(quest_df, questionnaire_dict, variable_of_interest, answe
     ----------
     quest_df : pd.DataFrame
         DataFrame obtained from the pylabfront.loader.LabfrontLoader.process_questionnaire method for the questionnaire of interest,
-        filtered by user of interest, and possibly processed in some other way to obtain additional column(s) of interest.
+        filtered by user of interest, and possibly processed in some other way to obtain additional column(s) of interest,
+        used as ``variable_of_interest``.
     questionnaire_dict : dict
         Dictionary obtained from the pylabfront.loader.LabfrontLoader.get_questionnare_questions method for the questionnaire of interest
     variable_of_interest : string
@@ -577,133 +519,4 @@ def get_errorbar_graph(quest_df, questionnaire_dict, variable_of_interest, answe
         new_labels.append(" ".join(new_label))
     plt.xticks(labels,new_labels,rotation=0,fontsize=15)
     plt.yticks(fontsize=15)
-    plt.show()
-
-
-def get_alcohol_influence_on_sleep(quest_df,questionnaire_dict,rem=True,deep=False):
-    # THIS SHOULD PROBABLY BE INCLUDED IN THE STANDARD WAY TO BUILD ERRORBAR GRAPHS
-    # ADDING THE POSSIBILITY TO ADJUST THE GRAPH GENERATED BY IT.
-
-    variable_of_interest = "next_sleep_score"
-
-    answer_of_interest = "1_13"
-    answer_categories = ['No',
-                    'Yes, small quantities (eg. a beer)',
-                    'Yes, moderate quantities (eg. couple of beers, a single whiskey shot)',
-                    'Yes, more than moderate quantities']
-    answer_descr = questionnaire_dict[answer_of_interest]["description"]
-    answer_string = answer_of_interest + "-" + answer_descr
-
-    tmp_df = quest_df.loc[:,[answer_string,variable_of_interest]].copy().dropna()
-
-    bar_df = tmp_df.loc[:,[answer_string,variable_of_interest]].dropna().groupby(answer_string).agg(Mean=(variable_of_interest,np.mean),Std=(variable_of_interest,np.std)).fillna(0)
-
-    bar_df = bar_df.reindex(answer_categories).dropna()
-    ax = bar_df.plot(kind="bar",
-                    y="Mean",
-                    legend=False,
-                    alpha=0.25,
-                    figsize=(16,6))
-
-
-    ax.errorbar(bar_df.index, bar_df["Mean"], yerr = bar_df["Std"], 
-                linewidth = 1.5, color = "black", alpha = 0.75, capsize = 10,marker="o")
-
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_visible(True)
-    ax.spines['bottom'].set_color('#DDDDDD')
-    ax.tick_params(bottom=False, left=False)
-
-    ax.set_axisbelow(True)
-    ax.yaxis.grid(True, color='#EEEEEE')
-    ax.xaxis.grid(False)
-
-    ax.set_ylabel("Sleep score",labelpad=15, color="black",fontsize=16)
-    ax.set_xlabel("")
-    ax.set_title('Alcohol consumption VS sleep score',
-                pad=25,
-                color='#333333',
-                weight='bold',
-                fontsize=18)
-
-    labels = bar_df.index.unique().values
-    new_labels = []
-    for label in labels:
-        label = label.split()
-        new_label = []
-        for i in range(len(label)):
-            new_label.append(label[i])
-            if (i+1) % 3 == 0:
-                new_label.append("\n")
-        new_labels.append(" ".join(new_label))
-
-
-    plt.xticks(labels,new_labels,rotation=0,fontsize=14)
-    plt.yticks(fontsize=15)
-    
-    if rem:
-        # Alchol consumption vs rem sleep duration
-        variable_of_interest = "next_rem_duration"
-
-        # get data relative to rem sleep duration for every questionnaire answer given
-        tmp_df2 = quest_df.loc[:,[answer_string,variable_of_interest]].copy().dropna()
-        tmp_df2.loc[:,variable_of_interest] /= (1000*60*60)
-        bar_df2 = tmp_df2.loc[:,[answer_string,variable_of_interest]].dropna().groupby(answer_string).agg(Mean=(variable_of_interest,np.mean),Std=(variable_of_interest,np.std)).fillna(0)
-        bar_df2 = bar_df2.reindex(answer_categories).dropna()
-
-        ax2 = ax.twinx()
-        ax2.plot(bar_df2["Mean"],marker="o",color="darkmagenta",linewidth=1,alpha=0.75)
-        ax2.spines['top'].set_visible(False)
-        ax2.spines['right'].set_visible(True)
-        ax2.spines['left'].set_visible(False)
-        ax2.spines['bottom'].set_color('#DDDDDD')
-        ax2.tick_params(bottom=False, left=False)
-        ax2.set_ylim([0,max(2.5,max(bar_df2["Mean"]))])
-        if not deep:
-            # the y-axis is designed for only rem sleep in this case
-            ax2.spines['right'].set_color('darkmagenta')
-            ax2.yaxis.label.set_color('darkmagenta')
-            ax2.tick_params(axis='y', colors='darkmagenta')
-            ax2.set_ylabel("Average Rem duration [hours]",fontsize=16)
-            plt.yticks(fontsize=15)
-
-    if deep:
-        # Alchol consumption vs deep sleep duration
-
-        variable_of_interest = "next_deep_sleep_duration"
-
-        # get data relative to deep sleep duration for every questionnaire answer given
-        tmp_df3 = quest_df.loc[:,[answer_string,variable_of_interest]].copy().dropna()
-        tmp_df3.loc[:,variable_of_interest] /= (1000*60*60)
-        bar_df3 = tmp_df3.loc[:,[answer_string,variable_of_interest]].dropna().groupby(answer_string).agg(Mean=(variable_of_interest,np.mean),Std=(variable_of_interest,np.std)).fillna(0)
-        bar_df3 = bar_df3.reindex(answer_categories).dropna()
-
-        ax3 = ax.twinx()
-        ax3.plot(bar_df3["Mean"],marker="o",color="darkblue",linewidth=1,alpha=0.75,label="Deep Sleep")
-        ax3.spines['top'].set_visible(False)
-        ax3.spines['right'].set_visible(True)
-        ax3.spines['left'].set_visible(False)
-        ax3.spines['bottom'].set_color('#DDDDDD')
-        ax3.tick_params(bottom=False, left=False)
-        ax3.set_ylim([0,max(2.5,max(bar_df3["Mean"]))])
-        if not rem:
-            # the y-axis is designed for only deep sleep in this case
-            ax3.spines['right'].set_color('darkblue')
-            ax3.yaxis.label.set_color('darkblue')
-            ax3.tick_params(axis='y', colors='darkblue')
-            ax3.set_ylabel("Average deep sleep duration [hours]",fontsize=16)
-            plt.yticks(fontsize=15)
-
-    if rem and deep:
-        ax2.set_ylabel("Average sleep stage duration [hours]",fontsize=12)
-        # fake axis to better manage legend
-        legend_ax = ax.twinx()
-        legend_ax.plot([],[],color="black",marker="o",label="Sleep score")
-        legend_ax.plot([],[],color="darkmagenta",marker="o",label="REM sleep")
-        legend_ax.plot([],[],color="darkblue",marker="o",label="Deep sleep")
-        legend_ax.axis("off")
-
-        legend_ax.legend(loc=0)
-
     plt.show()
