@@ -273,7 +273,7 @@ def get_steps_per_day(loader, start_dt=None, end_dt=None, participant_ids="all",
     participant_ids = utils.get_user_ids(loader,participant_ids)
 
     for participant_id in participant_ids: 
-        participant_daily_summary = loader.load_garmin_connect_daily_summary(participant_id, start_dt, end_dt-timedelta(minutes=15))
+        participant_daily_summary = loader.load_garmin_connect_daily_summary(participant_id, start_dt, end_dt)
         if len(participant_daily_summary) > 0:
             participant_daily_summary = participant_daily_summary.groupby(_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL).tail(1)
             if average:
@@ -348,7 +348,7 @@ def get_steps_goal_per_day(loader, start_dt=None, end_dt=None, participant_ids="
     participant_ids = utils.get_user_ids(loader,participant_ids)
 
     for participant_id in participant_ids: 
-        participant_daily_summary = loader.load_garmin_connect_daily_summary(participant_id, start_dt, end_dt-timedelta(minutes=15))
+        participant_daily_summary = loader.load_garmin_connect_daily_summary(participant_id, start_dt, end_dt)
         if len(participant_daily_summary) > 0:
             participant_daily_summary = participant_daily_summary.groupby(_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL).tail(1)
             data_dict[participant_id] = pd.Series(participant_daily_summary[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STEPS_GOAL_COL].values, 
