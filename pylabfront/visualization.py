@@ -21,7 +21,7 @@ from matplotlib.dates import DateFormatter
 date_form = DateFormatter("%m-%d")
 
 
-def get_steps_graph_and_stats(loader,start_dt,end_dt,user,verbose=False,save_to=None):
+def get_steps_graph_and_stats(loader,start_dt,end_dt,user,verbose=False,save_to=None,show=True):
 
     # get dates,steps,goals,compare steps to goal to get goal completion
     dates, steps = zip(*activity.get_steps_per_day(loader,start_dt,end_dt,user)[user].items())
@@ -55,7 +55,8 @@ def get_steps_graph_and_stats(loader,start_dt,end_dt,user,verbose=False,save_to=
         if save_to:
             plt.savefig(save_to)
     
-    plt.show()
+    if show:
+        plt.show()
 
     # print out stats
     if verbose:
@@ -66,7 +67,7 @@ def get_steps_graph_and_stats(loader,start_dt,end_dt,user,verbose=False,save_to=
     return stats_dict
 
 
-def get_cardiac_graph_and_stats(loader,start_dt,end_dt,user,verbose=False,save_to=None):
+def get_cardiac_graph_and_stats(loader,start_dt,end_dt,user,verbose=False,save_to=None,show=True):
 
     # get stats
     avg_resting_hr = round(cardiac.get_rest_heart_rate(loader,start_dt,end_dt,[user],True)[user]["values"])
@@ -94,8 +95,8 @@ def get_cardiac_graph_and_stats(loader,start_dt,end_dt,user,verbose=False,save_t
         plt.ylim([min(30,min(rest_hr)),max(200,max_hr_recorded+30)])
         if save_to:
             plt.savefig(save_to)
-    
-    plt.show()
+    if show:
+        plt.show()
 
     if verbose:
         print(f"Resting HR: {avg_resting_hr}")
@@ -104,7 +105,7 @@ def get_cardiac_graph_and_stats(loader,start_dt,end_dt,user,verbose=False,save_t
     return stats_dict
 
 
-def get_rest_spo2_graph(loader,start_dt,end_dt,user,save_to=None):
+def get_rest_spo2_graph(loader,start_dt,end_dt,user,save_to=None,show=True):
     
     timedelta = datetime.timedelta(hours=12) # this assumes that at the last day a person wakes up before midday...
     spo2_df = loader.load_garmin_connect_pulse_ox(user,start_dt,end_dt+timedelta)
@@ -168,10 +169,11 @@ def get_rest_spo2_graph(loader,start_dt,end_dt,user,save_to=None):
     plt.tight_layout()
     if save_to:
         plt.savefig(save_to)
-    plt.show()
+    if show:
+        plt.show()
 
 
-def get_stress_graph_and_stats(loader, start_dt, end_dt, user, verbose=False, save_to=None):
+def get_stress_graph_and_stats(loader, start_dt, end_dt, user, verbose=False, save_to=None, show=True):
 
     # get stats
     dates, metrics = zip(*stress.get_daily_stress_statistics(loader,start_dt,end_dt,user)[user].items())
@@ -214,7 +216,8 @@ def get_stress_graph_and_stats(loader, start_dt, end_dt, user, verbose=False, sa
 
     if save_to:
         plt.savefig(save_to)
-    plt.show()
+    if show:
+        plt.show()
 
     if verbose:
         print(f"Average daily stress: {avg_stress}")
@@ -222,7 +225,7 @@ def get_stress_graph_and_stats(loader, start_dt, end_dt, user, verbose=False, sa
     return stats_dict
 
 
-def get_respiration_graph_and_stats(loader, start_dt, end_dt, user, verbose=False,save_to=None):
+def get_respiration_graph_and_stats(loader, start_dt, end_dt, user, verbose=False,save_to=None,show=True):
     # get series, note that we're inclusive wrt the whole last day
     rest_dates, rest_resp = zip(*respiration.get_rest_breaths_per_minute(loader,start_dt,end_dt+datetime.timedelta(hours=23,minutes=59),user,remove_zero=True)[user].items())
     waking_dates, waking_resp = zip(*respiration.get_waking_breaths_per_minute(loader,start_dt,end_dt+datetime.timedelta(hours=23,minutes=59),user,remove_zero=True)[user].items())
@@ -248,8 +251,8 @@ def get_respiration_graph_and_stats(loader, start_dt, end_dt, user, verbose=Fals
         plt.yticks(fontsize=15)
         if save_to:
             plt.savefig(save_to)
-    
-    plt.show()
+    if show:
+        plt.show()
     
     if verbose:
         print(f"Avg sleep: {avg_sleeping_breaths}")
@@ -258,7 +261,7 @@ def get_respiration_graph_and_stats(loader, start_dt, end_dt, user, verbose=Fals
     return stats_dict
 
 
-def get_sleep_heatmap_and_stats(loader, start_dt, end_dt, user, verbose=True, save_to=None):
+def get_sleep_heatmap_and_stats(loader, start_dt, end_dt, user, verbose=True, save_to=None, show=True):
     # We need to create a dataframe with dates going from one year before to the latest datetime
     dates, scores = zip(*sleep.get_sleep_score(loader,start_dt,end_dt,user)[user].items())
     # Get start and end days from calendar date
@@ -293,7 +296,8 @@ def get_sleep_heatmap_and_stats(loader, start_dt, end_dt, user, verbose=True, sa
     if save_to:
         plt.savefig(save_to)
 
-    plt.show()
+    if show:
+        plt.show()
 
     # stats
     avg_deep = sleep.get_deep_sleep_duration(loader,start_dt,end_dt,user,average=True)[user]["values"]
@@ -317,7 +321,7 @@ def get_sleep_heatmap_and_stats(loader, start_dt, end_dt, user, verbose=True, sa
     return stats_dict
 
 
-def get_sleep_summary_graph(loader, start_dt, end_dt, user, save_to=None):
+def get_sleep_summary_graph(loader, start_dt, end_dt, user, save_to=None, show=True):
     
     # define params for graph
     ALPHA = 0.25
@@ -459,10 +463,11 @@ def get_sleep_summary_graph(loader, start_dt, end_dt, user, save_to=None):
     if save_to:
         plt.savefig(save_to)
 
-    plt.show()
+    if show:
+        plt.show()
 
 
-def get_errorbar_graph(quest_df, questionnaire_dict, variable_of_interest, answer_of_interest, title="", ylabel="",answer_categories=None,save_to=None):
+def get_errorbar_graph(quest_df, questionnaire_dict, variable_of_interest, answer_of_interest, title="", ylabel="",answer_categories=None,save_to=None,show=True):
     """Plots an errorbar graph with respect to the ``variable_of_interest`` for a specific question in a questionnaire
 
     For every category of answer given
@@ -541,5 +546,6 @@ def get_errorbar_graph(quest_df, questionnaire_dict, variable_of_interest, answe
 
     if save_to:
         plt.savefig(save_to)
-        
-    plt.show()
+
+    if show:
+        plt.show()
