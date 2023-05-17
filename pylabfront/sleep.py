@@ -397,7 +397,7 @@ def get_sleep_duration(loader, start_date=None, end_date=None, participant_id="a
     )
 
 
-def get_sleep_score(loader, start_date=None, end_date=None, participant_id="all"):
+def get_sleep_score(loader, start_date=None, end_date=None, participant_id="all",average=False):
     """Get sleep score.
 
     This function returns the sleep score for
@@ -421,7 +421,7 @@ def get_sleep_score(loader, start_date=None, end_date=None, participant_id="all"
         IDs of the users for which sleep scores have to extracted, by default "all"
     average : :class:`bool`, optional
         Average sleep scores across nights, by default False.
-        If set to ``True``, then the average sleep scores frrom ``start_date`` to ``end_date`` is
+        If set to ``True``, then the average sleep scores from ``start_date`` to ``end_date`` is
         returned. Otherwise, sleep scores for each night from ``start_date`` to ``end_date`` is
         returned.
 
@@ -443,7 +443,7 @@ def get_sleep_score(loader, start_date=None, end_date=None, participant_id="all"
 
     """
     return get_time_in_sleep_stage(
-        loader, "SLEEP_SCORE", start_date, end_date, participant_id
+        loader, "SLEEP_SCORE", start_date, end_date, participant_id, average
     )
 
 
@@ -567,7 +567,7 @@ def get_sleep_statistics(
     average_dict = {}
     intervals = int(divmod((end_date - start_date).total_seconds(), 3600 * 24)[0])
     calendar_days = [
-        start_date + i * datetime.timedelta(days=1) for i in range(intervals)
+        start_date + i * datetime.timedelta(days=1) for i in range(1, intervals+1)
     ]
     for participant in user_id:
         data_dict[participant] = {}
@@ -1416,8 +1416,37 @@ def get_sleep_timestamps(loader, start_date=None, end_date=None, user_ids="all")
 
     return data_dict
 
+def get_awakenings(loader,
+                   start_date,
+                   end_date,
+                   user_ids="all",
+                   average=False):
+    """Get the number of awakenings
 
-def get_awakenings(loader, start_date, end_date, user_ids="all", average=False):
+    Returns the number of times the user(s) of interest woke up during the night.
+    This is checked considering the hypnogram and checking variations in sleep stages
+    and awake status detection. If ``average`` is set to True, the average number of
+    awakenings per night during the period between ``start_date`` and ``end_date`` is returned.
+
+    Parameters
+    ----------
+    loader : _type_
+        _description_
+    start_date : _type_
+        _description_
+    end_date : _type_
+        _description_
+    user_ids : str, optional
+        _description_, by default "all"
+    average : bool, optional
+        _description_, by default False
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
+    
     user_ids = utils.get_user_ids(loader, user_ids)
 
     data_dict = {}
