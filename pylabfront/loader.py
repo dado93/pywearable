@@ -69,6 +69,7 @@ _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL = "awakeDuration
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_STAGE_COL = "type"
 
 _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL = "calendarDate"
+_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SUMMARY_COL = "sleepSummaryId"
 
 
 # Garmin device metrics - Labfront folder names
@@ -994,28 +995,58 @@ class LabfrontLoader:
         resulting data frame contains an additional column named 'sleep',
         equal to 1 for respiratory data acquired during sleep.
 
-        Args:
-            participant_id (str): Full ID of the participant
+        Parameters
+        ----------
+            participant_id: :class:`str`
+                Idenfier of the user.
             start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
             end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
 
-        Returns:
-            pd.DataFrame: Dataframe containing Garmin Connect respiration data.
+        Returns
+        -------
+            :class:`pd.DataFrame`
+                Dataframe containing Garmin Connect respiration data.
         """
-        # We need to load both sleep and daily pulse ox
+        # We need to load both sleep and daily respiration
         daily_data = self.get_data_from_datetime(
             participant_id,
             _LABFRONT_GARMIN_CONNECT_DAILY_RESPIRATION_STRING,
             start_date,
             end_date,
         ).reset_index(drop=True)
-        # Add sleep label to sleep pulse ox
+
+        # Get sleep data
         sleep_data = self.get_data_from_datetime(
             participant_id,
             _LABFRONT_GARMIN_CONNECT_SLEEP_RESPIRATION_STRING,
             start_date,
             end_date,
         ).reset_index(drop=True)
+
+        # Add calendar date from sleep summary
+        sleep_summary = (
+            self.load_garmin_connect_sleep_summary(
+                participant_id,
+                start_date,
+                end_date,
+            )
+            .reset_index(drop=True)
+            .loc[
+                :,
+                [
+                    _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SUMMARY_COL,
+                    _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL,
+                ],
+            ]
+        )
+
+        # sleep_data = pd.merge(
+        #    left=sleep_data,
+        #    right=sleep_summary,
+        #    on=_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SUMMARY_COL,
+        #    how="left",
+        # )
+
         if len(sleep_data) > 0:
             sleep_data.loc[:, "sleep"] = 1
             sleep_data = sleep_data.drop(

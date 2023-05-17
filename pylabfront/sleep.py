@@ -211,6 +211,12 @@ def get_light_sleep_duration(
     the given participant(s). Depending on the value of ``average``
     parameter, the function returns light sleep time for each night (``average=False``),
     or the average light sleep time from ``start_date`` to ``end_date`` (``average=True``).
+    The primary key of the dictionary is always ``user_id``. If ``average`` is set to True,
+    each value is a nested dictionary with the following structure:
+        - ``LIGHT_SLEEP``: containing light sleep times
+        - ``days``: days over which light sleep times were averaged
+    If ``average`` is set to False,  each value is a nested dictionary with the following structure:
+        - ``day`` : ``Light Sleep Time``
 
     Parameters
     ----------
@@ -229,21 +235,12 @@ def get_light_sleep_duration(
     average : :class:`bool`, optional
         Average light sleep across nights, by default False.
         If set to ``True``, then the average light sleep from ``start_date`` to ``end_date`` is
-        returned. Otherwise, light sleep for each night from ``start_date`` to ``end_date`` is
-        returned.
+        returned. Otherwise, light sleep for each night from ``start_date`` to ``end_date`` is returned.
 
     Returns
     -------
     :class:`dict`
         The returned dictionary contains the light sleep times for the given ``user_id``.
-        The primary key of the dictionary is always ``user_id``.
-        If ``average`` is set to True, each value is a nested dictionary
-        with the following structure:
-            - ``LIGHT_SLEEP``: containing light sleep times
-            - ``days``: days over which light sleep times were averaged
-        If ``average`` is set to False,  each value is a nested dictionary
-        with the following structure:has to be
-            - ``day`` : ``Light Sleep Time``
     """
     return get_time_in_sleep_stage(
         loader, "LIGHT_SLEEP", start_date, end_date, user_id, average
