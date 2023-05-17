@@ -351,7 +351,7 @@ def get_garmin_device_adherence(loader, start_dt=None, end_dt=None, user_id="all
 
 
 def get_night_adherence(
-    loader, start_date=None, end_date=None, user_id="all", as_pct=False
+    loader, start_date=None, end_date=None, user_id="all", return_percentage=False
 ):
     """Get adherence in terms of amount of sleeping data gathered
 
@@ -369,7 +369,7 @@ def get_night_adherence(
         for the given ``user_id``.
     user_id : :class:`str`, optional
         IDs of the users for which data have to extracted, by default "all"
-    as_pct : :class:`bool`, optional
+    return_percentage : :class:`bool`, optional
         Whether to return the adherence as a percentage wrt to the amount of expected nights.
 
     Returns
@@ -391,11 +391,13 @@ def get_night_adherence(
             sleep_summaries = len(
                 sleep_df.groupby(_LABFRONT_GARMIN_CONNECT_CALENDAR_DAY_COL).tail(1)
             )
-            if as_pct:
-                num_nights = (end_date - start_date).days - 1
+            num_nights = (end_date - start_date).days - 1
+            if return_percentage:
                 data_dict[user] = round(sleep_summaries / num_nights * 100, 2)
             else:
-                data_dict[user] = sleep_summaries
+                data_dict[user] = {}
+                data_dict[user]["total"] = num_nights
+                data_dict[user]["n_nights"] = sleep_summaries
         except:
             data_dict[user] = 0
 
