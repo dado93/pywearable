@@ -1,5 +1,6 @@
 """
-This module contains all the functions related to handling of data from Labfront.
+This module contains all the functions related to the loading of data from Labfront.
+
 """
 import datetime
 import os
@@ -11,7 +12,6 @@ import pandas as pd
 import pylabfront.utils as utils
 
 # Labfront-specific constants
-_LABFRONT_ID_LENGHT = 37
 _LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY = "firstSampleUnixTimestampInMs"
 _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY = "lastSampleUnixTimestampInMs"
 _LABFRONT_ISO_DATE_KEY = "isoDate"
@@ -59,7 +59,7 @@ _LABFRONT_GARMIN_CONNECT_EPOCH_STRING = _LABFRONT_GARMIN_CONNECT_STRING + "-epoc
 _LABFRONT_GARMIN_CONNECT_STRESS_STRING = _LABFRONT_GARMIN_CONNECT_STRING + "-stress"
 
 ###################################################
-#  Garmin Connect metrics - Labfront csv columns  #
+#  Garmin Connect metrics - Labfront folder names #
 ###################################################
 _LABFRONT_SPO2_COLUMN = "spo2"
 _LABFRONT_RESPIRATION_COLUMN = "breathsPerMinute"
@@ -72,7 +72,9 @@ _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL = "calendarDate"
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SUMMARY_COL = "sleepSummaryId"
 
 
-# Garmin device metrics - Labfront folder names
+###################################################
+#  Garmin Device metrics - Labfront csv columns  #
+###################################################
 _LABFRONT_GARMIN_DEVICE_STRING = "garmin-device"
 _LABFRONT_GARMIN_DEVICE_BBI_STRING = _LABFRONT_GARMIN_DEVICE_STRING + "-bbi"
 _LABFRONT_GARMIN_DEVICE_HEART_RATE_STRING = (
@@ -660,6 +662,7 @@ class LabfrontLoader:
             )[_LABFRONT_ISO_DATE_KEY].apply(
                 lambda x: x.dt.tz_convert(x.name).dt.tz_localize(tz=None)
             )
+
         # Get data only from given start and end dates
         if (start_date is None) and (not end_date is None):
             return data[(data[_LABFRONT_ISO_DATE_KEY] <= end_date)].reset_index(
