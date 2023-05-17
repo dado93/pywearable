@@ -261,7 +261,7 @@ def get_respiration_graph_and_stats(loader, start_dt, end_dt, user, verbose=Fals
     return stats_dict
 
 
-def get_sleep_heatmap_and_stats(loader, start_dt, end_dt, user, verbose=True, save_to=None, show=True):
+def get_sleep_heatmap_and_stats(loader, start_dt, end_dt, user, verbose=False, save_to=None, show=True):
     # We need to create a dataframe with dates going from one year before to the latest datetime
     dates, scores = zip(*sleep.get_sleep_score(loader,start_dt,end_dt,user)[user].items())
     # Get start and end days from calendar date
