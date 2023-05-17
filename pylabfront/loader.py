@@ -756,7 +756,7 @@ class LabfrontLoader:
             questions_dict[question_id]["options"] = question_options
         return questions_dict
 
-    def process_questionnaire(self, questionnaire):
+    def process_questionnaire(self, questionnaire,verbose=False):
         questionnaire_df = pd.DataFrame()
         questionnaire_questions = self.get_questionnaire_questions(questionnaire)
         questions = [
@@ -770,9 +770,10 @@ class LabfrontLoader:
                     participant, task_name=questionnaire
                 )
             except KeyError:
-                print(
-                    f"Could not load {questionnaire} from {participant} as the questionnaire is not available."
-                )
+                if verbose:
+                    print(
+                        f"Could not load {questionnaire} from {participant} as the questionnaire is not available."
+                    )
                 continue
             if len(questionnaire_data) > 0:
                 questionnaire_data.loc[:, "userId"] = participant
