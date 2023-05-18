@@ -391,8 +391,8 @@ def get_night_adherence(
             sleep_summaries = len(
                 sleep_df.groupby(_LABFRONT_GARMIN_CONNECT_CALENDAR_DAY_COL).tail(1)
             )
-            num_nights = (end_date - start_date).days - 1
             if return_percentage:
+                num_nights = (end_date - start_date).days
                 data_dict[user] = round(sleep_summaries / num_nights * 100, 2)
             else:
                 data_dict[user] = {}
