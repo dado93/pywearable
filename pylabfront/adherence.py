@@ -370,7 +370,7 @@ def get_night_adherence(
     user_id : :class:`str`, optional
         IDs of the users for which data have to extracted, by default "all"
     as_pct : :class:`bool`, optional
-        Whether to return the adherence as a percentage wrt to the amount of expected nights.
+        Whether to return the adherence as a percentage wrt the amount of expected nights.
 
     Returns
     -------
@@ -392,7 +392,7 @@ def get_night_adherence(
                 sleep_df.groupby(_LABFRONT_GARMIN_CONNECT_CALENDAR_DAY_COL).tail(1)
             )
             if as_pct:
-                num_nights = (end_date - start_date).days - 1
+                num_nights = (end_date - start_date).days
                 data_dict[user] = round(sleep_summaries / num_nights * 100, 2)
             else:
                 data_dict[user] = sleep_summaries
