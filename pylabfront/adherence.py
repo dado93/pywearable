@@ -146,6 +146,7 @@ def get_questionnaire_adherence(
             if questionnaire_dict[participant_id][questionnaire][
                 _LABFRONT_TASK_SCHEDULE_KEY
             ]:
+                # It is a repeated task
                 if return_percentage:
                     questionnaire_adherence[participant_id][questionnaire] = round(
                         (
@@ -391,14 +392,17 @@ def get_night_adherence(
             sleep_summaries = len(
                 sleep_df.groupby(_LABFRONT_GARMIN_CONNECT_CALENDAR_DAY_COL).tail(1)
             )
+            num_nights = (end_date - start_date).days
             if return_percentage:
-                num_nights = (end_date - start_date).days
                 data_dict[user] = round(sleep_summaries / num_nights * 100, 2)
             else:
                 data_dict[user] = {}
                 data_dict[user]["total"] = num_nights
                 data_dict[user]["n_nights"] = sleep_summaries
         except:
-            data_dict[user] = 0
+            if return_percentage:
+                data_dict[user] = 0
+            else:
+                data_dict[user] = {}
 
     return data_dict
