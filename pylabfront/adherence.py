@@ -87,9 +87,26 @@ def get_questionnaire_dict(
                 ] = is_repeatable
             else:
                 adherence_dict[participant_id][questionnaire_name]["n_filled"] = 0
+                # need to understand if the questionnaire is repeatable
+                # we do this by iterating through all users
+                is_repeatable = None
+                for user in loader.get_user_ids():
+                    try:
+                        is_repeatable = utils.is_task_repeatable(
+                    (
+                        loader.data_path
+                        / loader.get_full_id(user)
+                        / _LABFRONT_QUESTIONNAIRE_STRING
+                        / questionnaire
+                    )
+                )
+                    except:
+                        pass
+                    else:
+                        break
                 adherence_dict[participant_id][questionnaire_name][
                     _LABFRONT_TASK_SCHEDULE_KEY
-                ] = None
+                ] = is_repeatable
 
     return adherence_dict
 
@@ -168,6 +185,7 @@ def get_questionnaire_adherence(
                     ] = questionnaire_dict[participant_id][questionnaire]["n_filled"]
 
             else:
+                # it's not a repeated task - or it has never been filled
                 if return_percentage:
                     questionnaire_adherence[participant_id][questionnaire] = (
                         questionnaire_dict[participant_id][questionnaire]["n_filled"]
