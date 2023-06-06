@@ -756,7 +756,7 @@ class LabfrontLoader:
             questions_dict[question_id]["options"] = question_options
         return questions_dict
 
-    def process_questionnaire(self, questionnaire,verbose=False):
+    def process_questionnaire(self, questionnaire, verbose=False):
         questionnaire_df = pd.DataFrame()
         questionnaire_questions = self.get_questionnaire_questions(questionnaire)
         questions = [
@@ -972,21 +972,24 @@ class LabfrontLoader:
         ).reset_index(drop=True)
         if len(sleep_data) > 0:
             sleep_data.loc[:, "sleep"] = 1
-        sleep_data = sleep_data.drop(
-            [
-                x
-                for x in sleep_data.columns
-                if (not x in ([_LABFRONT_ISO_DATE_KEY, "sleep"]))
-            ],
-            axis=1,
-        )
         # Merge dataframes
         # We need to merge the dataframes because the daily_data already contain sleep_data
-        merged_data = daily_data.merge(
-            sleep_data, on=_LABFRONT_ISO_DATE_KEY, how="left"
-        )
-        merged_data.loc[merged_data.sleep != 1, "sleep"] = 0
-        return merged_data
+        if len(daily_data) > 0:
+            sleep_data = sleep_data.drop(
+                [
+                    x
+                    for x in sleep_data.columns
+                    if (not x in ([_LABFRONT_ISO_DATE_KEY, "sleep"]))
+                ],
+                axis=1,
+            )
+            merged_data = daily_data.merge(
+                sleep_data, on=_LABFRONT_ISO_DATE_KEY, how="left"
+            )
+            merged_data.loc[merged_data.sleep != 1, "sleep"] = 0
+            return merged_data
+        else:
+            return sleep_data
 
     def load_garmin_connect_respiration(
         self, participant_id, start_date=None, end_date=None
