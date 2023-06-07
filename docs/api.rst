@@ -12,3 +12,4 @@ API documentation.
    respiration
    sleep
    utils
+   visualization
