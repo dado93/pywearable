@@ -22,7 +22,17 @@ date_form = DateFormatter("%m-%d")
 
 
 def get_steps_graph_and_stats(
-    loader, start_dt, end_dt, user, verbose=False, save_to=None, show=True
+    loader, 
+    start_dt, 
+    end_dt, 
+    user, 
+    verbose=False, 
+    save_to=None, 
+    show=True, 
+    steps_line_label="steps",
+    goal_line_label="daily goal",
+    ylabel="Steps",
+    plot_title="Daily steps"
 ):
     # get dates,steps,goals,compare steps to goal to get goal completion
     dates, steps = zip(
@@ -51,8 +61,8 @@ def get_steps_graph_and_stats(
     with plt.style.context("ggplot"):
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.xaxis.set_major_formatter(date_form)
-        ax.plot(dates, steps, label="steps", c="k")
-        ax.plot(dates, goals, linestyle="--", c="g", label="daily goal")
+        ax.plot(dates, steps, label=steps_line_label, c="k")
+        ax.plot(dates, goals, linestyle="--", c="g", label=goal_line_label)
         ax.scatter(dates, steps, c=col, s=100)
         plt.xticks(rotation=45, fontsize=15)
         plt.yticks(fontsize=15)
@@ -65,8 +75,8 @@ def get_steps_graph_and_stats(
                 max(dates) + datetime.timedelta(hours=6),
             ]
         )
-        plt.ylabel("Steps", fontsize=16)
-        # plt.title("Daily steps", fontsize=15)
+        plt.ylabel(ylabel, fontsize=16)
+        # plt.title(plot_title, fontsize=15)
         if save_to:
             plt.savefig(save_to)
 
@@ -85,7 +95,17 @@ def get_steps_graph_and_stats(
 
 
 def get_cardiac_graph_and_stats(
-    loader, start_dt, end_dt, user, verbose=False, save_to=None, show=True
+    loader, 
+    start_dt,
+    end_dt,
+    user,
+    verbose=False,
+    save_to=None, 
+    show=True,
+    resting_hr_label="resting heart rate",
+    maximum_hr_label="maximum heart rate",
+    ylabel="Heart rate [beats/min]",
+    title="Heart rate statistics over time"
 ):
     # get stats
     avg_resting_hr = round(
@@ -120,7 +140,7 @@ def get_cardiac_graph_and_stats(
         ax.plot(
             dates,
             rest_hr,
-            label="resting heart rate",
+            label=resting_hr_label,
             c="k",
             linewidth=1.5,
             marker="o",
@@ -130,14 +150,14 @@ def get_cardiac_graph_and_stats(
         ax.plot(
             dates,
             max_hr,
-            label="maximum heart rate",
+            label=maximum_hr_label,
             c="r",
             linewidth=1.5,
             marker="o",
             markersize=4,
         )
-        # ax.set_title("Heart rate statistics over time",fontsize=18)
-        ax.set_ylabel("Heart rate [beats/min]", fontsize=16)
+        # ax.set_title(title,fontsize=18)
+        ax.set_ylabel(ylabel, fontsize=16)
         plt.xticks(rotation=45, fontsize=15)
         plt.yticks(fontsize=15)
         plt.legend(loc="upper right", fontsize=15)
@@ -157,7 +177,17 @@ def get_cardiac_graph_and_stats(
     return stats_dict
 
 
-def get_rest_spo2_graph(loader, start_dt, end_dt, user, save_to=None, show=True):
+def get_rest_spo2_graph(loader, 
+                        start_dt, 
+                        end_dt, 
+                        user, 
+                        save_to=None, 
+                        show=True,
+                        zones_labels=["Normal","Low","Concerning","Critical"],
+                        zones_colors=["g","yellow","orange","tomato"],
+                        zones_alpha=0.25,
+                        title=r"Rest SpO$_2$",
+                        ylabel=r"SpO$_2$"):
     timedelta = datetime.timedelta(
         hours=12
     )  # this assumes that at the last day a person wakes up before midday...
@@ -186,41 +216,41 @@ def get_rest_spo2_graph(loader, start_dt, end_dt, user, save_to=None, show=True)
         [min_date, max_date],
         [90 for i in range(2)],
         [100 for i in range(2)],
-        color="g",
-        alpha=0.25,
-        label="Normal",
+        color=zones_colors[0],
+        alpha=zones_alpha,
+        label=zones_labels[0]
     )
     # low
     ax.fill_between(
         [min_date, max_date],
         [80 for i in range(2)],
         [90 for i in range(2)],
-        color="yellow",
-        alpha=0.25,
-        label="Low",
+        color=zones_colors[1],
+        alpha=zones_alpha,
+        label=zones_labels[1]
     )
     # concerning
     ax.fill_between(
         [min_date, max_date],
         [70 for i in range(2)],
         [80 for i in range(2)],
-        color="orange",
-        alpha=0.25,
-        label="Concerning",
+        color=zones_colors[2],
+        alpha=zones_alpha,
+        label=zones_labels[2]
     )
     # critical
     ax.fill_between(
         [min_date, max_date],
         [0 for i in range(2)],
         [70 for i in range(2)],
-        color="tomato",
-        alpha=0.25,
-        label="Critical",
+        color=zones_colors[3],
+        alpha=zones_alpha,
+        label=zones_labels[3]
     )
 
     # graph params
-    ax.set_ylabel(r"SpO$_2$", fontsize=18)
-    ax.set_title(r"Rest SpO$_2$", fontsize=20)
+    ax.set_ylabel(ylabel, fontsize=18)
+    ax.set_title(title, fontsize=20)
 
     ax.xaxis.grid(True, color="#CCCCCC")
     ax.xaxis.set_major_formatter(date_form)
@@ -239,7 +269,14 @@ def get_rest_spo2_graph(loader, start_dt, end_dt, user, save_to=None, show=True)
 
 
 def get_stress_graph_and_stats(
-    loader, start_dt, end_dt, user, verbose=False, save_to=None, show=True
+    loader, 
+    start_dt, 
+    end_dt, 
+    user, 
+    verbose=False, 
+    save_to=None, 
+    show=True,
+    title="Average daily stress"
 ):
     # get stats
     dates, metrics = zip(
@@ -278,7 +315,7 @@ def get_stress_graph_and_stats(
         stress_df.date,
         stress_df.stress,
         cmap="golden",
-        title="Average daily stress",
+        title=title,
         colorbar=True,
         month_grid=True,
     )
@@ -297,7 +334,18 @@ def get_stress_graph_and_stats(
 
 
 def get_respiration_graph_and_stats(
-    loader, start_dt, end_dt, user, verbose=False, save_to=None, show=True
+    loader, 
+    start_dt,
+    end_dt, 
+    user, 
+    verbose=False, 
+    save_to=None, 
+    show=True,
+    rest_line_label="Sleep Avg",
+    awake_line_label="Awake Avg",
+    title= "Mean daily breaths per minute",
+    xlabel="Date",
+    ylabel="Breaths per minute"
 ):
     # get series, note that we're inclusive wrt the whole last day
     rest_dates, rest_resp = zip(
@@ -333,12 +381,12 @@ def get_respiration_graph_and_stats(
     dates_format = [date.strftime("%d-%m") for date in combined_dates]
     with plt.style.context("ggplot"):
         fig, ax = plt.subplots(figsize=(10, 6))
-        ax.plot(rest_dates, rest_resp, marker="o", label="Sleep Avg")
-        ax.plot(waking_dates, waking_resp, marker="o", label="Awake Avg")
+        ax.plot(rest_dates, rest_resp, marker="o", label=rest_line_label)
+        ax.plot(waking_dates, waking_resp, marker="o", label=awake_line_label)
         ax.legend(loc="best", fontsize=15)
-        # ax.set_title("Mean daily breaths per minute",fontsize=15)
-        ax.set_ylabel("Breaths per minute", fontsize=15)
-        ax.set_xlabel("Date", fontsize=16)
+        # ax.set_title(title,fontsize=15)
+        ax.set_ylabel(ylabel, fontsize=15)
+        ax.set_xlabel(xlabel, fontsize=16)
         plt.ylim(
             [min(8, min(rest_resp + waking_resp)), max(rest_resp + waking_resp) + 2.5]
         )
@@ -359,7 +407,14 @@ def get_respiration_graph_and_stats(
 
 
 def get_sleep_heatmap_and_stats(
-    loader, start_dt, end_dt, user, verbose=False, save_to=None, show=True
+    loader, 
+    start_dt, 
+    end_dt, 
+    user, 
+    verbose=False, 
+    save_to=None, 
+    show=True,
+    title="Sleep performance"
 ):
     # We need to create a dataframe with dates going from one year before to the latest datetime
     dates, scores = zip(
@@ -384,7 +439,7 @@ def get_sleep_heatmap_and_stats(
         sleep_df.date,
         sleep_df.sleep,
         cmap="BuGn",
-        title="Sleep performance",
+        title=title,
         colorbar=True,
         month_grid=True,
     )
@@ -431,9 +486,23 @@ def get_sleep_heatmap_and_stats(
     return stats_dict
 
 
-def get_sleep_summary_graph(loader, start_dt, end_dt, user, save_to=None, show=True):
+def get_sleep_summary_graph(loader, 
+                            start_dt, 
+                            end_dt, 
+                            user, 
+                            save_to=None, 
+                            show=True,
+                            alpha=0.25,
+                            title="Sleep stages and score",
+                            xlabel="Sleep time [hours]",
+                            ylabel="Date",
+                            legend_title="Sleep stages",
+                            legend_labels = ["Deep", "Light", "REM", "Awake"],
+                            colorbar_title="Sleep Score",
+                            colorbar_labels = ["poor", "fair", "good", "excellent"]
+                            ):
     # define params for graph
-    ALPHA = 0.25
+    ALPHA = alpha
     POSITION = 1.3
 
     time_period = pd.date_range(
@@ -565,8 +634,8 @@ def get_sleep_summary_graph(loader, start_dt, end_dt, user, save_to=None, show=T
     ax.xaxis.grid(True, color="#EEEEEE")
     ax.yaxis.grid(False)
 
-    ax.set_ylabel("Date", labelpad=15, color="#333333", fontsize=16)
-    ax.set_xlabel("Sleep time [hours]", labelpad=15, color="#333333", fontsize=16)
+    ax.set_ylabel(ylabel, labelpad=15, color="#333333", fontsize=16)
+    ax.set_xlabel(xlabel, labelpad=15, color="#333333", fontsize=16)
 
     ax.set_yticks(
         [i * POSITION for i in range(len(time_period))],
@@ -576,30 +645,28 @@ def get_sleep_summary_graph(loader, start_dt, end_dt, user, save_to=None, show=T
     )
 
     ax.set_title(
-        "Sleep stages and score", pad=25, color="#333333", weight="bold", fontsize=20
+        title, pad=25, color="#333333", weight="bold", fontsize=20
     )
 
     # ordinarly the yaxis starts from below, but it's better to visualize earlier dates on top instead
     plt.gca().invert_yaxis()
 
     # legend
-    labels = ["Deep", "Light", "REM", "Awake"]
     alphas = [1, ALPHA, 1, ALPHA]
     colors = ["darkblue", "royalblue", "darkmagenta", "hotpink"]
     lgd = ax.legend(
-        labels=labels, loc="upper center", bbox_to_anchor=(1.1, 0.45), fontsize=14
+        labels=legend_labels, loc="upper center", bbox_to_anchor=(1.1, 0.45), fontsize=14
     )
     # take care of opacity of of the colors selected
     for i, lh in enumerate(lgd.legendHandles):
         lh.set_color(colors[i])
         lh.set_alpha(alphas[i])
     lgd.get_frame().set_alpha(0.0)
-    lgd.set_title("Sleep stages", prop={"size": 15})
+    lgd.set_title(legend_title, prop={"size": 15})
 
     # code for the colorbar
 
     bins = [40, 60, 80, 90, 100]
-    labels = ["poor", "fair", "good", "excellent"]
     midpoints = [(bins[i] + bins[i + 1]) / 2 for i in range(len(bins) - 1)]
     colors = ["firebrick", "darkorange", "limegreen", "forestgreen", "forestgreen"]
 
@@ -611,10 +678,10 @@ def get_sleep_summary_graph(loader, start_dt, end_dt, user, save_to=None, show=T
     cbar = plt.colorbar(
         plt.cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax, ticks=midpoints, pad=0.10
     )
-    cbar.ax.set_yticklabels(labels, fontsize=14)
+    cbar.ax.set_yticklabels(colorbar_labels, fontsize=14)
 
     plt.annotate(
-        "Sleep Score", xy=(1.2, 1.1), xycoords="axes fraction", ha="center", fontsize=14
+        colorbar_title, xy=(1.2, 1.1), xycoords="axes fraction", ha="center", fontsize=14
     )
 
     if save_to:
