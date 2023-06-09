@@ -6,7 +6,11 @@ of Labfront cardiac data.
 import pylabfront.utils as utils
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 import datetime
+
+import hrvanalysis
+import pyhrv
 
 _LABFRONT_SPO2_COLUMN = "spo2"
 
@@ -303,3 +307,177 @@ def get_avg_heart_rate(loader,
         and average heart rate as value.
     """
     return get_cardiac_statistic(loader,_LABFRONT_AVG_HR_COLUMN,start_date,end_date,user_id,average)
+
+
+def filter_bbi(bbi,
+               remove_outliers=True,
+               remove_ectopic=True,
+               verbose=False,
+               low_rri=300,
+               high_rri=2000,
+               eptopic_method="malik",
+               interpolation_method="linear"):
+    """Get filtered bbi data.
+
+    This function returns bbi data filtered out from outliers and/or ectopic beats.
+
+    Parameters
+    ----------
+    bbi : _type_
+        series of beat to beat interval
+    remove_outliers : bool, optional
+        determines if outliers below ``low_rri`` and above ``high_rri`` should be filtered out, by default True
+    remove_ectopic : bool, optional
+        determines if eptopic beats should be removed from the bbi series, by default True
+    verbose : bool, optional
+        whether the function should print out data about the amount of outliers/ectopic beats removed, by default False
+    low_rri : int, optional
+        lower threshold for outlier detection, by default 300
+    high_rri : int, optional
+        upper threshold for outlier detection, by default 2000
+    eptopic_method : str, optional
+        method used to determine and filter out ectopic beats, by default "malik"
+    interpolation_method : str, optional
+        method used to interpolate missing values after the removal of outliers/ectopic beats, by default "linear"
+    """
+    if remove_outliers:
+        bbi  = hrvanalysis.remove_outliers(bbi,
+                                           low_rri=low_rri,
+                                           high_rri=high_rri,
+                                           verbose=verbose)
+        bbi = hrvanalysis.interpolate_nan_values(bbi,
+                                                 interpolation_method=interpolation_method)
+    if remove_ectopic:
+        bbi = hrvanalysis.remove_ectopic_beats(bbi,
+                                               method=eptopic_method,
+                                               verbose=verbose)
+        bbi = hrvanalysis.interpolate_nan_values(bbi,
+                                                 interpolation_method=interpolation_method)
+    return bbi
+
+
+def get_hrv_time_domain(loader,
+                        start_dt=None,
+                        end_dt=None,
+                        user_id="all",
+                        pyhrv=False,
+                        filtering_kwargs={}):
+    user_id = utils.get_user_ids(loader,user_id)
+    data_dict = {}
+
+    for user in user_id:
+        try:
+            bbi = loader.load_garmin_device_bbi(user,start_dt,end_dt).bbi
+            bbi = filter_bbi(bbi, **filtering_kwargs)
+            if pyhrv: # pyhrv has more features but it's a lot slower
+                td_features = pyhrv.time_domain.time_domain(bbi).as_dict()
+            else:
+                td_features = hrvanalysis.get_time_domain_features(bbi)
+            data_dict[user] = td_features
+        except:
+            data_dict[user] = None
+    
+    return data_dict
+
+
+def get_hrv_frequency_domain(loader,
+                            start_dt=None,
+                            end_dt=None,
+                            user_id="all",
+                            method="ar",
+                            filtering_kwargs={},
+                            method_kwargs={}):
+    user_id = utils.get_user_ids(loader,user_id)
+    data_dict = {}
+
+    for user in user_id:
+        try:
+            bbi = loader.load_garmin_device_bbi(user,start_dt,end_dt).bbi
+            bbi = filter_bbi(bbi, **filtering_kwargs)
+            if method == "ar":
+                fd_features = pyhrv.frequency_domain.ar_psd(bbi,show=False,**method_kwargs).as_dict()
+            elif method == "welch":
+                fd_features = pyhrv.frequency_domain.welch_psd(bbi,show=False,**method_kwargs).as_dict()
+            elif method == "lomb":
+                fd_features = pyhrv.frequency_domain.lomb_psd(bbi,show=False,**method_kwargs).as_dict()
+            else:
+                raise KeyError("method specified unknown.")
+            plt.close()
+            data_dict[user] = fd_features
+        except:
+            data_dict[user] = None
+    
+    return data_dict
+
+
+def get_hrv_nonlinear_domain(loader,
+                            start_dt=None,
+                            end_dt=None,
+                            user_id="all",
+                            dfa=True,
+                            sampen=False,
+                            filtering_kwargs={},
+                            poincare_kwargs={},
+                            sampen_kwargs={},
+                            dfa_kwargs={}):
+    user_id = utils.get_user_ids(loader,user_id)
+    data_dict = {}
+
+    for user in user_id:
+        try:
+            bbi = loader.load_garmin_device_bbi(user,start_dt,end_dt).bbi
+            bbi = filter_bbi(bbi, **filtering_kwargs)
+            non_linear_features = {}
+            non_linear_features |= pyhrv.nonlinear.poincare(bbi,show=False,**poincare_kwargs).as_dict()
+            plt.close()
+            if dfa:
+                non_linear_features |= pyhrv.nonlinear.dfa(bbi,show=False,**dfa_kwargs).as_dict()
+                plt.close()
+            if sampen: # for long bbi series this takes a lot of time
+                non_linear_features |= pyhrv.nonlinear.sample_entropy(bbi,**sampen_kwargs).as_dict()
+            data_dict[user] = non_linear_features
+        except:
+            data_dict[user] = None
+    
+    return data_dict
+
+
+def get_hrv_features(loader,
+                     start_dt=None,
+                     end_dt=None,
+                     user_id="all",
+                     filtering_kwargs={},
+                     time_domain_kwargs={},
+                     frequency_domain_kwargs={},
+                     nonlinear_domain_kwargs={}
+):
+
+    user_id = utils.get_user_ids(loader,user_id)
+    data_dict = {}
+
+    for user in user_id:
+        try:
+            features = {}
+            features |= get_hrv_time_domain(loader,
+                                            start_dt,
+                                            end_dt,
+                                            user,
+                                            filtering_kwargs=filtering_kwargs,
+                                            **time_domain_kwargs)[user]
+            features |= get_hrv_frequency_domain(loader,
+                                                 start_dt,
+                                                 end_dt,
+                                                 user,
+                                                 filtering_kwargs=filtering_kwargs,
+                                                 **frequency_domain_kwargs)[user]
+            features |= get_hrv_nonlinear_domain(loader,
+                                                 start_dt,
+                                                 end_dt,
+                                                 user,
+                                                 filtering_kwargs=filtering_kwargs,
+                                                 **nonlinear_domain_kwargs)[user]
+            data_dict[user] = features
+        except:
+            data_dict[user] = None
+    
+    return data_dict
