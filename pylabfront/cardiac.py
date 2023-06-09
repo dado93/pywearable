@@ -282,7 +282,7 @@ def get_avg_heart_rate(loader,
 ):
     """Get average daily heart rate.
 
-    This function returns the average heart rate recoreded for every day. 
+    This function returns the average heart rate recorded for every day. 
 
     Parameters
     ----------
@@ -323,7 +323,7 @@ def filter_bbi(bbi,
 
     Parameters
     ----------
-    bbi : _type_
+    bbi : list
         series of beat to beat interval
     remove_outliers : bool, optional
         determines if outliers below ``low_rri`` and above ``high_rri`` should be filtered out, by default True
@@ -362,6 +362,32 @@ def get_hrv_time_domain(loader,
                         user_id="all",
                         pyhrv=False,
                         filtering_kwargs={}):
+    """Get time-domain heart rate variability features.
+
+    This function returns a dictionary containing for every user of interest
+    the time domain hrv features for the period of interest.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    start_dt : :class:`datetime.datetime`, optional
+        Start date of the period of interest, by default None
+    end_dt : :class:`datetime.datetime`, optional
+        End date of the period of interest (inclusive), by default None
+    user_id : class:`str`, optional
+        ID of the user(s) for which hrv features must be computed, by default "all".
+    pyhrv : bool, optional
+        whether to use pyhrv to compute features, alternatively hrvanalysis is used, by default False
+    filtering_kwargs : dict, optional
+        kwargs of the bbi filtering function for outliers and ectopic beats, by default {}
+
+    Returns
+    -------
+    :class:`dict`
+        Dictionary with participant id as primary key, time-domain hrv feature names as secondary keys,
+        and the values of the features as dictionary values.
+    """
     user_id = utils.get_user_ids(loader,user_id)
     data_dict = {}
 
@@ -387,6 +413,41 @@ def get_hrv_frequency_domain(loader,
                             method="ar",
                             filtering_kwargs={},
                             method_kwargs={}):
+    """Get frequency-domain heart rate variability features.
+
+    This function returns a dictionary containing for every user of interest
+    the frequency domain hrv features for the period of interest.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    start_dt : :class:`datetime.datetime`, optional
+        Start date of the period of interest, by default None
+    end_dt : :class:`datetime.datetime`, optional
+        End date of the period of interest (inclusive), by default None
+    user_id : class:`str`, optional
+        ID of the user(s) for which hrv features must be computed, by default "all".
+    method : str, optional
+        method used for the calculation of the power spectral density graph, by default "ar"
+    filtering_kwargs : dict, optional
+        kwargs of the bbi filtering function for outliers and ectopic beats, by default {}
+    method_kwargs : dict, optional
+        kwargs needed for the method psd calculation, by default {}
+
+    Returns
+    -------
+    :class:`dict`
+        Dictionary with participant id as primary key, 
+        frequency-domain hrv feature names and method params as secondary keys,
+        and the values of the features and params as dictionary values. 
+        In case the value is a list, the items are relative (in order) to vlf, lf, hf ranges.
+
+    Raises
+    ------
+    KeyError
+        if the method specified isn't available the function returns this error.
+    """
     user_id = utils.get_user_ids(loader,user_id)
     data_dict = {}
 
@@ -420,6 +481,41 @@ def get_hrv_nonlinear_domain(loader,
                             poincare_kwargs={},
                             sampen_kwargs={},
                             dfa_kwargs={}):
+    """Get non linear domain heart rate variability features.
+
+    This function returns a dictionary containing for every user of interest
+    the non linear domain hrv features for the period of interest.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    start_dt : :class:`datetime.datetime`, optional
+        Start date of the period of interest, by default None
+    end_dt : :class:`datetime.datetime`, optional
+        End date of the period of interest (inclusive), by default None
+    user_id : class:`str`, optional
+        ID of the user(s) for which hrv features must be computed, by default "all".
+    dfa : bool, optional
+        whether to calculate features associated to detrended fluctiation analysis (dta), by default True
+    sampen : bool, optional
+        whether to calculate sample entropy features, by default False
+        Note that this should be done only for bbi data of a few minutes at most, as its calculation take long.
+    filtering_kwargs : dict, optional
+        kwargs of the bbi filtering function for outliers and ectopic beats, by default {}
+    poincare_kwargs : dict, optional
+        kwargs associated to the calculation of poincaré features, by default {}
+    sampen_kwargs : dict, optional
+        kwargs associated to the calculation of sample entropy features, by default {}
+    dfa_kwargs : dict, optional
+        kwargs associated to the calculation of detrended fluctuation analysis, by default {}
+
+    Returns
+    -------
+    Dictionary with participant id as primary key, 
+    non linear domain hrv feature names as secondary keys,
+    and the values of the features as dictionary values. 
+    """
     user_id = utils.get_user_ids(loader,user_id)
     data_dict = {}
 
@@ -451,7 +547,33 @@ def get_hrv_features(loader,
                      frequency_domain_kwargs={},
                      nonlinear_domain_kwargs={}
 ):
+    """_summary_
 
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    start_dt : :class:`datetime.datetime`, optional
+        Start date of the period of interest, by default None
+    end_dt : :class:`datetime.datetime`, optional
+        End date of the period of interest (inclusive), by default None
+    user_id : class:`str`, optional
+        ID of the user(s) for which hrv features must be computed, by default "all".
+    filtering_kwargs : dict, optional
+        kwargs of the bbi filtering function for outliers and ectopic beats, by default {}
+    time_domain_kwargs : dict, optional
+        kwargs associated to the calculation of time domain hrv features, by default {}
+    frequency_domain_kwargs : dict, optional
+        kwargs associated to the calculation of frequency domain hrv features, by default {}
+    nonlinear_domain_kwargs : dict, optional
+        kwargs associated to the calculation of non linear domain hrv features, by default {}
+
+    Returns
+    -------
+    Dictionary with participant id as primary key, 
+    hrv feature names and params for their calculation as secondary keys,
+    and the values of the features or the params as dictionary values. 
+    """
     user_id = utils.get_user_ids(loader,user_id)
     data_dict = {}
 
