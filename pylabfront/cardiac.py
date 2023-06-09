@@ -315,7 +315,7 @@ def filter_bbi(bbi,
                verbose=False,
                low_rri=300,
                high_rri=2000,
-               eptopic_method="malik",
+               ectopic_method="malik",
                interpolation_method="linear"):
     """Get filtered bbi data.
 
@@ -328,14 +328,14 @@ def filter_bbi(bbi,
     remove_outliers : bool, optional
         determines if outliers below ``low_rri`` and above ``high_rri`` should be filtered out, by default True
     remove_ectopic : bool, optional
-        determines if eptopic beats should be removed from the bbi series, by default True
+        determines if ectopic beats should be removed from the bbi series, by default True
     verbose : bool, optional
         whether the function should print out data about the amount of outliers/ectopic beats removed, by default False
     low_rri : int, optional
         lower threshold for outlier detection, by default 300
     high_rri : int, optional
         upper threshold for outlier detection, by default 2000
-    eptopic_method : str, optional
+    ectopic_method : str, optional
         method used to determine and filter out ectopic beats, by default "malik"
     interpolation_method : str, optional
         method used to interpolate missing values after the removal of outliers/ectopic beats, by default "linear"
@@ -349,7 +349,7 @@ def filter_bbi(bbi,
                                                  interpolation_method=interpolation_method)
     if remove_ectopic:
         bbi = hrvanalysis.remove_ectopic_beats(bbi,
-                                               method=eptopic_method,
+                                               method=ectopic_method,
                                                verbose=verbose)
         bbi = hrvanalysis.interpolate_nan_values(bbi,
                                                  interpolation_method=interpolation_method)
@@ -497,7 +497,7 @@ def get_hrv_nonlinear_domain(loader,
     user_id : class:`str`, optional
         ID of the user(s) for which hrv features must be computed, by default "all".
     dfa : bool, optional
-        whether to calculate features associated to detrended fluctiation analysis (dta), by default True
+        whether to calculate features associated to detrended fluctuation analysis (dta), by default True
     sampen : bool, optional
         whether to calculate sample entropy features, by default False
         Note that this should be done only for bbi data of a few minutes at most, as its calculation take long.
