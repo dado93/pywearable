@@ -101,10 +101,10 @@ def get_daily_stress_statistics(loader, start_date=None, end_date=None, particip
     participant_ids = utils.get_user_ids(loader,participant_ids)
     
     for participant_id in participant_ids:
-        df = loader.load_garmin_connect_daily_summary(participant_id,
-                                                          start_date,
-                                                          end_date+timedelta(hours=23,minutes=45))
-        if len(df) > 0:
+        try:
+            df = loader.load_garmin_connect_daily_summary(participant_id,
+                                                            start_date,
+                                                            end_date+timedelta(hours=23,minutes=45))
             df = df.groupby(_LABFRONT_CALENDAR_DAY_KEY).tail(1) # consider the last reading of every day
             # need to filter out days where the info isn't available (nan or -1)
             df = df[np.logical_and(~df["averageStressInStressLevel"].isna(), df["averageStressInStressLevel"]!= -1)] 
@@ -112,8 +112,8 @@ def get_daily_stress_statistics(loader, start_date=None, end_date=None, particip
                 data_dict[participant_id] = round(df[_LABFRONT_AVERAGE_STRESS_KEY].mean(),1), round(df[_LABFRONT_MAXIMUM_STRESS_KEY].max(),1)
             else:
                 data_dict[participant_id] = pd.Series(zip(df[_LABFRONT_AVERAGE_STRESS_KEY],df[_LABFRONT_MAXIMUM_STRESS_KEY]),
-                                                  index=df[_LABFRONT_CALENDAR_DAY_KEY])
-        else:
+                                                index=df[_LABFRONT_CALENDAR_DAY_KEY])
+        except:
             data_dict[participant_id] = None
 
     return data_dict

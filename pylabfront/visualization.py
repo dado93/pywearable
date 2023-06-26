@@ -14,9 +14,12 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import seaborn as sns
 import july
+# import pyhrv
+# import hrvanalysis
 
 from pathlib import Path
 from matplotlib.dates import DateFormatter
+from matplotlib.ticker import PercentFormatter
 
 date_form = DateFormatter("%m-%d")
 
@@ -793,3 +796,108 @@ def get_errorbar_graph(
         plt.show()
     else:
         plt.close()
+
+def plot_bbi_distribution(loader,
+                          start_dt,
+                          end_dt,
+                          user,
+                          bin_width=20):
+    pass
+    # hrvanalysis.plot.plot_distrib(np.array(bbi, dtype=np.int16),bin_length=bin_width)
+
+def plot_psd():
+    pass
+
+def plot_poincare(loader,
+                  start_dt,
+                  end_dt,
+                  user,
+                  plot_sd_features=True):
+    pass
+    # hrvanalysis.plot.plot_poincare(bbi)  
+
+def plot_psd_comparison():
+    pass
+
+def plot_psd_waterfall():
+    pass
+
+def plot_dfa():
+    pass
+
+def plot_hr_heatplot():
+    pass
+
+def plot_comparison_radar_chart():
+    pass
+
+def compare_against_group(
+    user_data,
+    comparison_data,
+    show=True,
+    save_to=None, 
+    bins=10,
+    title="",
+    ylabel="% users",
+    xlabel="",
+    fontsize=16
+):
+    """Plots a histogram of the distribution of a desired metric, specifying where an user stands within the distribution
+
+    This functions compare an user against a chosen population with respect to a specific metric.
+    The metric should be evaluated for both the user and the comparison group prior to the calling of the function.
+    Parameters
+    ----------
+    user_data : float
+        The value of the user of interest for the metric of interest
+    comparison_data : list
+        List of values for the metric of interest for the comparison group (including the user of interest)
+    show : bool, optional
+        Whether to show the plot 
+    save_to : str, optional
+        the path where to save the plot, by default None
+    bins : int, optional
+        Number of bins for the comparison histogram, by default 10
+    title : str, optional
+        Title of the plot, by default ""
+    ylabel : str, optional
+        Y-label of the plot, by default "% users"
+    xlabel : str, optional
+        X-label of the plot, by default ""
+    fontsize : int, optional
+        Fontsize for the plot, by default 16
+
+    Returns
+    -------
+    float
+        Percentile standing of the user among the comparison group considered
+    """
+
+    # note that the following is strict percentile, i.e., the pct of points strictly below the user_data
+    percentile_standing = np.round(np.sum(np.array(comparison_data)<user_data)/len(comparison_data)*100,0)
+
+
+    if show:
+        fig, ax = plt.subplots(figsize=(8,4), facecolor='w')
+        cnts, values, bars = ax.hist(comparison_data, 
+                                     bins = bins,
+                                     rwidth=0.95,
+                                     weights=np.ones(len(comparison_data)) / len(comparison_data)
+                                     )
+        
+        plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
+
+        for i, (cnt, value, bar) in enumerate(zip(cnts, values, bars)):
+            if i == len(cnts) or values[i] <= user_data <= values[i+1]:
+                bar.set_facecolor("darkorange")
+                break
+        ax.set_title(title,fontsize=fontsize+2)
+        ax.set_ylabel(ylabel,fontsize=fontsize)
+        ax.set_xlabel(xlabel,fontsize=fontsize)
+        ax.set_axisbelow(True)
+        ax.yaxis.grid(True)
+        plt.show()
+        if save_to:
+            plt.savefig(save_to)
+    
+    return percentile_standing
