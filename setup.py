@@ -10,7 +10,7 @@ config = {
     'download_url': 'https://github.com/dado93/pylabfront',
     'author_email': 'davide.marzorati.93@gmail.com',
     'version': '0.1',
-    'install_requires': ['nose', 'pandas', 'yasa', 'pyhrv', 'hrvanalysis'],
+    'install_requires': ['nose', 'pandas', 'yasa', 'pyhrv', 'hrv-analysis','july'],
     'packages': ['pylabfront'],
     'scripts': [],
     'name': 'pylabfront',
