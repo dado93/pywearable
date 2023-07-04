@@ -14,8 +14,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import seaborn as sns
 import july
-# import pyhrv
-# import hrvanalysis
+import pyhrv
+import hrvanalysis
 
 from pathlib import Path
 from matplotlib.dates import DateFormatter
@@ -81,7 +81,7 @@ def get_steps_graph_and_stats(
         plt.ylabel(ylabel, fontsize=16)
         # plt.title(plot_title, fontsize=15)
         if save_to:
-            plt.savefig(save_to)
+            plt.savefig(save_to,bbox_inches='tight')
 
     if show:
         plt.show()
@@ -167,7 +167,7 @@ def get_cardiac_graph_and_stats(
         plt.grid("both")
         plt.ylim([min(30, min(rest_hr)), max(200, max_hr_recorded + 30)])
         if save_to:
-            plt.savefig(save_to)
+            plt.savefig(save_to,bbox_inches='tight')
     if show:
         plt.show()
     else:
@@ -264,7 +264,7 @@ def get_rest_spo2_graph(loader,
     plt.xlim([min_date, max_date])
     plt.tight_layout()
     if save_to:
-        plt.savefig(save_to)
+        plt.savefig(save_to,bbox_inches='tight')
     if show:
         plt.show()
     else:
@@ -324,7 +324,7 @@ def get_stress_graph_and_stats(
     )
 
     if save_to:
-        plt.savefig(save_to)
+        plt.savefig(save_to,bbox_inches='tight')
     if show:
         plt.show()
     else:
@@ -396,7 +396,7 @@ def get_respiration_graph_and_stats(
         plt.xticks(combined_dates[::2], dates_format[::2], rotation=45, fontsize=15)
         plt.yticks(fontsize=15)
         if save_to:
-            plt.savefig(save_to)
+            plt.savefig(save_to,bbox_inches='tight')
     if show:
         plt.show()
     else:
@@ -448,7 +448,7 @@ def get_sleep_heatmap_and_stats(
     )
 
     if save_to:
-        plt.savefig(save_to)
+        plt.savefig(save_to,bbox_inches='tight')
 
     if show:
         plt.show()
@@ -548,7 +548,7 @@ def get_sleep_summary_graph(loader,
             else:
                 return "firebrick"
 
-    fig, ax = plt.subplots(figsize=(15, 21))
+    fig, ax = plt.subplots(figsize=(15, 30))
 
     # for every day in the period of interest, we plot the hypnogram
     for j, night in enumerate(time_period):
@@ -688,7 +688,7 @@ def get_sleep_summary_graph(loader,
     )
 
     if save_to:
-        plt.savefig(save_to)
+        plt.savefig(save_to,bbox_inches='tight')
 
     if show:
         plt.show()
@@ -790,7 +790,7 @@ def get_errorbar_graph(
     plt.yticks(fontsize=15)
 
     if save_to:
-        plt.savefig(save_to)
+        plt.savefig(save_to,bbox_inches='tight')
 
     if show:
         plt.show()
@@ -840,7 +840,12 @@ def compare_against_group(
     title="",
     ylabel="% users",
     xlabel="",
-    fontsize=16
+    fontsize=16,
+    shaded_regions=False,
+    regions_cutoffs=None,
+    regions_colors=None,
+    alpha=0.25,
+    xlim=None
 ):
     """Plots a histogram of the distribution of a desired metric, specifying where an user stands within the distribution
 
@@ -866,6 +871,16 @@ def compare_against_group(
         X-label of the plot, by default ""
     fontsize : int, optional
         Fontsize for the plot, by default 16
+    shaded_regions : bool, optional
+        Whether to enable in the plot the use of colored regions, by default False
+    regions_cutoffs : list, optional
+        Values of the cuttoff points for the shaded regions, by default None
+    regions_colors : list, optional
+        Colors of the shaded regions, len(regions_colors) is expected to be len(regions_cutoffs)-1, by default None
+    alpha : float, optional
+        Alpha of the shaded regions, by default 0.25
+    xlim : list, optional
+        List of two extreme x-values for the plot, by dafault None
 
     Returns
     -------
@@ -873,31 +888,40 @@ def compare_against_group(
         Percentile standing of the user among the comparison group considered
     """
 
-    # note that the following is strict percentile, i.e., the pct of points strictly below the user_data
-    percentile_standing = np.round(np.sum(np.array(comparison_data)<user_data)/len(comparison_data)*100,0)
+    # note that the following is not strict percentile (this is good to say you were above x% of the others..)
+    # should we instead show that?? 
+    percentile_standing = np.round(np.sum(np.array(comparison_data)<=user_data)/len(comparison_data)*100,0)
 
+    fig, ax = plt.subplots(figsize=(8,4), facecolor='w')
+    cnts, values, bars = ax.hist(comparison_data, 
+                                    bins = bins,
+                                    rwidth=0.95,
+                                    weights=np.ones(len(comparison_data)) / len(comparison_data),
+                                    zorder=2
+                                    )
+    
+    plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
 
+    if shaded_regions:
+        for i in range(len(regions_colors)):
+            start_point = regions_cutoffs[i]
+            end_point = regions_cutoffs[i+1]
+            ax.axvspan(start_point,end_point,alpha=alpha,color=regions_colors[i])
+
+    for i, (cnt, value, bar) in enumerate(zip(cnts, values, bars)):
+        if i == len(cnts) or values[i] <= user_data <= values[i+1]:
+            bar.set_facecolor("darkorange")
+            break
+    ax.set_title(title,fontsize=fontsize+2)
+    ax.set_ylabel(ylabel,fontsize=fontsize)
+    ax.set_xlabel(xlabel,fontsize=fontsize)
+    ax.set_axisbelow(True)
+    ax.yaxis.grid(True)
+    if xlim:
+        ax.set_xlim(xlim)
+    if save_to:
+        plt.savefig(save_to,bbox_inches='tight')
     if show:
-        fig, ax = plt.subplots(figsize=(8,4), facecolor='w')
-        cnts, values, bars = ax.hist(comparison_data, 
-                                     bins = bins,
-                                     rwidth=0.95,
-                                     weights=np.ones(len(comparison_data)) / len(comparison_data)
-                                     )
-        
-        plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
-
-        for i, (cnt, value, bar) in enumerate(zip(cnts, values, bars)):
-            if i == len(cnts) or values[i] <= user_data <= values[i+1]:
-                bar.set_facecolor("darkorange")
-                break
-        ax.set_title(title,fontsize=fontsize+2)
-        ax.set_ylabel(ylabel,fontsize=fontsize)
-        ax.set_xlabel(xlabel,fontsize=fontsize)
-        ax.set_axisbelow(True)
-        ax.yaxis.grid(True)
         plt.show()
-        if save_to:
-            plt.savefig(save_to)
     
     return percentile_standing

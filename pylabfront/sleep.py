@@ -348,7 +348,9 @@ def get_awake_sleep_duration(
     )
 
 
-def get_sleep_duration(loader, start_date=None, end_date=None, participant_id="all"):
+def get_sleep_duration(
+    loader, start_date=None, end_date=None, participant_id="all",average=False
+):
     """Get sleep duration.
 
     This function returns the absolute sleep duration for
@@ -393,7 +395,7 @@ def get_sleep_duration(loader, start_date=None, end_date=None, participant_id="a
         - ``day`` : ``Sleep Duration``
     """
     return get_time_in_sleep_stage(
-        loader, "DURATION", start_date, end_date, participant_id
+        loader, "DURATION", start_date, end_date, participant_id, average
     )
 
 
