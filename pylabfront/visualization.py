@@ -797,39 +797,22 @@ def get_errorbar_graph(
     else:
         plt.close()
 
-def plot_bbi_distribution(loader,
-                          start_dt,
-                          end_dt,
-                          user,
-                          bin_width=20):
-    pass
-    # hrvanalysis.plot.plot_distrib(np.array(bbi, dtype=np.int16),bin_length=bin_width)
+def plot_bbi_distribution(bbi,
+                          bin_length=20):
+    """Plots distribution of bbi data
 
-def plot_psd():
-    pass
-
-def plot_poincare(loader,
-                  start_dt,
-                  end_dt,
-                  user,
-                  plot_sd_features=True):
-    pass
-    # hrvanalysis.plot.plot_poincare(bbi)  
-
-def plot_psd_comparison():
-    pass
-
-def plot_psd_waterfall():
-    pass
-
-def plot_dfa():
-    pass
-
-def plot_hr_heatplot():
-    pass
+    Parameters
+    ----------
+    bbi : numpy.ndarray
+        array of bbi data
+    bin_length : int, optional
+        length of bins in the histogram, by default 20
+    """
+    
+    hrvanalysis.plot.plot_distrib(np.array(bbi, dtype=np.int16),bin_length=bin_length)
 
 def plot_comparison_radar_chart():
-    pass
+    pass #TODO
 
 def compare_against_group(
     user_data,
@@ -935,6 +918,27 @@ def plot_trend_analysis(df,
                    fontsize=16,
                    alpha=0.3,
                    xticks_frequency=3):
+    """Plots a trend analysis graph, given data processed using `utils.trend_analysis`
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame of the processed metric data returned by `utils.trend_analysis` function
+    save_to : str, optional
+        the path where to save the plot, by default None
+    xlabel : str, optional
+        X-label of the plot, by default ""
+    ylabel : str, optional
+        Y-label of the plot, by default ""
+    title : str, optional
+        title of the plot, by default ""
+    fontsize : int, optional
+        fontisize to be used for the labels and the title, by default 16
+    alpha : float, optional
+        Alpha of the shaded regions, by default 0.3
+    xticks_frequency : int, optional
+        frequency of visualization of x-axis ticks, by default 3
+    """
 
     dates = df.index
     metric = df.metric

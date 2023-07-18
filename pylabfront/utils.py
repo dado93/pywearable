@@ -128,13 +128,38 @@ def trend_analysis(data_dict,
                    normal_range_periods=30,
                    min_periods_normal_range=20,
                    std_multiplier=1):
-    
+    """Performs trend analysis on daily data for a pre-loaded metric.
+
+    Parameters
+    ----------
+    data_dict : class: dict
+        Dictionary with dates as keys and daily metric data as values.
+    start_dt : :class:`datetime.datetime`
+        Start date of the period of interest
+    end_dt : :class:`datetime.datetime`
+        End date of the period of interest (inclusive)
+    baseline_periods : int, optional
+        number of period values to be used for the computation of the rolling baseline, by default 7 (MA7)
+    min_periods_baseline : int, optional
+        minimum number of period values needed for the baseline to be considered valid, by default 3
+    normal_range_periods : int, optional
+        number of period values to be used for the computation of the rolling normal range, by default 30
+    min_periods_normal_range : int, optional
+        minimum number of period values needed for the normal range to be considered valid, by default 20
+    std_multiplier : int, optional
+        multiplier of the standard deviation for the computation of lower and upper bounds of the normal range, by default 1
+
+    Returns
+    -------
+    pandas.DataFrame
+    including daily metric, baseline, and normal range params.
+    """
     idx = pd.date_range(start_date, end_date)
     s = pd.Series(data_dict)
     s.index = pd.DatetimeIndex(s.index)
     s = s.reindex(idx, fill_value=None)
     df = pd.DataFrame(s,columns=["metric"])
-    df["BASELINE"] = df.rolling(window=baseline_periods,min_periods=min_periods_baseline).mean()
+    df["BASELINE"] = df.metric.rolling(window=baseline_periods,min_periods=min_periods_baseline).mean()
     df["NR_MEAN"] = df.metric.rolling(window=normal_range_periods,min_periods=min_periods_normal_range).mean()
     df["NR_STD"] = df.metric.rolling(window=normal_range_periods,min_periods=min_periods_normal_range).std()
     df["NR_LOWER_BOUND"] = df["NR_MEAN"] - std_multiplier * df["NR_STD"]

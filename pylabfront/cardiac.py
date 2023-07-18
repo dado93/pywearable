@@ -548,7 +548,8 @@ def get_hrv_features(loader,
                      frequency_domain_kwargs={},
                      nonlinear_domain_kwargs={}
 ):
-    """_summary_
+    """Compute all hrv features (time, frequency, and non-linear domain) for a given period.
+    Can be extremely computationally intensive if the period is too long.
 
     Parameters
     ----------
@@ -611,6 +612,28 @@ def get_night_rmssd(loader,
                   user_id="all",
                   coverage=0.7,
                   method="all night"):
+    """Compute rmssd metrics considering night data for the specified participants and period.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    start_dt : :class:`datetime.datetime`, optional
+        Start date of the period of interest, by default None
+    end_dt : :class:`datetime.datetime`, optional
+        End date of the period of interest (inclusive), by default None
+    user_id : class:`str`, optional
+        ID of the user(s) for which hrv features must be computed, by default "all".
+    coverage : float, optional
+        the percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7
+    method : str, optional
+        method specifying how to filter bbi data in order to compute the night metric, by default "all night"
+
+    Returns
+    -------
+    Dictionary with participants as primary key,
+    dates as secondary keys, and rmssd computed overnight as values.
+    """
     
     user_id = utils.get_user_ids(loader,user_id)
     data_dict = {}
@@ -648,6 +671,28 @@ def get_night_sdnn(loader,
                   user_id="all",
                   coverage=0.7,
                   method="all night"):
+    """Compute sdnn metrics considering night data for the specified participants and period.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    start_dt : :class:`datetime.datetime`, optional
+        Start date of the period of interest, by default None
+    end_dt : :class:`datetime.datetime`, optional
+        End date of the period of interest (inclusive), by default None
+    user_id : class:`str`, optional
+        ID of the user(s) for which hrv features must be computed, by default "all".
+    coverage : float, optional
+        the percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7
+    method : str, optional
+        method specifying how to filter bbi data in order to compute the night metric, by default "all night"
+
+    Returns
+    -------
+    Dictionary with participants as primary key,
+    dates as secondary keys, and sdnn computed overnight as values.
+    """
     
     user_id = utils.get_user_ids(loader,user_id)
     data_dict = {}
@@ -684,7 +729,28 @@ def get_night_lf(loader,
                  coverage=0.7,
                  method="all night",
                  minimal_periods=10):
-    
+    """Compute LF power metrics considering night data for the specified participants and period.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    start_dt : :class:`datetime.datetime`, optional
+        Start date of the period of interest, by default None
+    end_dt : :class:`datetime.datetime`, optional
+        End date of the period of interest (inclusive), by default None
+    user_id : class:`str`, optional
+        ID of the user(s) for which hrv features must be computed, by default "all".
+    coverage : float, optional
+        the percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7
+    method : str, optional
+        method specifying how to filter bbi data in order to compute the night metric, by default "all night"
+
+    Returns
+    -------
+    Dictionary with participants as primary key,
+    dates as secondary keys, and LF absolute power computed overnight as values.
+    """
     user_id = utils.get_user_ids(loader,user_id)
     data_dict = {}
 
@@ -723,7 +789,28 @@ def get_night_hf(loader,
                  coverage=0.7,
                  method="all night",
                  minimal_periods=10):
-    
+    """Compute HF power metrics considering night data for the specified participants and period.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    start_dt : :class:`datetime.datetime`, optional
+        Start date of the period of interest, by default None
+    end_dt : :class:`datetime.datetime`, optional
+        End date of the period of interest (inclusive), by default None
+    user_id : class:`str`, optional
+        ID of the user(s) for which hrv features must be computed, by default "all".
+    coverage : float, optional
+        the percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7
+    method : str, optional
+        method specifying how to filter bbi data in order to compute the night metric, by default "all night"
+
+    Returns
+    -------
+    Dictionary with participants as primary key,
+    dates as secondary keys, and LF absolute power computed overnight as values.
+    """    
     user_id = utils.get_user_ids(loader,user_id)
     data_dict = {}
 
@@ -761,6 +848,28 @@ def get_night_lfhf(loader,
                  user_id="all",
                  coverage=0.7,
                  method="all night"):
+    """Compute LF/HF ratio metrics considering night data for the specified participants and period.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    start_dt : :class:`datetime.datetime`, optional
+        Start date of the period of interest, by default None
+    end_dt : :class:`datetime.datetime`, optional
+        End date of the period of interest (inclusive), by default None.
+    user_id : class:`str`, optional
+        ID of the user(s) for which hrv features must be computed, by default "all"
+    coverage : float, optional
+        the percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7
+    method : str, optional
+        method specifying how to filter bbi data in order to compute the night metric, by default "all night"
+
+    Returns
+    -------
+    Dictionary with participants as primary key,
+    dates as secondary keys, and LF/HF ratio computed overnight as values.
+    """
     
     user_id = utils.get_user_ids(loader,user_id)
     data_dict = {}
@@ -792,7 +901,28 @@ def get_night_lfhf(loader,
     return data_dict
 
 
-def _filter_out_awake_bbi(loader,user,bbi_df,date):
+def _filter_out_awake_bbi(loader,
+                          user,
+                          bbi_df,
+                          date):
+    """Filters out night bbi data relative to periods where the user was awake
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    user : class:`str`
+        ID of the user for which bbi data has to be filtered.
+    bbi_df : class:`pandas.DataFrame`
+        DataFrame of bbi data
+    date : class:`pandas.Timestamp`
+        Timestamp of the date relative to the night in consideration.
+
+    Returns
+    -------
+    pandas.DataFrame
+    DataFrame in the same format of `bbi_df`, including only bbi data of periods when the participant is asleep. 
+    """
     hypnogram = loader.load_hypnogram(user,date)
     hypnogram["stages_diff"] = np.concatenate(
                         [
