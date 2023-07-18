@@ -119,3 +119,24 @@ def find_nearest_timestamp(timestamp, timestamp_array):
         datetime: Closest datetime in timestamp_array to timestamp
     """
     return min(timestamp_array, key=lambda x: abs(x - timestamp))
+
+def trend_analysis(data_dict,
+                   start_date,
+                   end_date,
+                   baseline_periods=7,
+                   min_periods_baseline=3,
+                   normal_range_periods=30,
+                   min_periods_normal_range=20,
+                   std_multiplier=1):
+    
+    idx = pd.date_range(start_date, end_date)
+    s = pd.Series(data_dict)
+    s.index = pd.DatetimeIndex(s.index)
+    s = s.reindex(idx, fill_value=None)
+    df = pd.DataFrame(s,columns=["metric"])
+    df["BASELINE"] = df.rolling(window=baseline_periods,min_periods=min_periods_baseline).mean()
+    df["NR_MEAN"] = df.metric.rolling(window=normal_range_periods,min_periods=min_periods_normal_range).mean()
+    df["NR_STD"] = df.metric.rolling(window=normal_range_periods,min_periods=min_periods_normal_range).std()
+    df["NR_LOWER_BOUND"] = df["NR_MEAN"] - std_multiplier * df["NR_STD"]
+    df["NR_UPPER_BOUND"] = df["NR_MEAN"] + std_multiplier * df["NR_STD"]
+    return df 

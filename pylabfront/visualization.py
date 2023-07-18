@@ -925,3 +925,31 @@ def compare_against_group(
         plt.show()
     
     return percentile_standing
+
+
+def plot_trend_analysis(df,
+                   save_to=None,
+                   xlabel="",
+                   ylabel="",
+                   title="",
+                   fontsize=16,
+                   alpha=0.3,
+                   xticks_frequency=3):
+
+    dates = df.index
+    metric = df.metric
+    baseline = df.BASELINE
+    LB = df.NR_LOWER_BOUND
+    UB = df.NR_UPPER_BOUND
+    plt.figure(figsize=(10,6))
+    plt.bar(dates,metric)
+    plt.plot(baseline,linestyle="-",linewidth=3,color="red")
+    plt.fill_between(dates,LB,UB,alpha=alpha,color="green")
+    plt.grid("on")
+    plt.xticks(dates[::xticks_frequency],rotation=45)
+    plt.xlabel(xlabel,fontsize=fontsize)
+    plt.ylabel(ylabel,fontsize=fontsize)
+    plt.title(title,fontsize=fontsize+2)
+    if save_to:
+        plt.savefig(save_to,bbox_inches='tight')
+    plt.show()

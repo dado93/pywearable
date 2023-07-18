@@ -4,6 +4,7 @@ of Labfront cardiac data.
 """
 
 import pylabfront.utils as utils
+import pylabfront.sleep as sleep
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -603,3 +604,216 @@ def get_hrv_features(loader,
             data_dict[user] = None
     
     return data_dict
+
+def get_night_rmssd(loader,
+                  start_dt=None,
+                  end_dt=None,
+                  user_id="all",
+                  coverage=0.7,
+                  method="all night"):
+    
+    user_id = utils.get_user_ids(loader,user_id)
+    data_dict = {}
+
+    for user in user_id:
+        try:
+            sleeping_timestamps = sleep.get_sleep_timestamps(loader,start_dt,end_dt,user)[user]
+            daily_means = {}
+
+            for date, (start_hour, end_hour) in sleeping_timestamps.items():
+                bbi_df = loader.load_garmin_device_bbi(user,start_hour,end_hour)
+                bbi_df = bbi_df.set_index("isoDate")
+                
+                if method == "filter_awake": # this filters out bbi relative to awake periods during sleep
+                    bbi_df = _filter_out_awake_bbi(loader,user,bbi_df,date)
+
+                counts = bbi_df.resample('5min').bbi.count() 
+                means = bbi_df.resample('5min').bbi.mean() 
+                coverage_filter = (counts > (300/(means/1000)*coverage)).values
+                ST_analysis = bbi_df.resample('5min').bbi.apply(lambda x: pyhrv.time_domain.rmssd(x)[0] if x.count() > 5 else 0)
+                ST_analysis = ST_analysis.iloc[coverage_filter & (ST_analysis != 0).values]
+                rmssd_values_daily = ST_analysis.values
+                daily_mean = rmssd_values_daily.mean()
+                daily_means[date] = round(daily_mean,1)
+            data_dict[user] = daily_means
+        except:
+            data_dict[user] = None
+    
+    return data_dict
+
+
+def get_night_sdnn(loader,
+                  start_dt=None,
+                  end_dt=None,
+                  user_id="all",
+                  coverage=0.7,
+                  method="all night"):
+    
+    user_id = utils.get_user_ids(loader,user_id)
+    data_dict = {}
+
+    for user in user_id:
+        try:
+            sleeping_timestamps = sleep.get_sleep_timestamps(loader,start_dt,end_dt,user)[user]
+
+            daily_means = {}
+
+            for date, (start_hour, end_hour) in sleeping_timestamps.items():
+                bbi_df = loader.load_garmin_device_bbi(user,start_hour,end_hour)
+                bbi_df = bbi_df.set_index("isoDate")
+                if method == "not awake":
+                    bbi_df = _filter_out_awake_bbi(loader,user,bbi_df,date)
+                counts = bbi_df.resample('5min').bbi.count() 
+                means = bbi_df.resample('5min').bbi.mean() 
+                coverage_filter = (counts > (300/(means/1000)*coverage)).values
+                ST_analysis = bbi_df.resample('5min').bbi.apply(lambda x: pyhrv.time_domain.sdnn(x)[0] if x.count() > 5 else 0)
+                ST_analysis = ST_analysis.iloc[coverage_filter & (ST_analysis != 0).values]
+                sdnn_values_daily = ST_analysis.values
+                daily_mean = sdnn_values_daily.mean()
+                daily_means[date] = round(daily_mean,1)
+            data_dict[user] = daily_means
+        except:
+            data_dict[user] = None
+    
+    return data_dict
+
+def get_night_lf(loader,
+                 start_dt=None,
+                 end_dt=None,
+                 user_id="all",
+                 coverage=0.7,
+                 method="all night",
+                 minimal_periods=10):
+    
+    user_id = utils.get_user_ids(loader,user_id)
+    data_dict = {}
+
+    for user in user_id:
+        try:
+            sleeping_timestamps = sleep.get_sleep_timestamps(loader,start_dt,end_dt,user)[user]
+
+            daily_means = {}
+
+            for date, (start_hour, end_hour) in sleeping_timestamps.items():
+                bbi_df = loader.load_garmin_device_bbi(user,start_hour,end_hour)
+                bbi_df = bbi_df.set_index("isoDate")
+                if method == "not awake":
+                    bbi_df = _filter_out_awake_bbi(loader,user,bbi_df,date)
+                counts = bbi_df.resample('5min').bbi.count() 
+                means = bbi_df.resample('5min').bbi.mean() 
+                coverage_filter = (counts > (300/(means/1000)*coverage)).values
+                ST_analysis = bbi_df.resample('5min').bbi.apply(lambda x: pyhrv.frequency_domain.welch_psd(nni=x,
+                                                                                                           show=False,
+                                                                                                           mode="dev")[0]["fft_abs"][1] if x.count() > 5 else 0)
+                ST_analysis = ST_analysis.iloc[coverage_filter & (ST_analysis != 0).values]
+                lf_values_daily = ST_analysis.dropna().values
+                if len(lf_values_daily) >= minimal_periods:
+                    daily_mean = lf_values_daily.mean()
+                    daily_means[date] = round(daily_mean,1)
+            data_dict[user] = daily_means
+        except:
+            data_dict[user] = None
+    
+    return data_dict
+
+def get_night_hf(loader,
+                 start_dt=None,
+                 end_dt=None,
+                 user_id="all",
+                 coverage=0.7,
+                 method="all night",
+                 minimal_periods=10):
+    
+    user_id = utils.get_user_ids(loader,user_id)
+    data_dict = {}
+
+    for user in user_id:
+        try:
+            sleeping_timestamps = sleep.get_sleep_timestamps(loader,start_dt,end_dt,user)[user]
+
+            daily_means = {}
+
+            for date, (start_hour, end_hour) in sleeping_timestamps.items():
+                bbi_df = loader.load_garmin_device_bbi(user,start_hour,end_hour)
+                bbi_df = bbi_df.set_index("isoDate")
+                if method == "not awake":
+                    bbi_df = _filter_out_awake_bbi(loader,user,bbi_df,date)
+                counts = bbi_df.resample('5min').bbi.count() 
+                means = bbi_df.resample('5min').bbi.mean() 
+                coverage_filter = (counts > (300/(means/1000)*coverage)).values
+                ST_analysis = bbi_df.resample('5min').bbi.apply(lambda x: pyhrv.frequency_domain.welch_psd(nni=x,
+                                                                                                           show=False,
+                                                                                                           mode="dev")[0]["fft_abs"][2] if x.count() > 5 else 0)
+                ST_analysis = ST_analysis.iloc[coverage_filter & (ST_analysis != 0).values]
+                hf_values_daily = ST_analysis.dropna().values
+                if len(hf_values_daily) >= minimal_periods:
+                    daily_mean = hf_values_daily.mean()
+                    daily_means[date] = round(daily_mean,1)
+            data_dict[user] = daily_means
+        except:
+            data_dict[user] = None
+    
+    return data_dict
+
+def get_night_lfhf(loader,
+                 start_dt=None,
+                 end_dt=None,
+                 user_id="all",
+                 coverage=0.7,
+                 method="all night"):
+    
+    user_id = utils.get_user_ids(loader,user_id)
+    data_dict = {}
+
+    for user in user_id:
+        try:
+            lf_dict = get_night_lf(loader,
+                              start_dt,
+                              end_dt,
+                              user,
+                              coverage=coverage,
+                              method=method)[user]
+            hf_dict = get_night_hf(loader,
+                              start_dt,
+                              end_dt,
+                              user,
+                              coverage=coverage,
+                              method=method)[user]
+            lfhf_dict = {}
+            for date in lf_dict.keys():
+                lf = lf_dict[date]
+                hf = hf_dict[date]
+                lfhf_dict[date] = lf/hf
+
+            data_dict[user] = lfhf_dict
+        except:
+            data_dict[user] = None
+    
+    return data_dict
+
+
+def _filter_out_awake_bbi(loader,user,bbi_df,date):
+    hypnogram = loader.load_hypnogram(user,date)
+    hypnogram["stages_diff"] = np.concatenate(
+                        [
+                            [0],
+                            hypnogram.iloc[1:, :].stage.values
+                            - hypnogram.iloc[:-1, :].stage.values,
+                        ]
+                    )
+    # if there has been a negative change and the current stage is awake, then count it as awakening start
+    hypnogram["awakening_start"] = np.logical_and(
+                        hypnogram.stage == 0, hypnogram.stages_diff < 0
+                    )
+    # if there has been a positive change and the previous stage was awake, then count it as awakening end
+    hypnogram["awakening_end"] = np.concatenate([
+        [0],
+        np.logical_and((hypnogram.iloc[:-1, :].stage == 0).values, (hypnogram.iloc[1:, :].stages_diff > 0).values)
+    ])
+    relevant_rows = hypnogram.loc[np.logical_or(hypnogram.awakening_start==1, hypnogram.awakening_end==1)][:20]
+    awakening_starts = relevant_rows.isoDate.iloc[::2].values
+    awakening_ends = relevant_rows.isoDate.iloc[1::2].values
+    for awakening_start, awakening_end in zip(awakening_starts,awakening_ends):
+        bbi_df = bbi_df.loc[(bbi_df.index < awakening_start) | (bbi_df.index > awakening_end)]
+
+    return bbi_df
