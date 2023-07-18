@@ -624,7 +624,7 @@ def get_night_rmssd(loader,
                 bbi_df = loader.load_garmin_device_bbi(user,start_hour,end_hour)
                 bbi_df = bbi_df.set_index("isoDate")
                 
-                if method == "filter_awake": # this filters out bbi relative to awake periods during sleep
+                if method == "filter awake": # this filters out bbi relative to awake periods during sleep
                     bbi_df = _filter_out_awake_bbi(loader,user,bbi_df,date)
 
                 counts = bbi_df.resample('5min').bbi.count() 
@@ -661,7 +661,7 @@ def get_night_sdnn(loader,
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
                 bbi_df = loader.load_garmin_device_bbi(user,start_hour,end_hour)
                 bbi_df = bbi_df.set_index("isoDate")
-                if method == "not awake":
+                if method == "filter awake":
                     bbi_df = _filter_out_awake_bbi(loader,user,bbi_df,date)
                 counts = bbi_df.resample('5min').bbi.count() 
                 means = bbi_df.resample('5min').bbi.mean() 
@@ -697,7 +697,7 @@ def get_night_lf(loader,
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
                 bbi_df = loader.load_garmin_device_bbi(user,start_hour,end_hour)
                 bbi_df = bbi_df.set_index("isoDate")
-                if method == "not awake":
+                if method == "filter awake":
                     bbi_df = _filter_out_awake_bbi(loader,user,bbi_df,date)
                 counts = bbi_df.resample('5min').bbi.count() 
                 means = bbi_df.resample('5min').bbi.mean() 
@@ -736,7 +736,7 @@ def get_night_hf(loader,
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
                 bbi_df = loader.load_garmin_device_bbi(user,start_hour,end_hour)
                 bbi_df = bbi_df.set_index("isoDate")
-                if method == "not awake":
+                if method == "filter awake":
                     bbi_df = _filter_out_awake_bbi(loader,user,bbi_df,date)
                 counts = bbi_df.resample('5min').bbi.count() 
                 means = bbi_df.resample('5min').bbi.mean() 
