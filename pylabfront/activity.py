@@ -14,6 +14,8 @@ _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL = 'calendarDate'
 _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STEPS_COL = 'steps'
 _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STEPS_GOAL_COL = 'stepsGoal'
 _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_DISTANCE_COL = "distanceInMeters"
+_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_MODERATE_INTENSITY_COL = "moderateIntensityDurationInMs"
+_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_VIGOROUS_INTENSITY_COL = "vigorousIntensityDurationInMs"
 _LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL = "intensity"
 _LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL = "activeTimeInMs"
 
@@ -358,6 +360,37 @@ def get_steps_goal_per_day(loader, start_dt=None, end_dt=None, participant_ids="
 
     return data_dict
     
+def get_daily_intensity(loader,
+                        start_dt=None,
+                        end_dt=None,
+                        user_ids="all",
+                        merge_together=False,
+                        average=False):
+    data_dict = {}
+    
+    user_ids = utils.get_user_ids(loader,user_ids)
+
+    for user_id in user_ids: 
+        participant_daily_summaries = loader.load_garmin_connect_daily_summary(user_id, start_dt, end_dt+timedelta(hours=23,minutes=45))
+        if len(participant_daily_summaries) > 0:
+            participant_daily_summaries = participant_daily_summaries.groupby(_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL).tail(1)
+            moderate_intensities = participant_daily_summaries[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_MODERATE_INTENSITY_COL].div(1000*60).values
+            vigorous_intensities = participant_daily_summaries[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_VIGOROUS_INTENSITY_COL].div(1000*60).values
+            daily_intensities = [(moderate_intensities[i], vigorous_intensities[i]) for i in range(len(moderate_intensities))]
+            if not merge_together:
+                data_dict[user_id] = pd.Series(daily_intensities,
+                                               index=participant_daily_summaries[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL]).to_dict()
+            else:
+                merged_intensities = [daily_intensities[i][0]+2*daily_intensities[i][1] for i in range(len(daily_intensities))]
+                if average:
+                    data_dict[user_id] = np.mean(merged_intensities)
+                else:
+                    data_dict[user_id] = pd.Series(merged_intensities,
+                                               index=participant_daily_summaries[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL].to_dict())
+        else:
+            data_dict[user_id] = None
+
+    return data_dict
 
 def get_avg_daily_activities(loader, start_dt=None, end_dt=None, participant_ids="all",return_as_ratio=False):
     """Create a dictionary reporting for every participant of interest
@@ -420,9 +453,9 @@ def get_avg_daily_sedentary(loader, start_dt=None, end_dt=None, participant_ids=
     sedentary_dict = {}
 
     for participant_id in activities_dict.keys():
-        partecipant_activities = activities_dict[participant_id]
+        participant_activities = activities_dict[participant_id]
         try:
-            sedentary_dict[participant_id] = partecipant_activities.get("SEDENTARY",0)
+            sedentary_dict[participant_id] = participant_activities.get("SEDENTARY",0)
         except:     
             sedentary_dict[participant_id] = None
 
