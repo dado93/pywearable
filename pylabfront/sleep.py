@@ -297,7 +297,7 @@ def get_deep_sleep_duration(
 
 
 def get_awake_sleep_duration(
-    loader, start_date=None, end_date=None, participant_id="all", average=False
+    loader, start_date=None, end_date=None, user_id="all", average=False
 ):
     """Get awake sleep time.
 
@@ -344,12 +344,12 @@ def get_awake_sleep_duration(
 
     """
     return get_time_in_sleep_stage(
-        loader, "AWAKE", start_date, end_date, participant_id, average
+        loader, "AWAKE", start_date, end_date, user_id, average
     )
 
 
 def get_sleep_duration(
-    loader, start_date=None, end_date=None, participant_id="all",average=False
+    loader, start_date=None, end_date=None, user_id="all", average=False
 ):
     """Get sleep duration.
 
@@ -395,12 +395,12 @@ def get_sleep_duration(
         - ``day`` : ``Sleep Duration``
     """
     return get_time_in_sleep_stage(
-        loader, "DURATION", start_date, end_date, participant_id, average
+        loader, "DURATION", start_date, end_date, user_id, average
     )
 
 
 def get_sleep_score(
-    loader, start_date=None, end_date=None, participant_id="all", average=False
+    loader, start_date=None, end_date=None, user_id="all", average=False
 ):
     """Get sleep score.
 
@@ -447,7 +447,7 @@ def get_sleep_score(
 
     """
     return get_time_in_sleep_stage(
-        loader, "SLEEP_SCORE", start_date, end_date, participant_id, average
+        loader, "SLEEP_SCORE", start_date, end_date, user_id, average
     )
 
 
