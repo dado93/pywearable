@@ -1377,21 +1377,24 @@ class LabfrontLoader:
         end_date = datetime.datetime(
             year=end_date.year, month=end_date.month, day=end_date.day
         )
-        data[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL] = pd.to_datetime(
-            data[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL],
-            format="%Y-%m-%d",
-        )
+        if len(data) > 0:
+            data[
+                _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL
+            ] = pd.to_datetime(
+                data[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL],
+                format="%Y-%m-%d",
+            )
 
-        data = data[
-            (
-                data[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL]
-                >= start_date
-            )
-            & (
-                data[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL]
-                <= end_date
-            )
-        ]
+            data = data[
+                (
+                    data[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL]
+                    >= start_date
+                )
+                & (
+                    data[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL]
+                    <= end_date
+                )
+            ]
 
         return data
 
