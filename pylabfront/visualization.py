@@ -26,8 +26,8 @@ date_form = DateFormatter("%m-%d")
 
 def get_steps_graph_and_stats(
     loader, 
-    start_dt, 
-    end_dt, 
+    start_date, 
+    end_date, 
     user, 
     verbose=False, 
     save_to=None, 
@@ -39,18 +39,18 @@ def get_steps_graph_and_stats(
 ):
     # get dates,steps,goals,compare steps to goal to get goal completion
     dates, steps = zip(
-        *activity.get_steps_per_day(loader, start_dt, end_dt, user)[user].items()
+        *activity.get_steps_per_day(loader, start_date, end_date, user)[user].items()
     )
     goals = list(
-        activity.get_steps_goal_per_day(loader, start_dt, end_dt, user)[user].values()
+        activity.get_steps_goal_per_day(loader, start_date, end_date, user)[user].values()
     )
     col = np.where(np.array(steps) > np.array(goals), "g", "r")
     # get stats from the series
     mean_steps = activity.get_steps_per_day(
-        loader, start_dt, end_dt, user, average=True
+        loader, start_date, end_date, user, average=True
     )[user]
     mean_distance = activity.get_distance_per_day(
-        loader, start_dt, end_dt, user, average=True
+        loader, start_date, end_date, user, average=True
     )[user]
     goal_reached = np.sum(np.array(steps) > np.array(goals))
     number_of_days = len(dates)
@@ -99,8 +99,8 @@ def get_steps_graph_and_stats(
 
 def get_cardiac_graph_and_stats(
     loader, 
-    start_dt,
-    end_dt,
+    start_date,
+    end_date,
     user,
     verbose=False,
     save_to=None, 
@@ -112,13 +112,13 @@ def get_cardiac_graph_and_stats(
 ):
     # get stats
     avg_resting_hr = round(
-        cardiac.get_rest_heart_rate(loader, start_dt, end_dt, [user], True)[user][
+        cardiac.get_rest_heart_rate(loader, start_date, end_date, [user], True)[user][
             "values"
         ]
     )
     max_hr_recorded = np.nanmax(
         list(
-            cardiac.get_max_heart_rate(loader, start_dt, end_dt, [user], False)[
+            cardiac.get_max_heart_rate(loader, start_date, end_date, [user], False)[
                 user
             ].values()
         )
@@ -129,11 +129,11 @@ def get_cardiac_graph_and_stats(
     }
     # get time series
     dates, rest_hr = zip(
-        *cardiac.get_rest_heart_rate(loader, start_dt, end_dt, user)[user].items()
+        *cardiac.get_rest_heart_rate(loader, start_date, end_date, user)[user].items()
     )
-    # avg_hr = list(cardiac.get_avg_heart_rate(loader,start_dt,end_dt,user)[user].values())
+    # avg_hr = list(cardiac.get_avg_heart_rate(loader,start_date,end_date,user)[user].values())
     max_hr = list(
-        cardiac.get_max_heart_rate(loader, start_dt, end_dt, user)[user].values()
+        cardiac.get_max_heart_rate(loader, start_date, end_date, user)[user].values()
     )
 
     # plotting
@@ -181,8 +181,8 @@ def get_cardiac_graph_and_stats(
 
 
 def get_rest_spo2_graph(loader, 
-                        start_dt, 
-                        end_dt, 
+                        start_date, 
+                        end_date, 
                         user, 
                         save_to=None, 
                         show=True,
@@ -194,7 +194,7 @@ def get_rest_spo2_graph(loader,
     timedelta = datetime.timedelta(
         hours=12
     )  # this assumes that at the last day a person wakes up before midday...
-    spo2_df = loader.load_garmin_connect_pulse_ox(user, start_dt, end_dt + timedelta)
+    spo2_df = loader.load_garmin_connect_pulse_ox(user, start_date, end_date + timedelta)
     sleep_spo2_df = spo2_df[spo2_df.sleep == 1].loc[:, ["isoDate", "spo2"]]
     unique_dates = pd.to_datetime(sleep_spo2_df.isoDate.dt.date.unique())
     # in order to avoid plotting lines between nights, we need to plot separately each sleep occurrence
@@ -273,8 +273,8 @@ def get_rest_spo2_graph(loader,
 
 def get_stress_graph_and_stats(
     loader, 
-    start_dt, 
-    end_dt, 
+    start_date, 
+    end_date, 
     user, 
     verbose=False, 
     save_to=None, 
@@ -283,7 +283,7 @@ def get_stress_graph_and_stats(
 ):
     # get stats
     dates, metrics = zip(
-        *stress.get_daily_stress_statistics(loader, start_dt, end_dt, user)[
+        *stress.get_daily_stress_statistics(loader, start_date, end_date, user)[
             user
         ].items()
     )
@@ -338,8 +338,8 @@ def get_stress_graph_and_stats(
 
 def get_respiration_graph_and_stats(
     loader, 
-    start_dt,
-    end_dt, 
+    start_date,
+    end_date, 
     user, 
     verbose=False, 
     save_to=None, 
@@ -354,8 +354,8 @@ def get_respiration_graph_and_stats(
     rest_dates, rest_resp = zip(
         *respiration.get_rest_breaths_per_minute(
             loader,
-            start_dt,
-            end_dt + datetime.timedelta(hours=23, minutes=59),
+            start_date,
+            end_date + datetime.timedelta(hours=23, minutes=59),
             user,
             remove_zero=True,
         )[user].items()
@@ -363,8 +363,8 @@ def get_respiration_graph_and_stats(
     waking_dates, waking_resp = zip(
         *respiration.get_waking_breaths_per_minute(
             loader,
-            start_dt,
-            end_dt + datetime.timedelta(hours=23, minutes=59),
+            start_date,
+            end_date + datetime.timedelta(hours=23, minutes=59),
             user,
             remove_zero=True,
         )[user].items()
@@ -411,8 +411,8 @@ def get_respiration_graph_and_stats(
 
 def get_sleep_heatmap_and_stats(
     loader, 
-    start_dt, 
-    end_dt, 
+    start_date, 
+    end_date, 
     user, 
     verbose=False, 
     save_to=None, 
@@ -421,7 +421,7 @@ def get_sleep_heatmap_and_stats(
 ):
     # We need to create a dataframe with dates going from one year before to the latest datetime
     dates, scores = zip(
-        *sleep.get_sleep_score(loader, start_dt, end_dt, user)[user].items()
+        *sleep.get_sleep_score(loader, start_date, end_date, user)[user].items()
     )
     # Get start and end days from calendar date
     start_date = dates[-1] - datetime.timedelta(days=364)
@@ -455,21 +455,21 @@ def get_sleep_heatmap_and_stats(
 
     # stats
     avg_deep = sleep.get_deep_sleep_duration(
-        loader, start_dt, end_dt, user, average=True
+        loader, start_date, end_date, user, average=True
     )[user]["values"]
     avg_light = sleep.get_light_sleep_duration(
-        loader, start_dt, end_dt, user, average=True
+        loader, start_date, end_date, user, average=True
     )[user]["values"]
     avg_rem = sleep.get_rem_sleep_duration(
-        loader, start_dt, end_dt, user, average=True
+        loader, start_date, end_date, user, average=True
     )[user]["values"]
     avg_awake = sleep.get_awake_sleep_duration(
-        loader, start_dt, end_dt, user, average=True
+        loader, start_date, end_date, user, average=True
     )[user]["values"]
-    avg_awakenings = sleep.get_awakenings(loader, start_dt, end_dt, user, average=True)[
+    avg_awakenings = sleep.get_awakenings(loader, start_date, end_date, user, average=True)[
         user
     ]["value"]
-    avg_score = sleep.get_sleep_score(loader, start_dt, end_dt, user, average=True)[
+    avg_score = sleep.get_sleep_score(loader, start_date, end_date, user, average=True)[
         user
     ]["values"]
 
@@ -490,8 +490,8 @@ def get_sleep_heatmap_and_stats(
 
 
 def get_sleep_summary_graph(loader, 
-                            start_dt, 
-                            end_dt, 
+                            start_date, 
+                            end_date, 
                             user, 
                             save_to=None, 
                             show=True,
@@ -509,8 +509,8 @@ def get_sleep_summary_graph(loader,
     POSITION = 1.3
 
     time_period = pd.date_range(
-        start_dt + datetime.timedelta(days=1),
-        periods=(end_dt - start_dt).days,
+        start_date + datetime.timedelta(days=1),
+        periods=(end_date - start_date).days,
         freq="D",
     )
 
@@ -518,13 +518,13 @@ def get_sleep_summary_graph(loader,
     color_dict = {1: "royalblue", 3: "darkblue", 4: "darkmagenta", 0: "hotpink"}
 
     # get relevant scores
-    scores_series = sleep.get_sleep_score(loader, start_dt, end_dt, user)[user]
+    scores_series = sleep.get_sleep_score(loader, start_date, end_date, user)[user]
     # get maximum amount of time spent in bed to know x-axis limit
     max_bed_time = (
         np.max(
             [
                 tst
-                for tst in sleep.get_time_in_bed(loader, start_dt, end_dt, user)[
+                for tst in sleep.get_time_in_bed(loader, start_date, end_date, user)[
                     user
                 ].values()
                 if tst is not None

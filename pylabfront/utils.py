@@ -12,22 +12,24 @@ _LABFRONT_QUESTIONNAIRE_STRING = 'questionnaire'
 _LABFRONT_TODO_STRING = 'todo'
 _MS_TO_DAY_CONVERSION = 1000*60*60*24
 
-def get_user_ids(loader, user_ids):
-    if user_ids == "all":
-        user_ids = loader.get_user_ids()
+def get_user_ids(loader,
+                 user_id):
+    if user_id == "all":
+        user_id = loader.get_user_ids()
 
-    if isinstance(user_ids, str):
-        if user_ids not in loader.get_user_ids():
+    if isinstance(user_id, str):
+        if user_id not in loader.get_user_ids():
             raise ValueError("User not found")
         else:
-            user_ids = [user_ids]
+            user_id = [user_id]
 
-    if not isinstance(user_ids, list):
-        raise TypeError("participant_ids has to be a list.")
+    if not isinstance(user_id, list):
+        raise TypeError("user_id has to be a list.")
     
-    return user_ids
+    return user_id
 
-def get_summary(loader, comparison_date=time.time()):
+def get_summary(loader,
+                comparison_date=time.time()):
     """ Returns a general summary of the latest update of every metric for every participant
     
     Args:
@@ -108,7 +110,8 @@ def is_weekend(day):
     """
     return day.weekday() in [5,6]
 
-def find_nearest_timestamp(timestamp, timestamp_array):
+def find_nearest_timestamp(timestamp,
+                           timestamp_array):
     """ Finds the closest time between a set of timestamps to a given timestamp.
 
     Args:
@@ -134,9 +137,9 @@ def trend_analysis(data_dict,
     ----------
     data_dict : class: dict
         Dictionary with dates as keys and daily metric data as values.
-    start_dt : :class:`datetime.datetime`
+    start_date : :class:`datetime.datetime`
         Start date of the period of interest
-    end_dt : :class:`datetime.datetime`
+    end_date : :class:`datetime.datetime`
         End date of the period of interest (inclusive)
     baseline_periods : int, optional
         number of period values to be used for the computation of the rolling baseline, by default 7 (MA7)

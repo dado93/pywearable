@@ -215,11 +215,11 @@ class LabfrontLoader:
 
         Parameters
         ----------
-            participant_ids: class:`list`
-                IDs of the users for which to return available questtionaires, by default "all".
+            user_id: class:`list`
+                IDs of the users for which to return available questionnaires, by default "all".
             return_dict: class:`bool`
                 Whether to return a dictionary of the name of the questionnaires and their full ids,
-                or simply a sorted list of the available questionnaires, by defaul False.
+                or simply a sorted list of the available questionnaires, by default False.
 
         Returns
         -------
@@ -862,17 +862,17 @@ class LabfrontLoader:
         key_length = int(line[1])
         return key_length
 
-    def get_available_metrics(self, participant_ids="all"):
+    def get_available_metrics(self, user_id="all"):
         """
         Args:
-            participant_ids (list):  IDs of participants. Defaults to "all".
+            user_id (list):  IDs of users. Defaults to "all".
 
         Returns:
             list: alphabetically sorted names of the metrics for the participant(s).
         """
         metrics = set()
 
-        participant_ids = utils.get_user_ids(self, participant_ids)
+        participant_ids = utils.get_user_ids(self, user_id)
 
         for participant_id in participant_ids:
             participant_id = self.get_full_id(participant_id)

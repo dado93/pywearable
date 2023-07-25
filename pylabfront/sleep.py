@@ -105,7 +105,7 @@ def get_time_in_sleep_stage(
         user_id = [user_id]
 
     if not isinstance(user_id, list):
-        raise TypeError("participant_ids has to be a list.")
+        raise TypeError("user_id has to be a list.")
     if sleep_stage == "REM":
         column = _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_REM_MS_COL
     elif sleep_stage == "LIGHT_SLEEP":
@@ -563,7 +563,7 @@ def get_sleep_statistics(
         user_id = [user_id]
 
     if not isinstance(user_id, list):
-        raise TypeError("participant_ids has to be a list.")
+        raise TypeError("user_id has to be a list.")
 
     data_dict = {}
     average_dict = {}

@@ -358,8 +358,8 @@ def filter_bbi(bbi,
 
 
 def get_hrv_time_domain(loader,
-                        start_dt=None,
-                        end_dt=None,
+                        start_date=None,
+                        end_date=None,
                         user_id="all",
                         pyhrv=False,
                         filtering_kwargs={}):
@@ -372,9 +372,9 @@ def get_hrv_time_domain(loader,
     ----------
     loader : :class:`pylabfront.loader.Loader`
         Initialized instance of data loader.
-    start_dt : :class:`datetime.datetime`, optional
+    start_date : :class:`datetime.datetime`, optional
         Start date of the period of interest, by default None
-    end_dt : :class:`datetime.datetime`, optional
+    end_date : :class:`datetime.datetime`, optional
         End date of the period of interest (inclusive), by default None
     user_id : class:`str`, optional
         ID of the user(s) for which hrv features must be computed, by default "all".
@@ -394,7 +394,7 @@ def get_hrv_time_domain(loader,
 
     for user in user_id:
         try:
-            bbi = loader.load_garmin_device_bbi(user,start_dt,end_dt).bbi
+            bbi = loader.load_garmin_device_bbi(user,start_date,end_date).bbi
             bbi = filter_bbi(bbi, **filtering_kwargs)
             if pyhrv: # pyhrv has more features but it's a lot slower
                 td_features = pyhrv.time_domain.time_domain(bbi).as_dict()
@@ -408,8 +408,8 @@ def get_hrv_time_domain(loader,
 
 
 def get_hrv_frequency_domain(loader,
-                            start_dt=None,
-                            end_dt=None,
+                            start_date=None,
+                            end_date=None,
                             user_id="all",
                             method="ar",
                             filtering_kwargs={},
@@ -423,9 +423,9 @@ def get_hrv_frequency_domain(loader,
     ----------
     loader : :class:`pylabfront.loader.Loader`
         Initialized instance of data loader.
-    start_dt : :class:`datetime.datetime`, optional
+    start_date : :class:`datetime.datetime`, optional
         Start date of the period of interest, by default None
-    end_dt : :class:`datetime.datetime`, optional
+    end_date : :class:`datetime.datetime`, optional
         End date of the period of interest (inclusive), by default None
     user_id : class:`str`, optional
         ID of the user(s) for which hrv features must be computed, by default "all".
@@ -454,7 +454,7 @@ def get_hrv_frequency_domain(loader,
 
     for user in user_id:
         try:
-            bbi = loader.load_garmin_device_bbi(user,start_dt,end_dt).bbi
+            bbi = loader.load_garmin_device_bbi(user,start_date,end_date).bbi
             bbi = filter_bbi(bbi, **filtering_kwargs)
             if method == "ar":
                 fd_features = pyhrv.frequency_domain.ar_psd(bbi,show=False,**method_kwargs).as_dict()
@@ -473,8 +473,8 @@ def get_hrv_frequency_domain(loader,
 
 
 def get_hrv_nonlinear_domain(loader,
-                            start_dt=None,
-                            end_dt=None,
+                            start_date=None,
+                            end_date=None,
                             user_id="all",
                             dfa=True,
                             sampen=False,
@@ -491,9 +491,9 @@ def get_hrv_nonlinear_domain(loader,
     ----------
     loader : :class:`pylabfront.loader.Loader`
         Initialized instance of data loader.
-    start_dt : :class:`datetime.datetime`, optional
+    start_date : :class:`datetime.datetime`, optional
         Start date of the period of interest, by default None
-    end_dt : :class:`datetime.datetime`, optional
+    end_date : :class:`datetime.datetime`, optional
         End date of the period of interest (inclusive), by default None
     user_id : class:`str`, optional
         ID of the user(s) for which hrv features must be computed, by default "all".
@@ -522,7 +522,7 @@ def get_hrv_nonlinear_domain(loader,
 
     for user in user_id:
         try:
-            bbi = loader.load_garmin_device_bbi(user,start_dt,end_dt).bbi
+            bbi = loader.load_garmin_device_bbi(user,start_date,end_date).bbi
             bbi = filter_bbi(bbi, **filtering_kwargs)
             non_linear_features = {}
             non_linear_features |= pyhrv.nonlinear.poincare(bbi,show=False,**poincare_kwargs).as_dict()
@@ -540,8 +540,8 @@ def get_hrv_nonlinear_domain(loader,
 
 
 def get_hrv_features(loader,
-                     start_dt=None,
-                     end_dt=None,
+                     start_date=None,
+                     end_date=None,
                      user_id="all",
                      filtering_kwargs={},
                      time_domain_kwargs={},
@@ -555,9 +555,9 @@ def get_hrv_features(loader,
     ----------
     loader : :class:`pylabfront.loader.Loader`
         Initialized instance of data loader.
-    start_dt : :class:`datetime.datetime`, optional
+    start_date : :class:`datetime.datetime`, optional
         Start date of the period of interest, by default None
-    end_dt : :class:`datetime.datetime`, optional
+    end_date : :class:`datetime.datetime`, optional
         End date of the period of interest (inclusive), by default None
     user_id : class:`str`, optional
         ID of the user(s) for which hrv features must be computed, by default "all".
@@ -583,20 +583,20 @@ def get_hrv_features(loader,
         try:
             features = {}
             features |= get_hrv_time_domain(loader,
-                                            start_dt,
-                                            end_dt,
+                                            start_date,
+                                            end_date,
                                             user,
                                             filtering_kwargs=filtering_kwargs,
                                             **time_domain_kwargs)[user]
             features |= get_hrv_frequency_domain(loader,
-                                                 start_dt,
-                                                 end_dt,
+                                                 start_date,
+                                                 end_date,
                                                  user,
                                                  filtering_kwargs=filtering_kwargs,
                                                  **frequency_domain_kwargs)[user]
             features |= get_hrv_nonlinear_domain(loader,
-                                                 start_dt,
-                                                 end_dt,
+                                                 start_date,
+                                                 end_date,
                                                  user,
                                                  filtering_kwargs=filtering_kwargs,
                                                  **nonlinear_domain_kwargs)[user]
@@ -607,8 +607,8 @@ def get_hrv_features(loader,
     return data_dict
 
 def get_night_rmssd(loader,
-                  start_dt=None,
-                  end_dt=None,
+                  start_date=None,
+                  end_date=None,
                   user_id="all",
                   coverage=0.7,
                   method="all night"):
@@ -618,9 +618,9 @@ def get_night_rmssd(loader,
     ----------
     loader : :class:`pylabfront.loader.Loader`
         Initialized instance of data loader.
-    start_dt : :class:`datetime.datetime`, optional
+    start_date : :class:`datetime.datetime`, optional
         Start date of the period of interest, by default None
-    end_dt : :class:`datetime.datetime`, optional
+    end_date : :class:`datetime.datetime`, optional
         End date of the period of interest (inclusive), by default None
     user_id : class:`str`, optional
         ID of the user(s) for which hrv features must be computed, by default "all".
@@ -640,7 +640,7 @@ def get_night_rmssd(loader,
 
     for user in user_id:
         try:
-            sleeping_timestamps = sleep.get_sleep_timestamps(loader,start_dt,end_dt,user)[user]
+            sleeping_timestamps = sleep.get_sleep_timestamps(loader,start_date,end_date,user)[user]
             daily_means = {}
 
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
@@ -666,8 +666,8 @@ def get_night_rmssd(loader,
 
 
 def get_night_sdnn(loader,
-                  start_dt=None,
-                  end_dt=None,
+                  start_date=None,
+                  end_date=None,
                   user_id="all",
                   coverage=0.7,
                   method="all night"):
@@ -677,9 +677,9 @@ def get_night_sdnn(loader,
     ----------
     loader : :class:`pylabfront.loader.Loader`
         Initialized instance of data loader.
-    start_dt : :class:`datetime.datetime`, optional
+    start_date : :class:`datetime.datetime`, optional
         Start date of the period of interest, by default None
-    end_dt : :class:`datetime.datetime`, optional
+    end_date : :class:`datetime.datetime`, optional
         End date of the period of interest (inclusive), by default None
     user_id : class:`str`, optional
         ID of the user(s) for which hrv features must be computed, by default "all".
@@ -699,7 +699,7 @@ def get_night_sdnn(loader,
 
     for user in user_id:
         try:
-            sleeping_timestamps = sleep.get_sleep_timestamps(loader,start_dt,end_dt,user)[user]
+            sleeping_timestamps = sleep.get_sleep_timestamps(loader,start_date,end_date,user)[user]
 
             daily_means = {}
 
@@ -723,8 +723,8 @@ def get_night_sdnn(loader,
     return data_dict
 
 def get_night_lf(loader,
-                 start_dt=None,
-                 end_dt=None,
+                 start_date=None,
+                 end_date=None,
                  user_id="all",
                  coverage=0.7,
                  method="all night",
@@ -735,9 +735,9 @@ def get_night_lf(loader,
     ----------
     loader : :class:`pylabfront.loader.Loader`
         Initialized instance of data loader.
-    start_dt : :class:`datetime.datetime`, optional
+    start_date : :class:`datetime.datetime`, optional
         Start date of the period of interest, by default None
-    end_dt : :class:`datetime.datetime`, optional
+    end_date : :class:`datetime.datetime`, optional
         End date of the period of interest (inclusive), by default None
     user_id : class:`str`, optional
         ID of the user(s) for which hrv features must be computed, by default "all".
@@ -756,7 +756,7 @@ def get_night_lf(loader,
 
     for user in user_id:
         try:
-            sleeping_timestamps = sleep.get_sleep_timestamps(loader,start_dt,end_dt,user)[user]
+            sleeping_timestamps = sleep.get_sleep_timestamps(loader,start_date,end_date,user)[user]
 
             daily_means = {}
 
@@ -783,8 +783,8 @@ def get_night_lf(loader,
     return data_dict
 
 def get_night_hf(loader,
-                 start_dt=None,
-                 end_dt=None,
+                 start_date=None,
+                 end_date=None,
                  user_id="all",
                  coverage=0.7,
                  method="all night",
@@ -795,9 +795,9 @@ def get_night_hf(loader,
     ----------
     loader : :class:`pylabfront.loader.Loader`
         Initialized instance of data loader.
-    start_dt : :class:`datetime.datetime`, optional
+    start_date : :class:`datetime.datetime`, optional
         Start date of the period of interest, by default None
-    end_dt : :class:`datetime.datetime`, optional
+    end_date : :class:`datetime.datetime`, optional
         End date of the period of interest (inclusive), by default None
     user_id : class:`str`, optional
         ID of the user(s) for which hrv features must be computed, by default "all".
@@ -816,7 +816,7 @@ def get_night_hf(loader,
 
     for user in user_id:
         try:
-            sleeping_timestamps = sleep.get_sleep_timestamps(loader,start_dt,end_dt,user)[user]
+            sleeping_timestamps = sleep.get_sleep_timestamps(loader,start_date,end_date,user)[user]
 
             daily_means = {}
 
@@ -843,8 +843,8 @@ def get_night_hf(loader,
     return data_dict
 
 def get_night_lfhf(loader,
-                 start_dt=None,
-                 end_dt=None,
+                 start_date=None,
+                 end_date=None,
                  user_id="all",
                  coverage=0.7,
                  method="all night"):
@@ -854,9 +854,9 @@ def get_night_lfhf(loader,
     ----------
     loader : :class:`pylabfront.loader.Loader`
         Initialized instance of data loader.
-    start_dt : :class:`datetime.datetime`, optional
+    start_date : :class:`datetime.datetime`, optional
         Start date of the period of interest, by default None
-    end_dt : :class:`datetime.datetime`, optional
+    end_date : :class:`datetime.datetime`, optional
         End date of the period of interest (inclusive), by default None.
     user_id : class:`str`, optional
         ID of the user(s) for which hrv features must be computed, by default "all"
@@ -877,14 +877,14 @@ def get_night_lfhf(loader,
     for user in user_id:
         try:
             lf_dict = get_night_lf(loader,
-                              start_dt,
-                              end_dt,
+                              start_date,
+                              end_date,
                               user,
                               coverage=coverage,
                               method=method)[user]
             hf_dict = get_night_hf(loader,
-                              start_dt,
-                              end_dt,
+                              start_date,
+                              end_date,
                               user,
                               coverage=coverage,
                               method=method)[user]
