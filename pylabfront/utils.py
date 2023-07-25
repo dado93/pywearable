@@ -12,22 +12,24 @@ _LABFRONT_QUESTIONNAIRE_STRING = 'questionnaire'
 _LABFRONT_TODO_STRING = 'todo'
 _MS_TO_DAY_CONVERSION = 1000*60*60*24
 
-def get_user_ids(loader, user_ids):
-    if user_ids == "all":
-        user_ids = loader.get_user_ids()
+def get_user_ids(loader,
+                 user_id):
+    if user_id == "all":
+        user_id = loader.get_user_ids()
 
-    if isinstance(user_ids, str):
-        if user_ids not in loader.get_user_ids():
+    if isinstance(user_id, str):
+        if user_id not in loader.get_user_ids():
             raise ValueError("User not found")
         else:
-            user_ids = [user_ids]
+            user_id = [user_id]
 
-    if not isinstance(user_ids, list):
-        raise TypeError("participant_ids has to be a list.")
+    if not isinstance(user_id, list):
+        raise TypeError("user_id has to be a list.")
     
-    return user_ids
+    return user_id
 
-def get_summary(loader, comparison_date=time.time()):
+def get_summary(loader,
+                comparison_date=time.time()):
     """ Returns a general summary of the latest update of every metric for every participant
     
     Args:
@@ -108,7 +110,8 @@ def is_weekend(day):
     """
     return day.weekday() in [5,6]
 
-def find_nearest_timestamp(timestamp, timestamp_array):
+def find_nearest_timestamp(timestamp,
+                           timestamp_array):
     """ Finds the closest time between a set of timestamps to a given timestamp.
 
     Args:
@@ -119,3 +122,49 @@ def find_nearest_timestamp(timestamp, timestamp_array):
         datetime: Closest datetime in timestamp_array to timestamp
     """
     return min(timestamp_array, key=lambda x: abs(x - timestamp))
+
+def trend_analysis(data_dict,
+                   start_date,
+                   end_date,
+                   baseline_periods=7,
+                   min_periods_baseline=3,
+                   normal_range_periods=30,
+                   min_periods_normal_range=20,
+                   std_multiplier=1):
+    """Performs trend analysis on daily data for a pre-loaded metric.
+
+    Parameters
+    ----------
+    data_dict : class: dict
+        Dictionary with dates as keys and daily metric data as values.
+    start_date : :class:`datetime.datetime`
+        Start date of the period of interest
+    end_date : :class:`datetime.datetime`
+        End date of the period of interest (inclusive)
+    baseline_periods : int, optional
+        number of period values to be used for the computation of the rolling baseline, by default 7 (MA7)
+    min_periods_baseline : int, optional
+        minimum number of period values needed for the baseline to be considered valid, by default 3
+    normal_range_periods : int, optional
+        number of period values to be used for the computation of the rolling normal range, by default 30
+    min_periods_normal_range : int, optional
+        minimum number of period values needed for the normal range to be considered valid, by default 20
+    std_multiplier : int, optional
+        multiplier of the standard deviation for the computation of lower and upper bounds of the normal range, by default 1
+
+    Returns
+    -------
+    pandas.DataFrame
+    including daily metric, baseline, and normal range params.
+    """
+    idx = pd.date_range(start_date, end_date)
+    s = pd.Series(data_dict)
+    s.index = pd.DatetimeIndex(s.index)
+    s = s.reindex(idx, fill_value=None)
+    df = pd.DataFrame(s,columns=["metric"])
+    df["BASELINE"] = df.metric.rolling(window=baseline_periods,min_periods=min_periods_baseline).mean()
+    df["NR_MEAN"] = df.metric.rolling(window=normal_range_periods,min_periods=min_periods_normal_range).mean()
+    df["NR_STD"] = df.metric.rolling(window=normal_range_periods,min_periods=min_periods_normal_range).std()
+    df["NR_LOWER_BOUND"] = df["NR_MEAN"] - std_multiplier * df["NR_STD"]
+    df["NR_UPPER_BOUND"] = df["NR_MEAN"] + std_multiplier * df["NR_STD"]
+    return df 

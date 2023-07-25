@@ -19,18 +19,17 @@ _MS_TO_HOURS_CONVERSION = 1000 * 60 * 60
 
 def get_questionnaire_dict(
     loader,
-    start_dt,
-    end_dt,
-    participant_ids="all",
+    start_date=None,
+    end_date=None,
+    user_id="all",
     questionnaire_names="all",
-    safe_delta=6,
-):
+    safe_delta=6):
     """
     Args:
         loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
         number_of_days (int): How many days the study lasted
         start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
-        participant_ids (list):  IDs of participants. Defaults to "all".
+        user_id (list):  IDs of participants. Defaults to "all".
         questionnaire_names (list): Name of the questionnaires. Defaults to "all".
         safe_delta (int): Amount of hours needed to consider two successive filled questionnaires valid. Defaults to 6.
 
@@ -39,30 +38,30 @@ def get_questionnaire_dict(
     """
     adherence_dict = {}
 
-    if participant_ids == "all":
-        participant_ids = loader.get_user_ids()
+    if user_id == "all":
+        user_id = loader.get_user_ids()
 
     if questionnaire_names == "all":
         questionnaire_names = loader.get_available_questionnaires()
 
     if not (
-        isinstance(participant_ids, list) and isinstance(questionnaire_names, list)
+        isinstance(user_id, list) and isinstance(questionnaire_names, list)
     ):
-        raise TypeError("participant_ids and questionnaire_names have to be lists.")
+        raise TypeError("user id and questionnaire_names have to be lists.")
 
     inv_map = {v: k for k, v in loader.tasks_dict.items()}
 
-    for participant_id in participant_ids:
-        adherence_dict[participant_id] = {}
+    for user in user_id:
+        adherence_dict[user] = {}
         participant_questionnaires = loader.get_available_questionnaires(
-            [participant_id]
+            [user]
         )
         for questionnaire in questionnaire_names:
             questionnaire_name = inv_map[questionnaire]
-            adherence_dict[participant_id][questionnaire_name] = {}
+            adherence_dict[user][questionnaire_name] = {}
             if questionnaire in participant_questionnaires:
                 questionnaire_df = loader.load_questionnaire(
-                    participant_id, start_dt, end_dt, task_name=questionnaire_name
+                    user, start_date, end_date, task_name=questionnaire_name
                 )
                 timestamps = questionnaire_df.unixTimestampInMs
                 count = 0
@@ -73,20 +72,20 @@ def get_questionnaire_dict(
                         > _MS_TO_HOURS_CONVERSION * safe_delta
                     ):
                         count += 1
-                adherence_dict[participant_id][questionnaire_name]["n_filled"] = count
+                adherence_dict[user][questionnaire_name]["n_filled"] = count
                 is_repeatable = utils.is_task_repeatable(
                     (
                         loader.data_path
-                        / loader.get_full_id(participant_id)
+                        / loader.get_full_id(user)
                         / _LABFRONT_QUESTIONNAIRE_STRING
                         / questionnaire
                     )
                 )
-                adherence_dict[participant_id][questionnaire_name][
+                adherence_dict[user][questionnaire_name][
                     _LABFRONT_TASK_SCHEDULE_KEY
                 ] = is_repeatable
             else:
-                adherence_dict[participant_id][questionnaire_name]["n_filled"] = 0
+                adherence_dict[user][questionnaire_name]["n_filled"] = 0
                 # need to understand if the questionnaire is repeatable
                 # we do this by iterating through all users
                 is_repeatable = None
@@ -104,7 +103,7 @@ def get_questionnaire_dict(
                         pass
                     else:
                         break
-                adherence_dict[participant_id][questionnaire_name][
+                adherence_dict[user][questionnaire_name][
                     _LABFRONT_TASK_SCHEDULE_KEY
                 ] = is_repeatable
 
@@ -114,12 +113,12 @@ def get_questionnaire_dict(
 def get_questionnaire_adherence(
     loader,
     number_of_days,
-    start_dt=None,
-    end_dt=None,
-    participant_ids="all",
+    start_date=None,
+    end_date=None,
+    user_id="all",
     questionnaire_names="all",
     safe_delta=6,
-    return_percentage=True,
+    return_percentage=True
 ):
     """Returns adherence of the user(s) for the questionnaire(s).
 
@@ -135,7 +134,7 @@ def get_questionnaire_adherence(
             Start date from which data have to be extracted, by default None.
         end_date: :class:`datetime.datetime`, optional
             End date from which data have to be extracted, by default None.
-        participant_ids: :class:`list` or :class:`str`, optional
+        user_id: :class:`list` or :class:`str`, optional
             List of the user IDs of interest, by default "all".
         questionnaire_names: :class:`list`, optional
             List of the questionnaires of interest, by default "all".
@@ -155,7 +154,7 @@ def get_questionnaire_adherence(
     questionnaire_adherence = {}
 
     questionnaire_dict = get_questionnaire_dict(
-        loader, start_dt, end_dt, participant_ids, questionnaire_names, safe_delta
+        loader, start_date, end_date, user_id, questionnaire_names, safe_delta
     )
     for participant_id in questionnaire_dict.keys():
         questionnaire_adherence[participant_id] = {}
@@ -203,9 +202,9 @@ def get_questionnaire_adherence(
 
 def get_todo_dict(
     loader,
-    start_dt=None,
-    end_dt=None,
-    participant_ids="all",
+    start_date=None,
+    end_date=None,
+    user_id="all",
     todo_names="all",
     safe_delta=6,
 ):
@@ -214,7 +213,7 @@ def get_todo_dict(
         loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
         start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
         end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
-        participant_ids (list):  IDs of participants. Defaults to "all".
+        user_id (list):  IDs of participants. Defaults to "all".
         todo_names (list): Name of the todos. Defaults to "all".
         safe_delta (int): Amount of hours needed to consider two successive filled todos valid. Defaults to 6.
 
@@ -224,26 +223,26 @@ def get_todo_dict(
 
     adherence_dict = {}
 
-    if participant_ids == "all":
-        participant_ids = loader.get_user_ids()
+    if user_id == "all":
+        user_id = loader.get_user_ids()
 
     if todo_names == "all":
         todo_names = loader.get_available_todos()
 
-    if not (isinstance(participant_ids, list) and isinstance(todo_names, list)):
-        raise TypeError("participant_ids and todo_names have to be lists.")
+    if not (isinstance(user_id, list) and isinstance(todo_names, list)):
+        raise TypeError("user_id and todo_names have to be lists.")
 
     inv_map = {v: k for k, v in loader.tasks_dict.items()}
 
-    for participant_id in participant_ids:
-        adherence_dict[participant_id] = {}
-        participant_todos = loader.get_available_todos([participant_id])
+    for user in user_id:
+        adherence_dict[user] = {}
+        participant_todos = loader.get_available_todos([user])
         for todo in todo_names:
             todo_name = inv_map[todo]
-            adherence_dict[participant_id][todo_name] = {}
+            adherence_dict[user][todo_name] = {}
             if todo in participant_todos:
                 todo_df = loader.load_todo(
-                    participant_id, start_dt, end_dt, task_name=todo_name
+                    user, start_date, end_date, task_name=todo_name
                 )
                 timestamps = todo_df.unixTimestampInMs
                 count = 0
@@ -254,21 +253,21 @@ def get_todo_dict(
                         > _MS_TO_HOURS_CONVERSION * safe_delta
                     ):
                         count += 1
-                adherence_dict[participant_id][todo_name]["n_filled"] = count
+                adherence_dict[user][todo_name]["n_filled"] = count
                 is_repeatable = utils.is_task_repeatable(
                     (
                         loader.data_path
-                        / loader.get_full_id(participant_id)
+                        / loader.get_full_id(user)
                         / _LABFRONT_TODO_STRING
                         / todo
                     )
                 )
-                adherence_dict[participant_id][todo_name][
+                adherence_dict[user][todo_name][
                     _LABFRONT_TASK_SCHEDULE_KEY
                 ] = is_repeatable
             else:
-                adherence_dict[participant_id][todo_name]["n_filled"] = 0
-                adherence_dict[participant_id][todo_name][
+                adherence_dict[user][todo_name]["n_filled"] = 0
+                adherence_dict[user][todo_name][
                     _LABFRONT_TASK_SCHEDULE_KEY
                 ] = None
 
@@ -278,9 +277,9 @@ def get_todo_dict(
 def get_todo_adherence(
     loader,
     number_of_days,
-    start_dt=None,
-    end_dt=None,
-    participant_ids="all",
+    start_date=None,
+    end_date=None,
+    user_id="all",
     todo_names="all",
     safe_delta=6,
     return_percentage=False,
@@ -292,7 +291,7 @@ def get_todo_adherence(
         number_of_days (int): How many days the study lasted
         start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
         end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
-        participant_ids (list, optional): List of the participants of interest. Defaults to "all".
+        user_id (list, optional): List of the participants of interest. Defaults to "all".
         todo_names (list, optional): List of the todos of interest. Defaults to "all".
         safe_delta (int, optional): Amount of hours needed to consider two successive filled todos valid. Defaults to 6.
 
@@ -303,7 +302,7 @@ def get_todo_adherence(
     todo_adherence = {}
 
     todo_dict = get_todo_dict(
-        loader, start_dt, end_dt, participant_ids, todo_names, safe_delta
+        loader, start_date, end_date, user_id, todo_names, safe_delta
     )
     for participant_id in todo_dict.keys():
         todo_adherence[participant_id] = {}
@@ -353,13 +352,13 @@ def get_metric_adherence(
     )
 
 
-def get_garmin_device_adherence(loader, start_dt=None, end_dt=None, user_id="all"):
+def get_garmin_device_adherence(loader, start_date=None, end_date=None, user_id="all"):
     data_dict = {}
     user_id = utils.get_user_ids(loader, user_id)
 
     for user in user_id:
         try:
-            df = loader.load_garmin_device_bbi(user, start_dt, end_dt)
+            df = loader.load_garmin_device_bbi(user, start_date, end_date)
             data_dict[user] = (
                 df.groupby(df["isoDate"].dt.date).bbi.sum() / _MS_TO_HOURS_CONVERSION
             ).to_dict()

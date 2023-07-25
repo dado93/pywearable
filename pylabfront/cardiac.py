@@ -4,9 +4,14 @@ of Labfront cardiac data.
 """
 
 import pylabfront.utils as utils
+import pylabfront.sleep as sleep
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 import datetime
+
+import hrvanalysis
+import pyhrv
 
 _LABFRONT_SPO2_COLUMN = "spo2"
 
@@ -278,7 +283,7 @@ def get_avg_heart_rate(loader,
 ):
     """Get average daily heart rate.
 
-    This function returns the average heart rate recoreded for every day. 
+    This function returns the average heart rate recorded for every day. 
 
     Parameters
     ----------
@@ -303,3 +308,642 @@ def get_avg_heart_rate(loader,
         and average heart rate as value.
     """
     return get_cardiac_statistic(loader,_LABFRONT_AVG_HR_COLUMN,start_date,end_date,user_id,average)
+
+
+def filter_bbi(bbi,
+               remove_outliers=True,
+               remove_ectopic=True,
+               verbose=False,
+               low_rri=300,
+               high_rri=2000,
+               ectopic_method="malik",
+               interpolation_method="linear"):
+    """Get filtered bbi data.
+
+    This function returns bbi data filtered out from outliers and/or ectopic beats.
+
+    Parameters
+    ----------
+    bbi : list
+        series of beat to beat interval
+    remove_outliers : bool, optional
+        determines if outliers below ``low_rri`` and above ``high_rri`` should be filtered out, by default True
+    remove_ectopic : bool, optional
+        determines if ectopic beats should be removed from the bbi series, by default True
+    verbose : bool, optional
+        whether the function should print out data about the amount of outliers/ectopic beats removed, by default False
+    low_rri : int, optional
+        lower threshold for outlier detection, by default 300
+    high_rri : int, optional
+        upper threshold for outlier detection, by default 2000
+    ectopic_method : str, optional
+        method used to determine and filter out ectopic beats, by default "malik"
+    interpolation_method : str, optional
+        method used to interpolate missing values after the removal of outliers/ectopic beats, by default "linear"
+    """
+    if remove_outliers:
+        bbi  = hrvanalysis.remove_outliers(bbi,
+                                           low_rri=low_rri,
+                                           high_rri=high_rri,
+                                           verbose=verbose)
+        bbi = hrvanalysis.interpolate_nan_values(bbi,
+                                                 interpolation_method=interpolation_method)
+    if remove_ectopic:
+        bbi = hrvanalysis.remove_ectopic_beats(bbi,
+                                               method=ectopic_method,
+                                               verbose=verbose)
+        bbi = hrvanalysis.interpolate_nan_values(bbi,
+                                                 interpolation_method=interpolation_method)
+    return bbi
+
+
+def get_hrv_time_domain(loader,
+                        start_date=None,
+                        end_date=None,
+                        user_id="all",
+                        pyhrv=False,
+                        filtering_kwargs={}):
+    """Get time-domain heart rate variability features.
+
+    This function returns a dictionary containing for every user of interest
+    the time domain hrv features for the period of interest.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    start_date : :class:`datetime.datetime`, optional
+        Start date of the period of interest, by default None
+    end_date : :class:`datetime.datetime`, optional
+        End date of the period of interest (inclusive), by default None
+    user_id : class:`str`, optional
+        ID of the user(s) for which hrv features must be computed, by default "all".
+    pyhrv : bool, optional
+        whether to use pyhrv to compute features, alternatively hrvanalysis is used, by default False
+    filtering_kwargs : dict, optional
+        kwargs of the bbi filtering function for outliers and ectopic beats, by default {}
+
+    Returns
+    -------
+    :class:`dict`
+        Dictionary with participant id as primary key, time-domain hrv feature names as secondary keys,
+        and the values of the features as dictionary values.
+    """
+    user_id = utils.get_user_ids(loader,user_id)
+    data_dict = {}
+
+    for user in user_id:
+        try:
+            bbi = loader.load_garmin_device_bbi(user,start_date,end_date).bbi
+            bbi = filter_bbi(bbi, **filtering_kwargs)
+            if pyhrv: # pyhrv has more features but it's a lot slower
+                td_features = pyhrv.time_domain.time_domain(bbi).as_dict()
+            else:
+                td_features = hrvanalysis.get_time_domain_features(bbi)
+            data_dict[user] = td_features
+        except:
+            data_dict[user] = None
+    
+    return data_dict
+
+
+def get_hrv_frequency_domain(loader,
+                            start_date=None,
+                            end_date=None,
+                            user_id="all",
+                            method="ar",
+                            filtering_kwargs={},
+                            method_kwargs={}):
+    """Get frequency-domain heart rate variability features.
+
+    This function returns a dictionary containing for every user of interest
+    the frequency domain hrv features for the period of interest.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    start_date : :class:`datetime.datetime`, optional
+        Start date of the period of interest, by default None
+    end_date : :class:`datetime.datetime`, optional
+        End date of the period of interest (inclusive), by default None
+    user_id : class:`str`, optional
+        ID of the user(s) for which hrv features must be computed, by default "all".
+    method : str, optional
+        method used for the calculation of the power spectral density graph, by default "ar"
+    filtering_kwargs : dict, optional
+        kwargs of the bbi filtering function for outliers and ectopic beats, by default {}
+    method_kwargs : dict, optional
+        kwargs needed for the method psd calculation, by default {}
+
+    Returns
+    -------
+    :class:`dict`
+        Dictionary with participant id as primary key, 
+        frequency-domain hrv feature names and method params as secondary keys,
+        and the values of the features and params as dictionary values. 
+        In case the value is a list, the items are relative (in order) to vlf, lf, hf ranges.
+
+    Raises
+    ------
+    KeyError
+        if the method specified isn't available the function returns this error.
+    """
+    user_id = utils.get_user_ids(loader,user_id)
+    data_dict = {}
+
+    for user in user_id:
+        try:
+            bbi = loader.load_garmin_device_bbi(user,start_date,end_date).bbi
+            bbi = filter_bbi(bbi, **filtering_kwargs)
+            if method == "ar":
+                fd_features = pyhrv.frequency_domain.ar_psd(bbi,show=False,**method_kwargs).as_dict()
+            elif method == "welch":
+                fd_features = pyhrv.frequency_domain.welch_psd(bbi,show=False,**method_kwargs).as_dict()
+            elif method == "lomb":
+                fd_features = pyhrv.frequency_domain.lomb_psd(bbi,show=False,**method_kwargs).as_dict()
+            else:
+                raise KeyError("method specified unknown.")
+            plt.close()
+            data_dict[user] = fd_features
+        except:
+            data_dict[user] = None
+    
+    return data_dict
+
+
+def get_hrv_nonlinear_domain(loader,
+                            start_date=None,
+                            end_date=None,
+                            user_id="all",
+                            dfa=True,
+                            sampen=False,
+                            filtering_kwargs={},
+                            poincare_kwargs={},
+                            sampen_kwargs={},
+                            dfa_kwargs={}):
+    """Get non linear domain heart rate variability features.
+
+    This function returns a dictionary containing for every user of interest
+    the non linear domain hrv features for the period of interest.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    start_date : :class:`datetime.datetime`, optional
+        Start date of the period of interest, by default None
+    end_date : :class:`datetime.datetime`, optional
+        End date of the period of interest (inclusive), by default None
+    user_id : class:`str`, optional
+        ID of the user(s) for which hrv features must be computed, by default "all".
+    dfa : bool, optional
+        whether to calculate features associated to detrended fluctuation analysis (dta), by default True
+    sampen : bool, optional
+        whether to calculate sample entropy features, by default False
+        Note that this should be done only for bbi data of a few minutes at most, as its calculation take long.
+    filtering_kwargs : dict, optional
+        kwargs of the bbi filtering function for outliers and ectopic beats, by default {}
+    poincare_kwargs : dict, optional
+        kwargs associated to the calculation of poincaré features, by default {}
+    sampen_kwargs : dict, optional
+        kwargs associated to the calculation of sample entropy features, by default {}
+    dfa_kwargs : dict, optional
+        kwargs associated to the calculation of detrended fluctuation analysis, by default {}
+
+    Returns
+    -------
+    Dictionary with participant id as primary key, 
+    non linear domain hrv feature names as secondary keys,
+    and the values of the features as dictionary values. 
+    """
+    user_id = utils.get_user_ids(loader,user_id)
+    data_dict = {}
+
+    for user in user_id:
+        try:
+            bbi = loader.load_garmin_device_bbi(user,start_date,end_date).bbi
+            bbi = filter_bbi(bbi, **filtering_kwargs)
+            non_linear_features = {}
+            non_linear_features |= pyhrv.nonlinear.poincare(bbi,show=False,**poincare_kwargs).as_dict()
+            plt.close()
+            if dfa:
+                non_linear_features |= pyhrv.nonlinear.dfa(bbi,show=False,**dfa_kwargs).as_dict()
+                plt.close()
+            if sampen: # for long bbi series this takes a lot of time
+                non_linear_features |= pyhrv.nonlinear.sample_entropy(bbi,**sampen_kwargs).as_dict()
+            data_dict[user] = non_linear_features
+        except:
+            data_dict[user] = None
+    
+    return data_dict
+
+
+def get_hrv_features(loader,
+                     start_date=None,
+                     end_date=None,
+                     user_id="all",
+                     filtering_kwargs={},
+                     time_domain_kwargs={},
+                     frequency_domain_kwargs={},
+                     nonlinear_domain_kwargs={}
+):
+    """Compute all hrv features (time, frequency, and non-linear domain) for a given period.
+    Can be extremely computationally intensive if the period is too long.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    start_date : :class:`datetime.datetime`, optional
+        Start date of the period of interest, by default None
+    end_date : :class:`datetime.datetime`, optional
+        End date of the period of interest (inclusive), by default None
+    user_id : class:`str`, optional
+        ID of the user(s) for which hrv features must be computed, by default "all".
+    filtering_kwargs : dict, optional
+        kwargs of the bbi filtering function for outliers and ectopic beats, by default {}
+    time_domain_kwargs : dict, optional
+        kwargs associated to the calculation of time domain hrv features, by default {}
+    frequency_domain_kwargs : dict, optional
+        kwargs associated to the calculation of frequency domain hrv features, by default {}
+    nonlinear_domain_kwargs : dict, optional
+        kwargs associated to the calculation of non linear domain hrv features, by default {}
+
+    Returns
+    -------
+    Dictionary with participant id as primary key, 
+    hrv feature names and params for their calculation as secondary keys,
+    and the values of the features or the params as dictionary values. 
+    """
+    user_id = utils.get_user_ids(loader,user_id)
+    data_dict = {}
+
+    for user in user_id:
+        try:
+            features = {}
+            features |= get_hrv_time_domain(loader,
+                                            start_date,
+                                            end_date,
+                                            user,
+                                            filtering_kwargs=filtering_kwargs,
+                                            **time_domain_kwargs)[user]
+            features |= get_hrv_frequency_domain(loader,
+                                                 start_date,
+                                                 end_date,
+                                                 user,
+                                                 filtering_kwargs=filtering_kwargs,
+                                                 **frequency_domain_kwargs)[user]
+            features |= get_hrv_nonlinear_domain(loader,
+                                                 start_date,
+                                                 end_date,
+                                                 user,
+                                                 filtering_kwargs=filtering_kwargs,
+                                                 **nonlinear_domain_kwargs)[user]
+            data_dict[user] = features
+        except:
+            data_dict[user] = None
+    
+    return data_dict
+
+def get_night_rmssd(loader,
+                  start_date=None,
+                  end_date=None,
+                  user_id="all",
+                  coverage=0.7,
+                  method="all night"):
+    """Compute rmssd metrics considering night data for the specified participants and period.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    start_date : :class:`datetime.datetime`, optional
+        Start date of the period of interest, by default None
+    end_date : :class:`datetime.datetime`, optional
+        End date of the period of interest (inclusive), by default None
+    user_id : class:`str`, optional
+        ID of the user(s) for which hrv features must be computed, by default "all".
+    coverage : float, optional
+        the percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7
+    method : str, optional
+        method specifying how to filter bbi data in order to compute the night metric, by default "all night"
+
+    Returns
+    -------
+    Dictionary with participants as primary key,
+    dates as secondary keys, and rmssd computed overnight as values.
+    """
+    
+    user_id = utils.get_user_ids(loader,user_id)
+    data_dict = {}
+
+    for user in user_id:
+        try:
+            sleeping_timestamps = sleep.get_sleep_timestamps(loader,start_date,end_date,user)[user]
+            daily_means = {}
+
+            for date, (start_hour, end_hour) in sleeping_timestamps.items():
+                bbi_df = loader.load_garmin_device_bbi(user,start_hour,end_hour)
+                bbi_df = bbi_df.set_index("isoDate")
+                
+                if method == "filter awake": # this filters out bbi relative to awake periods during sleep
+                    bbi_df = _filter_out_awake_bbi(loader,user,bbi_df,date)
+
+                counts = bbi_df.resample('5min').bbi.count() 
+                means = bbi_df.resample('5min').bbi.mean() 
+                coverage_filter = (counts > (300/(means/1000)*coverage)).values
+                ST_analysis = bbi_df.resample('5min').bbi.apply(lambda x: pyhrv.time_domain.rmssd(x)[0] if x.count() > 5 else 0)
+                ST_analysis = ST_analysis.iloc[coverage_filter & (ST_analysis != 0).values]
+                rmssd_values_daily = ST_analysis.values
+                daily_mean = rmssd_values_daily.mean()
+                daily_means[date] = round(daily_mean,1)
+            data_dict[user] = daily_means
+        except:
+            data_dict[user] = None
+    
+    return data_dict
+
+
+def get_night_sdnn(loader,
+                  start_date=None,
+                  end_date=None,
+                  user_id="all",
+                  coverage=0.7,
+                  method="all night"):
+    """Compute sdnn metrics considering night data for the specified participants and period.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    start_date : :class:`datetime.datetime`, optional
+        Start date of the period of interest, by default None
+    end_date : :class:`datetime.datetime`, optional
+        End date of the period of interest (inclusive), by default None
+    user_id : class:`str`, optional
+        ID of the user(s) for which hrv features must be computed, by default "all".
+    coverage : float, optional
+        the percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7
+    method : str, optional
+        method specifying how to filter bbi data in order to compute the night metric, by default "all night"
+
+    Returns
+    -------
+    Dictionary with participants as primary key,
+    dates as secondary keys, and sdnn computed overnight as values.
+    """
+    
+    user_id = utils.get_user_ids(loader,user_id)
+    data_dict = {}
+
+    for user in user_id:
+        try:
+            sleeping_timestamps = sleep.get_sleep_timestamps(loader,start_date,end_date,user)[user]
+
+            daily_means = {}
+
+            for date, (start_hour, end_hour) in sleeping_timestamps.items():
+                bbi_df = loader.load_garmin_device_bbi(user,start_hour,end_hour)
+                bbi_df = bbi_df.set_index("isoDate")
+                if method == "filter awake":
+                    bbi_df = _filter_out_awake_bbi(loader,user,bbi_df,date)
+                counts = bbi_df.resample('5min').bbi.count() 
+                means = bbi_df.resample('5min').bbi.mean() 
+                coverage_filter = (counts > (300/(means/1000)*coverage)).values
+                ST_analysis = bbi_df.resample('5min').bbi.apply(lambda x: pyhrv.time_domain.sdnn(x)[0] if x.count() > 5 else 0)
+                ST_analysis = ST_analysis.iloc[coverage_filter & (ST_analysis != 0).values]
+                sdnn_values_daily = ST_analysis.values
+                daily_mean = sdnn_values_daily.mean()
+                daily_means[date] = round(daily_mean,1)
+            data_dict[user] = daily_means
+        except:
+            data_dict[user] = None
+    
+    return data_dict
+
+def get_night_lf(loader,
+                 start_date=None,
+                 end_date=None,
+                 user_id="all",
+                 coverage=0.7,
+                 method="all night",
+                 minimal_periods=10):
+    """Compute LF power metrics considering night data for the specified participants and period.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    start_date : :class:`datetime.datetime`, optional
+        Start date of the period of interest, by default None
+    end_date : :class:`datetime.datetime`, optional
+        End date of the period of interest (inclusive), by default None
+    user_id : class:`str`, optional
+        ID of the user(s) for which hrv features must be computed, by default "all".
+    coverage : float, optional
+        the percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7
+    method : str, optional
+        method specifying how to filter bbi data in order to compute the night metric, by default "all night"
+
+    Returns
+    -------
+    Dictionary with participants as primary key,
+    dates as secondary keys, and LF absolute power computed overnight as values.
+    """
+    user_id = utils.get_user_ids(loader,user_id)
+    data_dict = {}
+
+    for user in user_id:
+        try:
+            sleeping_timestamps = sleep.get_sleep_timestamps(loader,start_date,end_date,user)[user]
+
+            daily_means = {}
+
+            for date, (start_hour, end_hour) in sleeping_timestamps.items():
+                bbi_df = loader.load_garmin_device_bbi(user,start_hour,end_hour)
+                bbi_df = bbi_df.set_index("isoDate")
+                if method == "filter awake":
+                    bbi_df = _filter_out_awake_bbi(loader,user,bbi_df,date)
+                counts = bbi_df.resample('5min').bbi.count() 
+                means = bbi_df.resample('5min').bbi.mean() 
+                coverage_filter = (counts > (300/(means/1000)*coverage)).values
+                ST_analysis = bbi_df.resample('5min').bbi.apply(lambda x: pyhrv.frequency_domain.welch_psd(nni=x,
+                                                                                                           show=False,
+                                                                                                           mode="dev")[0]["fft_abs"][1] if x.count() > 5 else 0)
+                ST_analysis = ST_analysis.iloc[coverage_filter & (ST_analysis != 0).values]
+                lf_values_daily = ST_analysis.dropna().values
+                if len(lf_values_daily) >= minimal_periods:
+                    daily_mean = lf_values_daily.mean()
+                    daily_means[date] = round(daily_mean,1)
+            data_dict[user] = daily_means
+        except:
+            data_dict[user] = None
+    
+    return data_dict
+
+def get_night_hf(loader,
+                 start_date=None,
+                 end_date=None,
+                 user_id="all",
+                 coverage=0.7,
+                 method="all night",
+                 minimal_periods=10):
+    """Compute HF power metrics considering night data for the specified participants and period.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    start_date : :class:`datetime.datetime`, optional
+        Start date of the period of interest, by default None
+    end_date : :class:`datetime.datetime`, optional
+        End date of the period of interest (inclusive), by default None
+    user_id : class:`str`, optional
+        ID of the user(s) for which hrv features must be computed, by default "all".
+    coverage : float, optional
+        the percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7
+    method : str, optional
+        method specifying how to filter bbi data in order to compute the night metric, by default "all night"
+
+    Returns
+    -------
+    Dictionary with participants as primary key,
+    dates as secondary keys, and LF absolute power computed overnight as values.
+    """    
+    user_id = utils.get_user_ids(loader,user_id)
+    data_dict = {}
+
+    for user in user_id:
+        try:
+            sleeping_timestamps = sleep.get_sleep_timestamps(loader,start_date,end_date,user)[user]
+
+            daily_means = {}
+
+            for date, (start_hour, end_hour) in sleeping_timestamps.items():
+                bbi_df = loader.load_garmin_device_bbi(user,start_hour,end_hour)
+                bbi_df = bbi_df.set_index("isoDate")
+                if method == "filter awake":
+                    bbi_df = _filter_out_awake_bbi(loader,user,bbi_df,date)
+                counts = bbi_df.resample('5min').bbi.count() 
+                means = bbi_df.resample('5min').bbi.mean() 
+                coverage_filter = (counts > (300/(means/1000)*coverage)).values
+                ST_analysis = bbi_df.resample('5min').bbi.apply(lambda x: pyhrv.frequency_domain.welch_psd(nni=x,
+                                                                                                           show=False,
+                                                                                                           mode="dev")[0]["fft_abs"][2] if x.count() > 5 else 0)
+                ST_analysis = ST_analysis.iloc[coverage_filter & (ST_analysis != 0).values]
+                hf_values_daily = ST_analysis.dropna().values
+                if len(hf_values_daily) >= minimal_periods:
+                    daily_mean = hf_values_daily.mean()
+                    daily_means[date] = round(daily_mean,1)
+            data_dict[user] = daily_means
+        except:
+            data_dict[user] = None
+    
+    return data_dict
+
+def get_night_lfhf(loader,
+                 start_date=None,
+                 end_date=None,
+                 user_id="all",
+                 coverage=0.7,
+                 method="all night"):
+    """Compute LF/HF ratio metrics considering night data for the specified participants and period.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    start_date : :class:`datetime.datetime`, optional
+        Start date of the period of interest, by default None
+    end_date : :class:`datetime.datetime`, optional
+        End date of the period of interest (inclusive), by default None.
+    user_id : class:`str`, optional
+        ID of the user(s) for which hrv features must be computed, by default "all"
+    coverage : float, optional
+        the percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7
+    method : str, optional
+        method specifying how to filter bbi data in order to compute the night metric, by default "all night"
+
+    Returns
+    -------
+    Dictionary with participants as primary key,
+    dates as secondary keys, and LF/HF ratio computed overnight as values.
+    """
+    
+    user_id = utils.get_user_ids(loader,user_id)
+    data_dict = {}
+
+    for user in user_id:
+        try:
+            lf_dict = get_night_lf(loader,
+                              start_date,
+                              end_date,
+                              user,
+                              coverage=coverage,
+                              method=method)[user]
+            hf_dict = get_night_hf(loader,
+                              start_date,
+                              end_date,
+                              user,
+                              coverage=coverage,
+                              method=method)[user]
+            lfhf_dict = {}
+            for date in lf_dict.keys():
+                lf = lf_dict[date]
+                hf = hf_dict[date]
+                lfhf_dict[date] = lf/hf
+
+            data_dict[user] = lfhf_dict
+        except:
+            data_dict[user] = None
+    
+    return data_dict
+
+
+def _filter_out_awake_bbi(loader,
+                          user,
+                          bbi_df,
+                          date):
+    """Filters out night bbi data relative to periods where the user was awake
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    user : class:`str`
+        ID of the user for which bbi data has to be filtered.
+    bbi_df : class:`pandas.DataFrame`
+        DataFrame of bbi data
+    date : class:`pandas.Timestamp`
+        Timestamp of the date relative to the night in consideration.
+
+    Returns
+    -------
+    pandas.DataFrame
+    DataFrame in the same format of `bbi_df`, including only bbi data of periods when the participant is asleep. 
+    """
+    hypnogram = loader.load_hypnogram(user,date)
+    hypnogram["stages_diff"] = np.concatenate(
+                        [
+                            [0],
+                            hypnogram.iloc[1:, :].stage.values
+                            - hypnogram.iloc[:-1, :].stage.values,
+                        ]
+                    )
+    # if there has been a negative change and the current stage is awake, then count it as awakening start
+    hypnogram["awakening_start"] = np.logical_and(
+                        hypnogram.stage == 0, hypnogram.stages_diff < 0
+                    )
+    # if there has been a positive change and the previous stage was awake, then count it as awakening end
+    hypnogram["awakening_end"] = np.concatenate([
+        [0],
+        np.logical_and((hypnogram.iloc[:-1, :].stage == 0).values, (hypnogram.iloc[1:, :].stages_diff > 0).values)
+    ])
+    relevant_rows = hypnogram.loc[np.logical_or(hypnogram.awakening_start==1, hypnogram.awakening_end==1)][:20]
+    awakening_starts = relevant_rows.isoDate.iloc[::2].values
+    awakening_ends = relevant_rows.isoDate.iloc[1::2].values
+    for awakening_start, awakening_end in zip(awakening_starts,awakening_ends):
+        bbi_df = bbi_df.loc[(bbi_df.index < awakening_start) | (bbi_df.index > awakening_end)]
+
+    return bbi_df
