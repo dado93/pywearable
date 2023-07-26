@@ -297,7 +297,7 @@ def get_deep_sleep_duration(
 
 
 def get_awake_sleep_duration(
-    loader, start_date=None, end_date=None, participant_id="all", average=False
+    loader, start_date=None, end_date=None, user_id="all", average=False
 ):
     """Get awake sleep time.
 
@@ -344,12 +344,12 @@ def get_awake_sleep_duration(
 
     """
     return get_time_in_sleep_stage(
-        loader, "AWAKE", start_date, end_date, participant_id, average
+        loader, "AWAKE", start_date, end_date, user_id, average
     )
 
 
 def get_sleep_duration(
-    loader, start_date=None, end_date=None, participant_id="all",average=False
+    loader, start_date=None, end_date=None, user_id="all", average=False
 ):
     """Get sleep duration.
 
@@ -395,11 +395,13 @@ def get_sleep_duration(
         - ``day`` : ``Sleep Duration``
     """
     return get_time_in_sleep_stage(
-        loader, "DURATION", start_date, end_date, participant_id, average
+        loader, "DURATION", start_date, end_date, user_id, average
     )
 
 
-def get_sleep_score(loader, start_date=None, end_date=None, participant_id="all",average=False):
+def get_sleep_score(
+    loader, start_date=None, end_date=None, user_id="all", average=False
+):
     """Get sleep score.
 
     This function returns the sleep score for
@@ -445,7 +447,7 @@ def get_sleep_score(loader, start_date=None, end_date=None, participant_id="all"
 
     """
     return get_time_in_sleep_stage(
-        loader, "SLEEP_SCORE", start_date, end_date, participant_id, average
+        loader, "SLEEP_SCORE", start_date, end_date, user_id, average
     )
 
 
@@ -569,7 +571,7 @@ def get_sleep_statistics(
     average_dict = {}
     intervals = int(divmod((end_date - start_date).total_seconds(), 3600 * 24)[0])
     calendar_days = [
-        start_date + i * datetime.timedelta(days=1) for i in range(1, intervals+1)
+        start_date + i * datetime.timedelta(days=1) for i in range(1, intervals + 1)
     ]
     for participant in user_id:
         data_dict[participant] = {}
@@ -1418,11 +1420,8 @@ def get_sleep_timestamps(loader, start_date=None, end_date=None, user_ids="all")
 
     return data_dict
 
-def get_awakenings(loader,
-                   start_date,
-                   end_date,
-                   user_ids="all",
-                   average=False):
+
+def get_awakenings(loader, start_date, end_date, user_ids="all", average=False):
     """Get the number of awakenings
 
     Returns the number of times the user(s) of interest woke up during the night.
@@ -1448,7 +1447,7 @@ def get_awakenings(loader,
     _type_
         _description_
     """
-    
+
     user_ids = utils.get_user_ids(loader, user_ids)
 
     data_dict = {}
