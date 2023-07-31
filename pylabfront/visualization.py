@@ -14,7 +14,6 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import seaborn as sns
 import july
-import pyhrv
 import hrvanalysis
 
 from pathlib import Path
@@ -25,24 +24,26 @@ date_form = DateFormatter("%m-%d")
 
 
 def get_steps_graph_and_stats(
-    loader, 
-    start_date, 
-    end_date, 
-    user, 
-    verbose=False, 
-    save_to=None, 
-    show=True, 
+    loader,
+    start_date,
+    end_date,
+    user,
+    verbose=False,
+    save_to=None,
+    show=True,
     steps_line_label="steps",
     goal_line_label="daily goal",
     ylabel="Steps",
-    plot_title="Daily steps"
+    plot_title="Daily steps",
 ):
     # get dates,steps,goals,compare steps to goal to get goal completion
     dates, steps = zip(
         *activity.get_steps_per_day(loader, start_date, end_date, user)[user].items()
     )
     goals = list(
-        activity.get_steps_goal_per_day(loader, start_date, end_date, user)[user].values()
+        activity.get_steps_goal_per_day(loader, start_date, end_date, user)[
+            user
+        ].values()
     )
     col = np.where(np.array(steps) > np.array(goals), "g", "r")
     # get stats from the series
@@ -81,7 +82,7 @@ def get_steps_graph_and_stats(
         plt.ylabel(ylabel, fontsize=16)
         # plt.title(plot_title, fontsize=15)
         if save_to:
-            plt.savefig(save_to,bbox_inches='tight')
+            plt.savefig(save_to, bbox_inches="tight")
 
     if show:
         plt.show()
@@ -98,17 +99,17 @@ def get_steps_graph_and_stats(
 
 
 def get_cardiac_graph_and_stats(
-    loader, 
+    loader,
     start_date,
     end_date,
     user,
     verbose=False,
-    save_to=None, 
+    save_to=None,
     show=True,
     resting_hr_label="resting heart rate",
     maximum_hr_label="maximum heart rate",
     ylabel="Heart rate [beats/min]",
-    title="Heart rate statistics over time"
+    title="Heart rate statistics over time",
 ):
     # get stats
     avg_resting_hr = round(
@@ -167,7 +168,7 @@ def get_cardiac_graph_and_stats(
         plt.grid("both")
         plt.ylim([min(30, min(rest_hr)), max(200, max_hr_recorded + 30)])
         if save_to:
-            plt.savefig(save_to,bbox_inches='tight')
+            plt.savefig(save_to, bbox_inches="tight")
     if show:
         plt.show()
     else:
@@ -180,21 +181,25 @@ def get_cardiac_graph_and_stats(
     return stats_dict
 
 
-def get_rest_spo2_graph(loader, 
-                        start_date, 
-                        end_date, 
-                        user, 
-                        save_to=None, 
-                        show=True,
-                        zones_labels=["Normal","Low","Concerning","Critical"],
-                        zones_colors=["g","yellow","orange","tomato"],
-                        zones_alpha=0.25,
-                        title=r"Rest SpO$_2$",
-                        ylabel=r"SpO$_2$"):
+def get_rest_spo2_graph(
+    loader,
+    start_date,
+    end_date,
+    user,
+    save_to=None,
+    show=True,
+    zones_labels=["Normal", "Low", "Concerning", "Critical"],
+    zones_colors=["g", "yellow", "orange", "tomato"],
+    zones_alpha=0.25,
+    title=r"Rest SpO$_2$",
+    ylabel=r"SpO$_2$",
+):
     timedelta = datetime.timedelta(
         hours=12
     )  # this assumes that at the last day a person wakes up before midday...
-    spo2_df = loader.load_garmin_connect_pulse_ox(user, start_date, end_date + timedelta)
+    spo2_df = loader.load_garmin_connect_pulse_ox(
+        user, start_date, end_date + timedelta
+    )
     sleep_spo2_df = spo2_df[spo2_df.sleep == 1].loc[:, ["isoDate", "spo2"]]
     unique_dates = pd.to_datetime(sleep_spo2_df.isoDate.dt.date.unique())
     # in order to avoid plotting lines between nights, we need to plot separately each sleep occurrence
@@ -221,7 +226,7 @@ def get_rest_spo2_graph(loader,
         [100 for i in range(2)],
         color=zones_colors[0],
         alpha=zones_alpha,
-        label=zones_labels[0]
+        label=zones_labels[0],
     )
     # low
     ax.fill_between(
@@ -230,7 +235,7 @@ def get_rest_spo2_graph(loader,
         [90 for i in range(2)],
         color=zones_colors[1],
         alpha=zones_alpha,
-        label=zones_labels[1]
+        label=zones_labels[1],
     )
     # concerning
     ax.fill_between(
@@ -239,7 +244,7 @@ def get_rest_spo2_graph(loader,
         [80 for i in range(2)],
         color=zones_colors[2],
         alpha=zones_alpha,
-        label=zones_labels[2]
+        label=zones_labels[2],
     )
     # critical
     ax.fill_between(
@@ -248,7 +253,7 @@ def get_rest_spo2_graph(loader,
         [70 for i in range(2)],
         color=zones_colors[3],
         alpha=zones_alpha,
-        label=zones_labels[3]
+        label=zones_labels[3],
     )
 
     # graph params
@@ -264,7 +269,7 @@ def get_rest_spo2_graph(loader,
     plt.xlim([min_date, max_date])
     plt.tight_layout()
     if save_to:
-        plt.savefig(save_to,bbox_inches='tight')
+        plt.savefig(save_to, bbox_inches="tight")
     if show:
         plt.show()
     else:
@@ -272,14 +277,14 @@ def get_rest_spo2_graph(loader,
 
 
 def get_stress_graph_and_stats(
-    loader, 
-    start_date, 
-    end_date, 
-    user, 
-    verbose=False, 
-    save_to=None, 
+    loader,
+    start_date,
+    end_date,
+    user,
+    verbose=False,
+    save_to=None,
     show=True,
-    title="Average daily stress"
+    title="Average daily stress",
 ):
     # get stats
     dates, metrics = zip(
@@ -324,7 +329,7 @@ def get_stress_graph_and_stats(
     )
 
     if save_to:
-        plt.savefig(save_to,bbox_inches='tight')
+        plt.savefig(save_to, bbox_inches="tight")
     if show:
         plt.show()
     else:
@@ -337,18 +342,18 @@ def get_stress_graph_and_stats(
 
 
 def get_respiration_graph_and_stats(
-    loader, 
+    loader,
     start_date,
-    end_date, 
-    user, 
-    verbose=False, 
-    save_to=None, 
+    end_date,
+    user,
+    verbose=False,
+    save_to=None,
     show=True,
     rest_line_label="Sleep Avg",
     awake_line_label="Awake Avg",
-    title= "Mean daily breaths per minute",
+    title="Mean daily breaths per minute",
     xlabel="Date",
-    ylabel="Breaths per minute"
+    ylabel="Breaths per minute",
 ):
     # get series, note that we're inclusive wrt the whole last day
     rest_dates, rest_resp = zip(
@@ -396,7 +401,7 @@ def get_respiration_graph_and_stats(
         plt.xticks(combined_dates[::2], dates_format[::2], rotation=45, fontsize=15)
         plt.yticks(fontsize=15)
         if save_to:
-            plt.savefig(save_to,bbox_inches='tight')
+            plt.savefig(save_to, bbox_inches="tight")
     if show:
         plt.show()
     else:
@@ -410,14 +415,14 @@ def get_respiration_graph_and_stats(
 
 
 def get_sleep_heatmap_and_stats(
-    loader, 
-    start_date, 
-    end_date, 
-    user, 
-    verbose=False, 
-    save_to=None, 
+    loader,
+    start_date,
+    end_date,
+    user,
+    verbose=False,
+    save_to=None,
     show=True,
-    title="Sleep performance"
+    title="Sleep performance",
 ):
     # We need to create a dataframe with dates going from one year before to the latest datetime
     dates, scores = zip(
@@ -448,7 +453,7 @@ def get_sleep_heatmap_and_stats(
     )
 
     if save_to:
-        plt.savefig(save_to,bbox_inches='tight')
+        plt.savefig(save_to, bbox_inches="tight")
 
     if show:
         plt.show()
@@ -466,9 +471,9 @@ def get_sleep_heatmap_and_stats(
     avg_awake = sleep.get_awake_sleep_duration(
         loader, start_date, end_date, user, average=True
     )[user]["values"]
-    avg_awakenings = sleep.get_awakenings(loader, start_date, end_date, user, average=True)[
-        user
-    ]["value"]
+    avg_awakenings = sleep.get_awakenings(
+        loader, start_date, end_date, user, average=True
+    )[user]["value"]
     avg_score = sleep.get_sleep_score(loader, start_date, end_date, user, average=True)[
         user
     ]["values"]
@@ -489,21 +494,22 @@ def get_sleep_heatmap_and_stats(
     return stats_dict
 
 
-def get_sleep_summary_graph(loader, 
-                            start_date, 
-                            end_date, 
-                            user, 
-                            save_to=None, 
-                            show=True,
-                            alpha=0.25,
-                            title="Sleep stages and score",
-                            xlabel="Sleep time [hours]",
-                            ylabel="Date",
-                            legend_title="Sleep stages",
-                            legend_labels = ["Deep", "Light", "REM", "Awake"],
-                            colorbar_title="Sleep Score",
-                            colorbar_labels = ["poor", "fair", "good", "excellent"]
-                            ):
+def get_sleep_summary_graph(
+    loader,
+    start_date,
+    end_date,
+    user,
+    save_to=None,
+    show=True,
+    alpha=0.25,
+    title="Sleep stages and score",
+    xlabel="Sleep time [hours]",
+    ylabel="Date",
+    legend_title="Sleep stages",
+    legend_labels=["Deep", "Light", "REM", "Awake"],
+    colorbar_title="Sleep Score",
+    colorbar_labels=["poor", "fair", "good", "excellent"],
+):
     # define params for graph
     ALPHA = alpha
     POSITION = 1.3
@@ -647,9 +653,7 @@ def get_sleep_summary_graph(loader,
         fontsize=14,
     )
 
-    ax.set_title(
-        title, pad=25, color="#333333", weight="bold", fontsize=20
-    )
+    ax.set_title(title, pad=25, color="#333333", weight="bold", fontsize=20)
 
     # ordinarly the yaxis starts from below, but it's better to visualize earlier dates on top instead
     plt.gca().invert_yaxis()
@@ -658,7 +662,10 @@ def get_sleep_summary_graph(loader,
     alphas = [1, ALPHA, 1, ALPHA]
     colors = ["darkblue", "royalblue", "darkmagenta", "hotpink"]
     lgd = ax.legend(
-        labels=legend_labels, loc="upper center", bbox_to_anchor=(1.1, 0.45), fontsize=14
+        labels=legend_labels,
+        loc="upper center",
+        bbox_to_anchor=(1.1, 0.45),
+        fontsize=14,
     )
     # take care of opacity of of the colors selected
     for i, lh in enumerate(lgd.legendHandles):
@@ -684,11 +691,15 @@ def get_sleep_summary_graph(loader,
     cbar.ax.set_yticklabels(colorbar_labels, fontsize=14)
 
     plt.annotate(
-        colorbar_title, xy=(1.2, 1.1), xycoords="axes fraction", ha="center", fontsize=14
+        colorbar_title,
+        xy=(1.2, 1.1),
+        xycoords="axes fraction",
+        ha="center",
+        fontsize=14,
     )
 
     if save_to:
-        plt.savefig(save_to,bbox_inches='tight')
+        plt.savefig(save_to, bbox_inches="tight")
 
     if show:
         plt.show()
@@ -790,15 +801,15 @@ def get_errorbar_graph(
     plt.yticks(fontsize=15)
 
     if save_to:
-        plt.savefig(save_to,bbox_inches='tight')
+        plt.savefig(save_to, bbox_inches="tight")
 
     if show:
         plt.show()
     else:
         plt.close()
 
-def plot_bbi_distribution(bbi,
-                          bin_length=20):
+
+def plot_bbi_distribution(bbi, bin_length=20):
     """Plots distribution of bbi data
 
     Parameters
@@ -808,17 +819,19 @@ def plot_bbi_distribution(bbi,
     bin_length : int, optional
         length of bins in the histogram, by default 20
     """
-    
-    hrvanalysis.plot.plot_distrib(np.array(bbi, dtype=np.int16),bin_length=bin_length)
+
+    hrvanalysis.plot.plot_distrib(np.array(bbi, dtype=np.int16), bin_length=bin_length)
+
 
 def plot_comparison_radar_chart():
-    pass #TODO
+    pass  # TODO
+
 
 def compare_against_group(
     user_data,
     comparison_data,
     show=True,
-    save_to=None, 
+    save_to=None,
     bins=10,
     title="",
     ylabel="% users",
@@ -828,7 +841,7 @@ def compare_against_group(
     regions_cutoffs=None,
     regions_colors=None,
     alpha=0.25,
-    xlim=None
+    xlim=None,
 ):
     """Plots a histogram of the distribution of a desired metric, specifying where an user stands within the distribution
 
@@ -841,7 +854,7 @@ def compare_against_group(
     comparison_data : list
         List of values for the metric of interest for the comparison group (including the user of interest)
     show : bool, optional
-        Whether to show the plot 
+        Whether to show the plot
     save_to : str, optional
         the path where to save the plot, by default None
     bins : int, optional
@@ -872,52 +885,57 @@ def compare_against_group(
     """
 
     # note that the following is not strict percentile (this is good to say you were above x% of the others..)
-    # should we instead show that?? 
-    percentile_standing = np.round(np.sum(np.array(comparison_data)<=user_data)/len(comparison_data)*100,0)
+    # should we instead show that??
+    percentile_standing = np.round(
+        np.sum(np.array(comparison_data) <= user_data) / len(comparison_data) * 100, 0
+    )
 
-    fig, ax = plt.subplots(figsize=(8,4), facecolor='w')
-    cnts, values, bars = ax.hist(comparison_data, 
-                                    bins = bins,
-                                    rwidth=0.95,
-                                    weights=np.ones(len(comparison_data)) / len(comparison_data),
-                                    zorder=2
-                                    )
-    
+    fig, ax = plt.subplots(figsize=(8, 4), facecolor="w")
+    cnts, values, bars = ax.hist(
+        comparison_data,
+        bins=bins,
+        rwidth=0.95,
+        weights=np.ones(len(comparison_data)) / len(comparison_data),
+        zorder=2,
+    )
+
     plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
 
     if shaded_regions:
         for i in range(len(regions_colors)):
             start_point = regions_cutoffs[i]
-            end_point = regions_cutoffs[i+1]
-            ax.axvspan(start_point,end_point,alpha=alpha,color=regions_colors[i])
+            end_point = regions_cutoffs[i + 1]
+            ax.axvspan(start_point, end_point, alpha=alpha, color=regions_colors[i])
 
     for i, (cnt, value, bar) in enumerate(zip(cnts, values, bars)):
-        if i == len(cnts) or values[i] <= user_data <= values[i+1]:
+        if i == len(cnts) or values[i] <= user_data <= values[i + 1]:
             bar.set_facecolor("darkorange")
             break
-    ax.set_title(title,fontsize=fontsize+2)
-    ax.set_ylabel(ylabel,fontsize=fontsize)
-    ax.set_xlabel(xlabel,fontsize=fontsize)
+    ax.set_title(title, fontsize=fontsize + 2)
+    ax.set_ylabel(ylabel, fontsize=fontsize)
+    ax.set_xlabel(xlabel, fontsize=fontsize)
     ax.set_axisbelow(True)
     ax.yaxis.grid(True)
     if xlim:
         ax.set_xlim(xlim)
     if save_to:
-        plt.savefig(save_to,bbox_inches='tight')
+        plt.savefig(save_to, bbox_inches="tight")
     if show:
         plt.show()
-    
+
     return percentile_standing
 
 
-def plot_trend_analysis(df,
-                   save_to=None,
-                   xlabel="",
-                   ylabel="",
-                   title="",
-                   fontsize=16,
-                   alpha=0.3,
-                   xticks_frequency=3):
+def plot_trend_analysis(
+    df,
+    save_to=None,
+    xlabel="",
+    ylabel="",
+    title="",
+    fontsize=16,
+    alpha=0.3,
+    xticks_frequency=3,
+):
     """Plots a trend analysis graph, given data processed using `utils.trend_analysis`
 
     Parameters
@@ -945,15 +963,15 @@ def plot_trend_analysis(df,
     baseline = df.BASELINE
     LB = df.NR_LOWER_BOUND
     UB = df.NR_UPPER_BOUND
-    plt.figure(figsize=(10,6))
-    plt.bar(dates,metric)
-    plt.plot(baseline,linestyle="-",linewidth=3,color="red")
-    plt.fill_between(dates,LB,UB,alpha=alpha,color="green")
+    plt.figure(figsize=(10, 6))
+    plt.bar(dates, metric)
+    plt.plot(baseline, linestyle="-", linewidth=3, color="red")
+    plt.fill_between(dates, LB, UB, alpha=alpha, color="green")
     plt.grid("on")
-    plt.xticks(dates[::xticks_frequency],rotation=45)
-    plt.xlabel(xlabel,fontsize=fontsize)
-    plt.ylabel(ylabel,fontsize=fontsize)
-    plt.title(title,fontsize=fontsize+2)
+    plt.xticks(dates[::xticks_frequency], rotation=45)
+    plt.xlabel(xlabel, fontsize=fontsize)
+    plt.ylabel(ylabel, fontsize=fontsize)
+    plt.title(title, fontsize=fontsize + 2)
     if save_to:
-        plt.savefig(save_to,bbox_inches='tight')
+        plt.savefig(save_to, bbox_inches="tight")
     plt.show()
