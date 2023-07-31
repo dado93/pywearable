@@ -171,31 +171,21 @@ def get_rem_sleep_duration(
     start_date : :class:`datetime.datetime`, optional
         Start date from which REM data should be extracted, by default None.
         If None is used, then the ``start_date`` will be the first day with available sleep data
-        for the given ``user_id``.
+        for the given ``user_id``, by default None
     end_date : :class:`datetime.datetime`, optional
         End date up to which REM data should be extracted, by default None.
         If None is used, then the ``end_date`` will be the last day with available sleep data
-        for the given ``user_id``.
+        for the given ``user_id``, by default None
     user_id : :class:`str`, optional
         IDs of the users for which REM data have to extracted, by default "all"
-    average : :class:`bool`, optional
-        Average REM sleep across nights, by default False.
-        If set to ``True``, then the average REM sleep from ``start_date`` to ``end_date`` is
-        returned. Otherwise, REM sleep for each night from ``start_date`` to ``end_date`` is
-        returned.
+    average : bool, optional
+        Average REM sleep across nights, by default False. If set to ``True``, then
+        the average REM sleep from ``start_date`` to ``end_date`` is returned. Otherwise,
+        REM sleep for each night from ``start_date`` to ``end_date`` is returned.
 
     Returns
     -------
-    :class:`dict`
-        The returned dictionary contains the REM sleep times for the given ``user_id``.
-        The primary key of the dictionary is always ``user_id``.
-        If ``average`` is set to True, each value is a nested dictionary
-        with the following structure:
-            - ``REM``: containing REM sleep times
-            - ``days``: days over which REM sleep times were averaged
-        If ``average`` is set to False,  each value is a nested dictionary
-        with the following structure:
-            - ``day`` : ``REM Sleep Time``
+    dict
     """
     return get_time_in_sleep_stage(
         loader, "REM", start_date, end_date, user_id, average
