@@ -126,6 +126,7 @@ def find_nearest_timestamp(timestamp,
 def trend_analysis(data_dict,
                    start_date,
                    end_date,
+                   ma_kind = "normal",
                    baseline_periods=7,
                    min_periods_baseline=3,
                    normal_range_periods=30,
@@ -141,6 +142,8 @@ def trend_analysis(data_dict,
         Start date of the period of interest
     end_date : :class:`datetime.datetime`
         End date of the period of interest (inclusive)
+    ma_kind : :class: str, optional
+        type of moving average to compute, can be either normal or exponential, by default "normal"
     baseline_periods : int, optional
         number of period values to be used for the computation of the rolling baseline, by default 7 (MA7)
     min_periods_baseline : int, optional
@@ -162,7 +165,12 @@ def trend_analysis(data_dict,
     s.index = pd.DatetimeIndex(s.index)
     s = s.reindex(idx, fill_value=None)
     df = pd.DataFrame(s,columns=["metric"])
-    df["BASELINE"] = df.metric.rolling(window=baseline_periods,min_periods=min_periods_baseline).mean()
+    if ma_kind == "normal":
+        df["BASELINE"] = df.metric.rolling(window=baseline_periods,min_periods=min_periods_baseline).mean()
+    elif ma_kind == "exponential":
+        df["BASELINE"] = df.metric.ewm(span=baseline_periods,min_periods=min_periods_baseline).mean()
+    else:
+        raise ValueError('Moving average kind can only be "normal" or "exponential"')
     df["NR_MEAN"] = df.metric.rolling(window=normal_range_periods,min_periods=min_periods_normal_range).mean()
     df["NR_STD"] = df.metric.rolling(window=normal_range_periods,min_periods=min_periods_normal_range).std()
     df["NR_LOWER_BOUND"] = df["NR_MEAN"] - std_multiplier * df["NR_STD"]
