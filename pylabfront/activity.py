@@ -292,7 +292,7 @@ def get_steps_per_day(
             `start_date` to `end_date`. If set to False, then a single value
             is returned for each day from `start_date` to `end_date`.
 
-     Returns
+    Returns
     -------
     :class:`dict`
         Dictionary of daily number of steps for participants of interest
