@@ -6,6 +6,7 @@ import datetime
 import os
 import re
 from pathlib import Path
+from typing import Union
 
 import pandas as pd
 
@@ -424,14 +425,14 @@ class LabfrontLoader:
 
     def get_files_timerange(
         self,
-        user_id,
-        metric,
-        start_date,
-        end_date,
-        is_questionnaire=False,
-        is_todo=False,
-        task_name=None,
-    ):
+        user_id: str,
+        metric: str,
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        is_questionnaire: bool = False,
+        is_todo: bool = False,
+        task_name: str = None,
+    ) -> list:
         """Get files containing daily data from within a given time range.
 
         This function retrieves the files that contain data in a given time range. By setting start
@@ -547,14 +548,14 @@ class LabfrontLoader:
 
     def get_data_from_datetime(
         self,
-        user_id,
-        metric,
-        start_date=None,
-        end_date=None,
-        is_questionnaire=False,
-        is_todo=False,
-        task_name=None,
-    ):
+        user_id: str,
+        metric: str,
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        is_questionnaire: bool = False,
+        is_todo: bool = False,
+        task_name: str = None,
+    ) -> pd.DataFrame:
         """Load data from a given user in a given time frame.
 
         This function allows to load data of a given metric from a specified user
