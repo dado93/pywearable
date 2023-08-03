@@ -136,7 +136,7 @@ def get_time_in_sleep_stage(
                 participant_sleep_summary[column].values,
                 index=participant_sleep_summary[
                     _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL
-                ],
+                ].dt.date,
             ).to_dict()
             if average:
                 sleep_data_df = pd.DataFrame.from_dict(data_dict[user], orient="index")
@@ -144,10 +144,7 @@ def get_time_in_sleep_stage(
                 average_dict[user]["values"] = np.nanmean(
                     np.array(list(data_dict[user].values()))
                 )
-                average_dict[user]["days"] = [
-                    datetime.datetime.strftime(x, "%Y-%m-%d")
-                    for x in sleep_data_df.index
-                ]
+                average_dict[user]["days"] = [x for x in sleep_data_df.index]
 
     if average:
         return average_dict
@@ -570,22 +567,20 @@ def get_sleep_statistics(
                 hypnogram = loader.load_hypnogram(participant, calendar_day, resolution)
             except:
                 if not average:
-                    data_dict[participant][calendar_day] = None
+                    data_dict[participant][calendar_day.date()] = None
                 continue
             sleep_statistics = yasa.sleep_statistics(
                 hypnogram["stage"], 1 / (resolution * 60)
             )
-            data_dict[participant][calendar_day] = {}
-            data_dict[participant][calendar_day] = sleep_statistics
+            data_dict[participant][calendar_day.date()] = {}
+            data_dict[participant][calendar_day.date()] = sleep_statistics
         if average:
             sleep_stats_df = pd.DataFrame.from_dict(
                 data_dict[participant], orient="index"
             )
             average_dict[participant] = {}
             average_dict[participant]["values"] = sleep_stats_df.mean().to_dict()
-            average_dict[participant]["days"] = [
-                datetime.datetime.strftime(x, "%Y-%m-%d") for x in sleep_stats_df.index
-            ]
+            average_dict[participant]["days"] = [x for x in sleep_stats_df.index]
     if average:
         return average_dict
     else:
