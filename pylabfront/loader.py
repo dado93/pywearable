@@ -118,7 +118,6 @@ class LabfrontLoader:
         """Constructor method"""
         self.set_path(data_path)
         self.date_column = _LABFRONT_ISO_DATE_KEY
-        self.respiration_column = _LABFRONT_RESPIRATION_COLUMN
 
     def set_path(self, data_path):
         """Set path to folder containing Labfront data.
@@ -1047,20 +1046,30 @@ class LabfrontLoader:
             ]
         )
 
-        # sleep_data = pd.merge(
-        #    left=sleep_data,
-        #    right=sleep_summary,
-        #    on=_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SUMMARY_COL,
-        #    how="left",
-        # )
-
         if len(sleep_data) > 0:
+            sleep_data = pd.merge(
+                left=sleep_data,
+                right=sleep_summary,
+                on=_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SUMMARY_COL,
+                how="outer",
+            )
+
             sleep_data.loc[:, "sleep"] = 1
             sleep_data = sleep_data.drop(
                 [
                     x
                     for x in sleep_data.columns
-                    if (not x in ([_LABFRONT_ISO_DATE_KEY, "sleep"]))
+                    if (
+                        not x
+                        in (
+                            [
+                                _LABFRONT_ISO_DATE_KEY,
+                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SUMMARY_COL,
+                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL,
+                                "sleep",
+                            ]
+                        )
+                    )
                 ],
                 axis=1,
             )
