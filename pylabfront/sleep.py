@@ -1387,10 +1387,14 @@ def get_sleep_timestamps(loader, start_date=None, end_date=None, user_ids="all")
 
     for user_id in user_ids:
         # better to give a bit of rooms before and after start_date and end_date to ensure they're included
-        df = loader.load_garmin_connect_sleep_summary(
-            user_id,
-            start_date - datetime.timedelta(hours=6),
-            end_date + datetime.timedelta(hours=6),
+        df = (
+            loader.load_garmin_connect_sleep_summary(
+                user_id,
+                start_date - datetime.timedelta(hours=6),
+                end_date + datetime.timedelta(hours=6),
+            )
+            .groupby(_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL)
+            .head(1)
         )
         if len(df) > 0:
             df["waking_time"] = df[_LABFRONT_ISO_DATE_KEY] + df[
@@ -1398,7 +1402,7 @@ def get_sleep_timestamps(loader, start_date=None, end_date=None, user_ids="all")
             ].astype(int).apply(lambda x: datetime.timedelta(milliseconds=x))
             data_dict[user_id] = pd.Series(
                 zip(df[_LABFRONT_ISO_DATE_KEY], df["waking_time"]),
-                df[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL],
+                df[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL].dt.date,
             ).to_dict()
         else:
             data_dict[user_id] = None
