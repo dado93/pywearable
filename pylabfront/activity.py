@@ -323,7 +323,7 @@ def get_steps_per_day(
                     ].values,
                     index=participant_daily_summary[
                         _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL
-                    ],
+                    ].dt.date,
                 ).to_dict()
         else:
             data_dict[id] = None
@@ -429,7 +429,7 @@ def get_steps_goal_per_day(loader, start_date=None, end_date=None, user_id="all"
                 ].values,
                 index=participant_daily_summary[
                     _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL
-                ],
+                ].dt.date,
             ).to_dict()
         else:
             data_dict[id] = None
@@ -437,7 +437,7 @@ def get_steps_goal_per_day(loader, start_date=None, end_date=None, user_id="all"
     return data_dict
 
 
-def get_daily_intensity(
+def get_daily_intensity_minutes(
     loader,
     start_date=None,
     end_date=None,
@@ -503,7 +503,7 @@ def get_daily_intensity(
                     daily_intensities,
                     index=participant_daily_summaries[
                         _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL
-                    ].dt.date.values,
+                    ].dt.date,
                 ).to_dict()
             else:
                 merged_intensities = [
@@ -517,7 +517,7 @@ def get_daily_intensity(
                         merged_intensities,
                         index=participant_daily_summaries[
                             _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL
-                        ].dt.date.values,
+                        ].dt.date,
                     ).to_dict()
         else:
             data_dict[user] = None
