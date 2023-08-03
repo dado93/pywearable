@@ -519,24 +519,24 @@ def get_sleep_battery_recovery(
         sleep_timestamps = sleep.get_sleep_timestamps(
             labfront_loader, start_date, end_date, user
         )[user]
+        if not (sleep_timestamps is None):
+            for k, v in sleep_timestamps.items():
+                sleep_onset, awake_time = v[0], v[1]
 
-        for k, v in sleep_timestamps.items():
-            sleep_onset, awake_time = v[0], v[1]
+                df = labfront_loader.load_garmin_connect_stress(
+                    user, sleep_onset, awake_time
+                )
+                if len(df) == 0:
+                    continue
 
-            df = labfront_loader.load_garmin_connect_stress(
-                user, sleep_onset, awake_time
-            )
-            if len(df) == 0:
-                continue
-
-            df = df[~df[_LABFRONT_BODY_BATTERY_KEY].isna()]
-            if len(df) == 0:
-                continue
-            # find body battery the closest possible to those times, restrict search to plausible timestamps
-            data_dict[user][k] = int(
-                df[_LABFRONT_BODY_BATTERY_KEY].iloc[-1]
-                - df[_LABFRONT_BODY_BATTERY_KEY].iloc[0]
-            )
+                df = df[~df[_LABFRONT_BODY_BATTERY_KEY].isna()]
+                if len(df) == 0:
+                    continue
+                # find body battery the closest possible to those times, restrict search to plausible timestamps
+                data_dict[user][k] = int(
+                    df[_LABFRONT_BODY_BATTERY_KEY].iloc[-1]
+                    - df[_LABFRONT_BODY_BATTERY_KEY].iloc[0]
+                )
 
     return data_dict
 
