@@ -7,6 +7,7 @@ import os
 import re
 from pathlib import Path
 from typing import Union
+import dateutil.parser
 
 import pandas as pd
 
@@ -423,7 +424,7 @@ class LabfrontLoader:
 
         return first_unix_timestamp, last_unix_timestamp
 
-    def get_files_timerange(
+    def get_files_from_timerange(
         self,
         user_id: str,
         metric: str,
@@ -499,21 +500,13 @@ class LabfrontLoader:
             return list(temp_pd.index)
         # Convert date to unix format: YYYY/MM/DD
         # First, make sure that we have a datetime
-        if not isinstance(start_date, datetime.datetime):
-            start_dt = datetime.datetime.strptime(start_date, "%Y/%m/%d")
-        else:
-            start_dt = start_date
-        if not isinstance(end_date, datetime.datetime):
-            end_dt = datetime.datetime.strptime(end_date, "%Y/%m/%d")
-        else:
-            end_dt = end_date
 
         # Then, convert it to UNIX timestamp
         start_dt_timestamp = (
-            int((start_dt - datetime.timedelta(hours=12)).timestamp()) * 1000
+            int((start_date - datetime.timedelta(hours=12)).timestamp()) * 1000
         )
         end_dt_timestamp = (
-            int((end_dt + datetime.timedelta(hours=12)).timestamp()) * 1000
+            int((end_date + datetime.timedelta(hours=12)).timestamp()) * 1000
         )
 
         temp_pd["before_start_date"] = temp_pd[
@@ -595,7 +588,24 @@ class LabfrontLoader:
         if user_id not in self.ids:
             raise ValueError(f"participant_id {user_id} not found.")
 
-        files = self.get_files_timerange(
+        if not (
+            (type(start_date) == datetime.datetime)
+            or (type(start_date) == datetime.date)
+            or (start_date is None)
+        ):
+            start_date = dateutil.parser.parse(start_date)
+        elif type(start_date) == datetime.date:
+            start_date = datetime.datetime.combine(start_date, datetime.time())
+
+        if not (
+            (type(end_date) == datetime.datetime)
+            or (type(end_date) == datetime.date or (end_date is None))
+        ):
+            end_date = dateutil.parser.parse(end_date)
+        elif type(end_date) == datetime.date:
+            end_date = datetime.datetime.combine(end_date, datetime.time())
+
+        files = self.get_files_from_timerange(
             user_id,
             metric,
             start_date,
@@ -701,7 +711,7 @@ class LabfrontLoader:
         # From full ID to user ID
         participant_id = self.get_user_id(participant_id)
 
-        files = self.get_files_timerange(
+        files = self.get_files_from_timerange(
             participant_id,
             _LABFRONT_QUESTIONNAIRE_STRING,
             start_date=None,
