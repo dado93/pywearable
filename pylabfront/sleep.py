@@ -137,13 +137,8 @@ def get_time_in_sleep_stage(
                 participant_sleep_summary[column].values,
                 index=participant_sleep_summary[
                     _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL
-<<<<<<< HEAD
-                ],
-            ).to_dict(OrderedDict)
-=======
                 ].dt.date,
             ).to_dict()
->>>>>>> f62c87dcbe097632f97422daf3e8377d72c00546
             if average:
                 sleep_data_df = pd.DataFrame.from_dict(data_dict[user], orient="index")
                 average_dict[user] = {}
@@ -1415,7 +1410,6 @@ def get_sleep_timestamps(loader,
             ].astype(int).apply(lambda x: datetime.timedelta(milliseconds=x))
             data_dict[user_id] = pd.Series(
                 zip(df[_LABFRONT_ISO_DATE_KEY], df["waking_time"]),
-<<<<<<< HEAD
                 df[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL],
             ).to_dict(OrderedDict)
             if average:
@@ -1426,10 +1420,6 @@ def get_sleep_timestamps(loader,
                 mean_sleep_time = utils.mean_time(sleep_times)
                 mean_wake_time = utils.mean_time(wake_times)
                 data_dict[user_id] = (mean_sleep_time,mean_wake_time)
-=======
-                df[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL].dt.date,
-            ).to_dict()
->>>>>>> f62c87dcbe097632f97422daf3e8377d72c00546
         else:
             data_dict[user_id] = None
 
