@@ -9,6 +9,8 @@ import datetime
 import yasa
 
 import pylabfront.utils as utils
+import pylabfront.loader
+import dateutil.parser
 
 _LABFRONT_GARMIN_CONNECT_SLEEP_STAGE_REM_MS_COL = "remSleepInMs"
 _LABFRONT_GARMIN_CONNECT_SLEEP_STAGE_DEEP_SLEEP_MS_COL = "deepSleepDurationInMs"
@@ -136,7 +138,7 @@ def get_time_in_sleep_stage(
                 participant_sleep_summary[column].values,
                 index=participant_sleep_summary[
                     _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL
-                ].dt.date,
+                ],
             ).to_dict()
             if average:
                 sleep_data_df = pd.DataFrame.from_dict(data_dict[user], orient="index")
@@ -439,7 +441,12 @@ def get_sleep_score(
 
 
 def get_sleep_statistics(
-    loader, start_date=None, end_date=None, user_id="all", resolution=1, average=False
+    labfront_loader: pylabfront.loader.LabfrontLoader,
+    start_date=None,
+    end_date=None,
+    user_id="all",
+    resolution=1,
+    average=False,
 ):
     """Get sleep statistics from hypnograms.
 
@@ -546,7 +553,7 @@ def get_sleep_statistics(
     """
     if user_id == "all":
         # get all participant ids automatically
-        user_id = loader.get_user_ids()
+        user_id = labfront_loader.get_user_ids()
 
     if isinstance(user_id, str):
         user_id = [user_id]
@@ -556,24 +563,64 @@ def get_sleep_statistics(
 
     data_dict = {}
     average_dict = {}
-    intervals = int(divmod((end_date - start_date).total_seconds(), 3600 * 24)[0])
-    calendar_days = [
-        start_date + i * datetime.timedelta(days=1) for i in range(1, intervals + 1)
-    ]
+    if type(start_date) == datetime.datetime:
+        start_date = start_date.date()
+    elif isinstance(start_date, str):
+        start_date = dateutil.parser.parse(start_date).date()
+    if type(end_date) == datetime.datetime:
+        end_date = end_date.date()
+    elif isinstance(end_date, str):
+        end_date = dateutil.parser.parse(end_date).date()
+
+    if not ((start_date is None) or (end_date is None)):
+        intervals = int(divmod((end_date - start_date).total_seconds(), 3600 * 24)[0])
+        calendar_days = [
+            start_date + i * datetime.timedelta(days=1) for i in range(1, intervals + 1)
+        ]
     for participant in user_id:
         data_dict[participant] = {}
+        if (start_date is None) or (end_date is None):
+            if start_date is None:
+                # get first unix ts
+                first_unix_ts = labfront_loader.get_first_unix_timestamp(
+                    participant,
+                    pylabfront.loader._LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_STRING,
+                )
+                start_date = (
+                    datetime.datetime.utcfromtimestamp(first_unix_ts / 1000)
+                    - datetime.timedelta(hours=12)
+                ).date()
+            if end_date is None:
+                # get first unix ts
+                last_unix_ts = labfront_loader.get_last_unix_timestamp(
+                    participant,
+                    pylabfront.loader._LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_STRING,
+                )
+                end_date = (
+                    datetime.datetime.utcfromtimestamp(last_unix_ts / 1000)
+                    + datetime.timedelta(hours=12)
+                ).date()
+            intervals = int(
+                divmod((end_date - start_date).total_seconds(), 3600 * 24)[0]
+            )
+            calendar_days = [
+                start_date + i * datetime.timedelta(days=1)
+                for i in range(1, intervals + 1)
+            ]
         for calendar_day in calendar_days:
             try:
-                hypnogram = loader.load_hypnogram(participant, calendar_day, resolution)
+                hypnogram = labfront_loader.load_hypnogram(
+                    participant, calendar_day, resolution
+                )
             except:
                 if not average:
-                    data_dict[participant][calendar_day.date()] = None
+                    data_dict[participant][calendar_day] = None
                 continue
             sleep_statistics = yasa.sleep_statistics(
                 hypnogram["stage"], 1 / (resolution * 60)
             )
-            data_dict[participant][calendar_day.date()] = {}
-            data_dict[participant][calendar_day.date()] = sleep_statistics
+            data_dict[participant][calendar_day] = {}
+            data_dict[participant][calendar_day] = sleep_statistics
         if average:
             sleep_stats_df = pd.DataFrame.from_dict(
                 data_dict[participant], orient="index"
@@ -1401,7 +1448,7 @@ def get_sleep_timestamps(loader, start_date=None, end_date=None, user_ids="all")
             ].astype(int).apply(lambda x: datetime.timedelta(milliseconds=x))
             data_dict[user_id] = pd.Series(
                 zip(df[_LABFRONT_ISO_DATE_KEY], df["waking_time"]),
-                df[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL].dt.date,
+                df[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL],
             ).to_dict()
         else:
             data_dict[user_id] = None
