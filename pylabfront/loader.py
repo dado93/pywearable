@@ -6,6 +6,8 @@ import datetime
 import os
 import re
 from pathlib import Path
+from typing import Union
+import dateutil.parser
 
 import pandas as pd
 
@@ -118,7 +120,6 @@ class LabfrontLoader:
         """Constructor method"""
         self.set_path(data_path)
         self.date_column = _LABFRONT_ISO_DATE_KEY
-        self.respiration_column = _LABFRONT_RESPIRATION_COLUMN
 
     def set_path(self, data_path):
         """Set path to folder containing Labfront data.
@@ -423,16 +424,16 @@ class LabfrontLoader:
 
         return first_unix_timestamp, last_unix_timestamp
 
-    def get_files_timerange(
+    def get_files_from_timerange(
         self,
-        user_id,
-        metric,
-        start_date,
-        end_date,
-        is_questionnaire=False,
-        is_todo=False,
-        task_name=None,
-    ):
+        user_id: str,
+        metric: str,
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        is_questionnaire: bool = False,
+        is_todo: bool = False,
+        task_name: str = None,
+    ) -> list:
         """Get files containing daily data from within a given time range.
 
         This function retrieves the files that contain data in a given time range. By setting start
@@ -491,71 +492,81 @@ class LabfrontLoader:
             temp_dict = self.data_dictionary[participant_id][metric][task_name]
         else:
             temp_dict = self.data_dictionary[participant_id][metric]
+
         # Convert dictionary to a pandas dataframe, so that we can sort it
         temp_pd = pd.DataFrame.from_dict(temp_dict, orient="index").sort_values(
             by=_LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY
         )
+
         if (start_date is None) and (end_date is None):
             return list(temp_pd.index)
         # Convert date to unix format: YYYY/MM/DD
         # First, make sure that we have a datetime
-        if not isinstance(start_date, datetime.datetime):
-            start_dt = datetime.datetime.strptime(start_date, "%Y/%m/%d")
+
+        # Reset index
+        temp_pd = temp_pd.reset_index()
+        temp_pd = temp_pd.rename(columns={"index": "fileName"})
+        if len(temp_pd == 1):
+            return list(temp_pd["fileName"])
+
+        if not (start_date is None):
+            start_date_unix_ms = int(datetime.datetime.timestamp(start_date) * 1000)
+            temp_pd["before_start_date"] = temp_pd[
+                _LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY
+            ].apply(lambda x: True if x < start_date_unix_ms else False)
+            # Compute difference with first and last columns
+            temp_pd["start_diff"] = abs(
+                temp_pd[_LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY]
+                - start_date_unix_ms
+            )
+
+        # Create column -> True if unix is after end_date False otherwise
+        if not (end_date is None):
+            end_date_unix_ms = int(datetime.datetime.timestamp(end_date) * 1000)
+            temp_pd["after_end_date"] = temp_pd[
+                _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY
+            ].apply(lambda x: True if x > end_date_unix_ms else False)
+            temp_pd["end_diff"] = abs(
+                temp_pd[_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY]
+                - end_date_unix_ms
+            )
+        print(temp_pd)
+        if start_date == None:
+            min_row = 0
         else:
-            start_dt = start_date
-        if not isinstance(end_date, datetime.datetime):
-            end_dt = datetime.datetime.strptime(end_date, "%Y/%m/%d")
+            # For the first time stamp, let's check if we have some files that start before start date
+            try:
+                min_row = temp_pd[temp_pd["before_start_date"] == True][
+                    "start_diff"
+                ].idxmin()
+            except:
+                min_row = temp_pd["start_diff"].idxmin()
+
+        if end_date == None:
+            max_row = -1
         else:
-            end_dt = end_date
+            # For last time stamp, let's check if we have some files that start after end date
+            try:
+                max_row = temp_pd[temp_pd["after_end_date"] == True][
+                    "end_diff"
+                ].idxmin()
 
-        # Then, convert it to UNIX timestamp
-        start_dt_timestamp = (
-            int((start_dt - datetime.timedelta(hours=12)).timestamp()) * 1000
-        )
-        end_dt_timestamp = (
-            int((end_dt + datetime.timedelta(hours=12)).timestamp()) * 1000
-        )
-
-        temp_pd["before_start_date"] = temp_pd[
-            _LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY
-        ].apply(lambda x: True if x <= start_dt_timestamp else False)
-
-        temp_pd["after_end_date"] = temp_pd[
-            _LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY
-        ].apply(lambda x: True if x >= end_dt_timestamp else False)
-
-        # Compute difference with first and last columns
-        temp_pd["min_diff"] = abs(
-            temp_pd[_LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY]
-            - start_dt_timestamp
-        )
-        temp_pd["max_diff"] = abs(
-            temp_pd[_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY] - end_dt_timestamp
-        )
-
-        # For the first time stamp, let's check if we have some files that start before date
-        try:
-            min_row = temp_pd[temp_pd["before_start_date"] == True]["min_diff"].idxmin()
-        except:
-            min_row = temp_pd["min_diff"].idxmin()
-
-        # For last time stamp, let's check if we have some files that start after date
-        try:
-            max_row = temp_pd[temp_pd["after_end_date"] == True]["max_diff"].idxmin()
-        except:
-            max_row = temp_pd["max_diff"].idxmin()
-        return list(temp_pd.loc[min_row:max_row].index)
+            except:
+                max_row = temp_pd["end_diff"].idxmin()
+        if max_row == (len(temp_pd) - 1):
+            return list(temp_pd.iloc[min_row:]["fileName"])
+        return list(temp_pd.iloc[min_row:max_row]["fileName"])
 
     def get_data_from_datetime(
         self,
-        user_id,
-        metric,
-        start_date=None,
-        end_date=None,
-        is_questionnaire=False,
-        is_todo=False,
-        task_name=None,
-    ):
+        user_id: str,
+        metric: str,
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        is_questionnaire: bool = False,
+        is_todo: bool = False,
+        task_name: str = None,
+    ) -> pd.DataFrame:
         """Load data from a given user in a given time frame.
 
         This function allows to load data of a given metric from a specified user
@@ -595,7 +606,24 @@ class LabfrontLoader:
         if user_id not in self.ids:
             raise ValueError(f"participant_id {user_id} not found.")
 
-        files = self.get_files_timerange(
+        if not (
+            (type(start_date) == datetime.datetime)
+            or (type(start_date) == datetime.date)
+            or (start_date is None)
+        ):
+            start_date = dateutil.parser.parse(start_date)
+        elif type(start_date) == datetime.date:
+            start_date = datetime.datetime.combine(start_date, datetime.time())
+
+        if not (
+            (type(end_date) == datetime.datetime)
+            or (type(end_date) == datetime.date or (end_date is None))
+        ):
+            end_date = dateutil.parser.parse(end_date)
+        elif type(end_date) == datetime.date:
+            end_date = datetime.datetime.combine(end_date, datetime.time())
+
+        files = self.get_files_from_timerange(
             user_id,
             metric,
             start_date,
@@ -701,7 +729,7 @@ class LabfrontLoader:
         # From full ID to user ID
         participant_id = self.get_user_id(participant_id)
 
-        files = self.get_files_timerange(
+        files = self.get_files_from_timerange(
             participant_id,
             _LABFRONT_QUESTIONNAIRE_STRING,
             start_date=None,
@@ -1047,20 +1075,30 @@ class LabfrontLoader:
             ]
         )
 
-        # sleep_data = pd.merge(
-        #    left=sleep_data,
-        #    right=sleep_summary,
-        #    on=_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SUMMARY_COL,
-        #    how="left",
-        # )
-
         if len(sleep_data) > 0:
+            sleep_data = pd.merge(
+                left=sleep_data,
+                right=sleep_summary,
+                on=_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SUMMARY_COL,
+                how="outer",
+            )
+
             sleep_data.loc[:, "sleep"] = 1
             sleep_data = sleep_data.drop(
                 [
                     x
                     for x in sleep_data.columns
-                    if (not x in ([_LABFRONT_ISO_DATE_KEY, "sleep"]))
+                    if (
+                        not x
+                        in (
+                            [
+                                _LABFRONT_ISO_DATE_KEY,
+                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SUMMARY_COL,
+                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL,
+                                "sleep",
+                            ]
+                        )
+                    )
                 ],
                 axis=1,
             )
@@ -1115,8 +1153,22 @@ class LabfrontLoader:
         Returns:
             pd.DataFrame: Dataframe containing Garmin Connect sleep summary data.
         """
-        new_start_date = start_date - datetime.timedelta(days=1)
-        new_end_date = end_date + datetime.timedelta(days=1)
+        if not (start_date is None):
+            if isinstance(start_date, str):
+                start_date = dateutil.parser.parse(start_date)
+            elif type(start_date) == datetime.date:
+                start_date = datetime.datetime.combine(start_date, datetime.time())
+            new_start_date = start_date - datetime.timedelta(days=1)
+        else:
+            new_start_date = None
+        if not (end_date is None):
+            if isinstance(end_date, str):
+                end_date = dateutil.parser.parse(end_date)
+            elif type(end_date) == datetime.date:
+                end_date = datetime.datetime.combine(end_date, datetime.time())
+            new_end_date = end_date + datetime.timedelta(days=1)
+        else:
+            new_end_date = None
 
         data = self.get_data_from_datetime(
             participant_id,
@@ -1125,33 +1177,51 @@ class LabfrontLoader:
             new_end_date,
         )
 
-        start_date = datetime.datetime(
-            year=start_date.year, month=start_date.month, day=start_date.day
-        )
-        end_date = datetime.datetime(
-            year=end_date.year, month=end_date.month, day=end_date.day
-        )
-
         if len(data) > 0:
             data[
                 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL
             ] = pd.to_datetime(
                 data[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL],
                 format="%Y-%m-%d",
-            )
-
-            data = data[
-                (
-                    data[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL]
-                    >= start_date
-                )
-                & (
-                    data[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL]
-                    <= end_date
-                )
-            ]
-
-        return data
+            ).dt.date
+            if (start_date is None) and (end_date is None):
+                return data
+            else:
+                start_date = None if (start_date is None) else start_date.date()
+                end_date = None if (end_date is None) else end_date.date()
+                if (start_date is None) and (not (end_date is None)):
+                    return data[
+                        (
+                            data[
+                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL
+                            ]
+                            <= end_date
+                        )
+                    ]
+                elif (not (start_date is None)) and (end_date is None):
+                    return data[
+                        (
+                            data[
+                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL
+                            ]
+                            >= start_date
+                        )
+                    ]
+                else:
+                    return data[
+                        (
+                            data[
+                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL
+                            ]
+                            >= start_date
+                        )
+                        & (
+                            data[
+                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL
+                            ]
+                            <= end_date
+                        )
+                    ]
 
     def load_garmin_connect_stress(
         self, participant_id, start_date=None, end_date=None
