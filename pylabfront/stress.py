@@ -7,16 +7,16 @@ import pylabfront.utils as utils
 import pylabfront.sleep as sleep
 import pandas as pd
 import numpy as np
-
+from . import loader
 from datetime import timedelta
 
-_LABFRONT_ISO_DATE_KEY = 'isoDate'
+_LABFRONT_ISO_DATE_KEY = "isoDate"
 _LABFRONT_BODY_BATTERY_KEY = "bodyBattery"
 _LABFRONT_STRESS_LEVEL_KEY = "stressLevel"
 _LABFRONT_CALENDAR_DAY_KEY = "calendarDate"
 _LABFRONT_AVERAGE_STRESS_KEY = "averageStressInStressLevel"
 _LABFRONT_MAXIMUM_STRESS_KEY = "maxStressInStressLevel"
-_LABFRONT_REST_STRESS_KEY ="restStressDurationInMs"
+_LABFRONT_REST_STRESS_KEY = "restStressDurationInMs"
 _LABFRONT_LOW_STRESS_KEY = "lowStressDurationInMs"
 _LABFRONT_MEDIUM_STRESS_KEY = "mediumStressDurationInMs"
 _LABFRONT_HIGH_STRESS_KEY = "highStressDurationInMs"
@@ -25,11 +25,9 @@ _LABFRONT_STRESS_SCORE_KEY = "stressQualifier"
 
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL = "calendarDate"
 
-def get_body_battery(loader,
-                     start_date=None,
-                     end_date=None,
-                     user_id="all"):
-    """ Get body battery time series for a given period
+
+def get_body_battery(loader, start_date=None, end_date=None, user_id="all"):
+    """Get body battery time series for a given period
 
     Args:
         loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
@@ -42,25 +40,23 @@ def get_body_battery(loader,
     """
 
     data_dict = {}
-    
-    user_id = utils.get_user_ids(loader,user_id)
-    
+
+    user_id = utils.get_user_ids(loader, user_id)
+
     for user in user_id:
         try:
-            df = loader.load_garmin_connect_stress(user,
-                                                   start_date,
-                                                   end_date)
-            data_dict[user] = pd.Series(df[_LABFRONT_BODY_BATTERY_KEY].values,index=df[_LABFRONT_ISO_DATE_KEY])
+            df = loader.load_garmin_connect_stress(user, start_date, end_date)
+            data_dict[user] = pd.Series(
+                df[_LABFRONT_BODY_BATTERY_KEY].values, index=df[_LABFRONT_ISO_DATE_KEY]
+            )
         except:
             data_dict[user] = None
 
     return data_dict
 
-def get_stress(loader,
-               start_date=None,
-               end_date=None,
-               user_id="all"):
-    """ Get stress time series for a given period
+
+def get_stress(loader, start_date=None, end_date=None, user_id="all"):
+    """Get stress time series for a given period.
 
     Args:
         loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
@@ -74,26 +70,25 @@ def get_stress(loader,
     """
 
     data_dict = {}
-    
-    user_id = utils.get_user_ids(loader,user_id)
-    
+
+    user_id = utils.get_user_ids(loader, user_id)
+
     for user in user_id:
         try:
-            df = loader.load_garmin_connect_stress(user,
-                                                   start_date,
-                                                   end_date)
-            data_dict[user] = pd.Series(df[_LABFRONT_STRESS_LEVEL_KEY].values,index=df[_LABFRONT_ISO_DATE_KEY])
+            df = loader.load_garmin_connect_stress(user, start_date, end_date)
+            data_dict[user] = pd.Series(
+                df[_LABFRONT_STRESS_LEVEL_KEY].values, index=df[_LABFRONT_ISO_DATE_KEY]
+            )
         except:
             data_dict[user] = None
 
     return data_dict
 
-def get_daily_stress_statistics(loader,
-                                start_date=None,
-                                end_date=None,
-                                user_id="all",
-                                entire_period=False):
-    """ Get avg/max statistics for daily stress.
+
+def get_daily_stress_statistics(
+    loader, start_date=None, end_date=None, user_id="all", entire_period=False
+):
+    """Get avg/max statistics for daily stress.
 
     Args:
         loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
@@ -107,32 +102,44 @@ def get_daily_stress_statistics(loader,
     """
 
     data_dict = {}
-    
-    user_id = utils.get_user_ids(loader,user_id)
-    
+
+    user_id = utils.get_user_ids(loader, user_id)
+
     for user in user_id:
         try:
-            df = loader.load_garmin_connect_daily_summary(user,
-                                                            start_date,
-                                                            end_date+timedelta(hours=23,minutes=45))
-            df = df.groupby(_LABFRONT_CALENDAR_DAY_KEY).tail(1) # consider the last reading of every day
+            df = loader.load_garmin_connect_daily_summary(
+                user, start_date, end_date + timedelta(hours=23, minutes=45)
+            )
+            df = df.groupby(_LABFRONT_CALENDAR_DAY_KEY).tail(
+                1
+            )  # consider the last reading of every day
             # need to filter out days where the info isn't available (nan or -1)
-            df = df[np.logical_and(~df["averageStressInStressLevel"].isna(), df["averageStressInStressLevel"]!= -1)] 
+            df = df[
+                np.logical_and(
+                    ~df["averageStressInStressLevel"].isna(),
+                    df["averageStressInStressLevel"] != -1,
+                )
+            ]
             if entire_period:
-                data_dict[user] = round(df[_LABFRONT_AVERAGE_STRESS_KEY].mean(),1), round(df[_LABFRONT_MAXIMUM_STRESS_KEY].max(),1)
+                data_dict[user] = round(
+                    df[_LABFRONT_AVERAGE_STRESS_KEY].mean(), 1
+                ), round(df[_LABFRONT_MAXIMUM_STRESS_KEY].max(), 1)
             else:
-                data_dict[user] = pd.Series(zip(df[_LABFRONT_AVERAGE_STRESS_KEY],df[_LABFRONT_MAXIMUM_STRESS_KEY]),
-                                                index=df[_LABFRONT_CALENDAR_DAY_KEY])
+                data_dict[user] = pd.Series(
+                    zip(
+                        df[_LABFRONT_AVERAGE_STRESS_KEY],
+                        df[_LABFRONT_MAXIMUM_STRESS_KEY],
+                    ),
+                    index=df[_LABFRONT_CALENDAR_DAY_KEY],
+                )
         except:
             data_dict[user] = None
 
     return data_dict
 
-def get_average_stress_weekday(loader,
-                               start_date=None,
-                               end_date=None,
-                               user_id="all"):
-    """ Gets the average daily stress in working days (Mon-Fri)
+
+def get_average_stress_weekday(loader, start_date=None, end_date=None, user_id="all"):
+    """Gets the average daily stress in working days (Mon-Fri)
 
     Args:
         loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
@@ -144,28 +151,30 @@ def get_average_stress_weekday(loader,
         dict: Dictionary with participant ID(s) as key(s) and average workday stress as value(s)
     """
     data_dict = {}
-    user_id = utils.get_user_ids(loader,user_id)
+    user_id = utils.get_user_ids(loader, user_id)
 
     for user in user_id:
-        df =loader.load_garmin_connect_daily_summary(user,
-                                                     start_date,
-                                                     end_date-timedelta(minutes=15))
+        df = loader.load_garmin_connect_daily_summary(
+            user, start_date, end_date - timedelta(minutes=15)
+        )
         if len(df) > 0:
-            df = df.groupby(_LABFRONT_CALENDAR_DAY_KEY).tail(1) # consider the last reading of every day
+            df = df.groupby(_LABFRONT_CALENDAR_DAY_KEY).tail(
+                1
+            )  # consider the last reading of every day
             df["weekday"] = df[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.weekday())
             df.groupby("weekday")[_LABFRONT_AVERAGE_STRESS_KEY].mean().reset_index()
-            df["isWeekend"] = ~df["weekday"].isin(range(0,5))
-            data_dict[user] = round(df.groupby("isWeekend")["averageStressInStressLevel"].mean()[False],1)
+            df["isWeekend"] = ~df["weekday"].isin(range(0, 5))
+            data_dict[user] = round(
+                df.groupby("isWeekend")["averageStressInStressLevel"].mean()[False], 1
+            )
         else:
             data_dict[user] = None
 
     return data_dict
 
-def get_average_stress_weekend(loader,
-                               start_date=None,
-                               end_date=None,
-                               user_id="all"):
-    """ Gets the average daily stress in weekends (Sat-Sun)
+
+def get_average_stress_weekend(loader, start_date=None, end_date=None, user_id="all"):
+    """Gets the average daily stress in weekends (Sat-Sun)
 
     Args:
         loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
@@ -177,28 +186,31 @@ def get_average_stress_weekend(loader,
         dict: Dictionary with participant ID(s) as key(s) and average weekend stress as value(s)
     """
     data_dict = {}
-    user_id = utils.get_user_ids(loader,user_id)
+    user_id = utils.get_user_ids(loader, user_id)
 
     for user in user_id:
-        df = loader.load_garmin_connect_daily_summary(user,
-                                                     start_date,
-                                                     end_date-timedelta(minutes=15))
+        df = loader.load_garmin_connect_daily_summary(
+            user, start_date, end_date - timedelta(minutes=15)
+        )
         if len(df) > 0:
-            df = df.groupby(_LABFRONT_CALENDAR_DAY_KEY).tail(1) # consider the last reading of every day
+            df = df.groupby(_LABFRONT_CALENDAR_DAY_KEY).tail(
+                1
+            )  # consider the last reading of every day
             df["weekday"] = df[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.weekday())
             df.groupby("weekday")[_LABFRONT_AVERAGE_STRESS_KEY].mean().reset_index()
-            df["isWeekend"] = ~df["weekday"].isin(range(0,5))
-            data_dict[user] = round(df.groupby("isWeekend")["averageStressInStressLevel"].mean()[True],1)
+            df["isWeekend"] = ~df["weekday"].isin(range(0, 5))
+            data_dict[user] = round(
+                df.groupby("isWeekend")["averageStressInStressLevel"].mean()[True], 1
+            )
         else:
             data_dict[user] = None
 
     return data_dict
 
-def get_daily_stress_metric(loader,
-                            stress_metric,
-                            start_date=None,
-                            end_date=None,
-                            user_id="all"):
+
+def get_daily_stress_metric(
+    loader, stress_metric, start_date=None, end_date=None, user_id="all"
+):
     """Get daily summary of the metric.
 
     This function returns the garmin connect daily summary for the stress metric of interest
@@ -227,10 +239,10 @@ def get_daily_stress_metric(loader,
     :class:`dict`
         Dictionary with calendar day as key, and daily summary of the stress metric as value.
     """
-    
+
     data_dict = {}
 
-    user_id = utils.get_user_ids(loader,user_id)
+    user_id = utils.get_user_ids(loader, user_id)
 
     if stress_metric.lower() == "rest":
         column = _LABFRONT_REST_STRESS_KEY
@@ -246,29 +258,33 @@ def get_daily_stress_metric(loader,
         column = _LABFRONT_STRESS_SCORE_KEY
     else:
         raise ValueError("Invalid metric")
-    
+
     for user in user_id:
         user_daily_summary = loader.load_garmin_connect_daily_summary(
             user, start_date, end_date
         )
         if len(user_daily_summary) > 0:
-            user_daily_summary = user_daily_summary.groupby(_LABFRONT_CALENDAR_DAY_KEY).tail(1) # consider last summary
+            user_daily_summary = user_daily_summary.groupby(
+                _LABFRONT_CALENDAR_DAY_KEY
+            ).tail(
+                1
+            )  # consider last summary
             data_dict[user] = pd.Series(
                 user_daily_summary[column].replace(np.nan, None).values,
-                index=user_daily_summary[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL]
+                index=user_daily_summary[
+                    _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL
+                ],
             ).to_dict()
         else:
             data_dict[user] = None
 
     return data_dict
 
-def get_rest_duration(loader,
-                      start_date=None,
-                      end_date=None,
-                      user_id="all"):
+
+def get_rest_duration(loader, start_date=None, end_date=None, user_id="all"):
     """Get duration of daily rest stress in ms.
 
-    This function returns the absolute time spent in rest stress level (0-25) 
+    This function returns the absolute time spent in rest stress level (0-25)
     for the given participant(s).
 
     Parameters
@@ -296,13 +312,11 @@ def get_rest_duration(loader,
     """
     return get_daily_stress_metric(loader, "rest", start_date, end_date, user_id)
 
-def get_low_stress_duration(loader,
-                            start_date=None,
-                            end_date=None,
-                            user_id="all"):
+
+def get_low_stress_duration(loader, start_date=None, end_date=None, user_id="all"):
     """Get duration of daily low stress in ms.
 
-    This function returns the absolute time spent in low stress level (25-50) 
+    This function returns the absolute time spent in low stress level (25-50)
     for the given participant(s).
 
     Parameters
@@ -330,13 +344,11 @@ def get_low_stress_duration(loader,
     """
     return get_daily_stress_metric(loader, "low", start_date, end_date, user_id)
 
-def get_medium_stress_duration(loader,
-                               start_date=None,
-                               end_date=None,
-                               user_id="all"):
+
+def get_medium_stress_duration(loader, start_date=None, end_date=None, user_id="all"):
     """Get duration of daily medium stress in ms.
 
-    This function returns the absolute time spent in medium stress level (50-75) 
+    This function returns the absolute time spent in medium stress level (50-75)
     for the given participant(s).
 
     Parameters
@@ -364,13 +376,11 @@ def get_medium_stress_duration(loader,
     """
     return get_daily_stress_metric(loader, "medium", start_date, end_date, user_id)
 
-def get_high_stress_duration(loader,
-                             start_date=None,
-                             end_date=None,
-                             user_id="all"):
+
+def get_high_stress_duration(loader, start_date=None, end_date=None, user_id="all"):
     """Get duration of daily high stress in ms.
 
-    This function returns the absolute time spent in high stress level (75-100) 
+    This function returns the absolute time spent in high stress level (75-100)
     for the given participant(s).
 
     Parameters
@@ -398,13 +408,13 @@ def get_high_stress_duration(loader,
     """
     return get_daily_stress_metric(loader, "high", start_date, end_date, user_id)
 
-def get_unreliable_stress_duration(loader,
-                                   start_date=None,
-                                   end_date=None,
-                                   user_id="all"):
+
+def get_unreliable_stress_duration(
+    loader, start_date=None, end_date=None, user_id="all"
+):
     """Get duration of unreliable daily stress measures in ms.
 
-    This function returns the absolute daily time where stress measures were unreliable (-2/-1) 
+    This function returns the absolute daily time where stress measures were unreliable (-2/-1)
     for the given participant(s).
 
     Parameters
@@ -432,10 +442,8 @@ def get_unreliable_stress_duration(loader,
     """
     return get_daily_stress_metric(loader, "unreliable", start_date, end_date, user_id)
 
-def get_stress_score(loader,
-                     start_date=None,
-                     end_date=None,
-                     user_id="all"):
+
+def get_stress_score(loader, start_date=None, end_date=None, user_id="all"):
     """Get a qualifier that summarizes the daily amount of stress.
 
     This function returns a score for the daily amount of stress
@@ -466,10 +474,13 @@ def get_stress_score(loader,
     """
     return get_daily_stress_metric(loader, "score", start_date, end_date, user_id)
 
-def get_battery_recovery(loader,
-                         start_date=None,
-                         end_date=None,
-                         user_id="all"):
+
+def get_sleep_battery_recovery(
+    labfront_loader: loader.LabfrontLoader,
+    start_date=None,
+    end_date=None,
+    user_id="all",
+):
     """Get body battery recovered during sleep.
 
     This function returns the amount of body battery recovered while sleeping
@@ -493,7 +504,7 @@ def get_battery_recovery(loader,
     Returns
     -------
     :class:`dict`
-        The returned dictionary contains the amount of body battery recharged 
+        The returned dictionary contains the amount of body battery recharged
         for the given ``user_id``, for all sleep periods detected.
         The primary key of the dictionary is the id of the user of interest.
         Each value is a nested dictionary with the following structure:
@@ -501,35 +512,36 @@ def get_battery_recovery(loader,
     """
     data_dict = {}
 
-    user_id = utils.get_user_ids(loader, user_id)
+    user_id = utils.get_user_ids(labfront_loader, user_id)
 
     for user in user_id:
-        df = loader.load_garmin_connect_stress(user,start_date,end_date+timedelta(hours=23,minutes=45))
-        if len(df) > 0:
-            data_dict[user] = {}
-            sleep_timestamps = sleep.get_sleep_timestamps(loader,start_date,end_date,user)[user]
-            filtered_df = df[~df[_LABFRONT_BODY_BATTERY_KEY].isna()].copy()
-            filtered_df["date"] = filtered_df.isoDate.apply(lambda x: x.date())
-            for k,v in sleep_timestamps.items():
-                sleep_onset, awake_time = v[0],v[1]
+        data_dict[user] = {}
+        sleep_timestamps = sleep.get_sleep_timestamps(
+            labfront_loader, start_date, end_date, user
+        )[user]
+        if not (sleep_timestamps is None):
+            for k, v in sleep_timestamps.items():
+                sleep_onset, awake_time = v[0], v[1]
+
+                df = labfront_loader.load_garmin_connect_stress(
+                    user, sleep_onset, awake_time
+                )
+                if len(df) == 0:
+                    continue
+
+                df = df[~df[_LABFRONT_BODY_BATTERY_KEY].isna()]
+                if len(df) == 0:
+                    continue
                 # find body battery the closest possible to those times, restrict search to plausible timestamps
-                restricted_filtered_df = filtered_df[np.logical_or(filtered_df["date"] == sleep_onset.date(),
-                                                                   filtered_df["date"] == sleep_onset.date()+timedelta(days=1))]
-                before_sleep_valid_timestamp = utils.find_nearest_timestamp(sleep_onset, restricted_filtered_df.isoDate)
-                bb_before_sleep = filtered_df[filtered_df.isoDate == before_sleep_valid_timestamp].bodyBattery.mean()
-                after_sleep_valid_timestamp = utils.find_nearest_timestamp(awake_time, restricted_filtered_df.isoDate)
-                bb_after_sleep = filtered_df[filtered_df.isoDate == after_sleep_valid_timestamp].bodyBattery.mean()
-                data_dict[user][k] = int(bb_after_sleep - bb_before_sleep)
-        else:
-            data_dict[user] = None
+                data_dict[user][k] = int(
+                    df[_LABFRONT_BODY_BATTERY_KEY].iloc[-1]
+                    - df[_LABFRONT_BODY_BATTERY_KEY].iloc[0]
+                )
 
     return data_dict
 
 
-def get_min_body_battery(loader,
-                         start_date,
-                         end_date,
-                         user_id="all"):
+def get_min_body_battery(loader, start_date, end_date, user_id="all"):
     """Get minimum daily body battery.
 
     This function returns the minimum recorded daily body battery
@@ -563,19 +575,21 @@ def get_min_body_battery(loader,
     user_id = utils.get_user_ids(loader, user_id)
 
     for user in user_id:
-        df = loader.load_garmin_connect_stress(user,start_date,end_date-timedelta(minutes=1))
+        df = loader.load_garmin_connect_stress(
+            user, start_date, end_date - timedelta(minutes=1)
+        )
         if len(df) > 0:
             df["date"] = df[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.date())
-            data_dict[user] = pd.Series(df.groupby("date")[_LABFRONT_BODY_BATTERY_KEY].min()).to_dict()
+            data_dict[user] = pd.Series(
+                df.groupby("date")[_LABFRONT_BODY_BATTERY_KEY].min()
+            ).to_dict()
         else:
             data_dict[user] = None
 
     return data_dict
 
-def get_max_body_battery(loader,
-                         start_date,
-                         end_date,
-                         user_id="all"):
+
+def get_max_body_battery(loader, start_date, end_date, user_id="all"):
     """Get maximum daily body battery.
 
     This function returns the maximum recorded daily body battery
@@ -609,10 +623,14 @@ def get_max_body_battery(loader,
     user_id = utils.get_user_ids(loader, user_id)
 
     for user in user_id:
-        df = loader.load_garmin_connect_stress(user,start_date,end_date-timedelta(minutes=1))
+        df = loader.load_garmin_connect_stress(
+            user, start_date, end_date - timedelta(minutes=1)
+        )
         if len(df) > 0:
             df["date"] = df[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.date())
-            data_dict[user] = pd.Series(df.groupby("date")[_LABFRONT_BODY_BATTERY_KEY].max()).to_dict()
+            data_dict[user] = pd.Series(
+                df.groupby("date")[_LABFRONT_BODY_BATTERY_KEY].max()
+            ).to_dict()
         else:
             data_dict[user] = None
 

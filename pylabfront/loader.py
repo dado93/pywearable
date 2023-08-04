@@ -6,6 +6,7 @@ import datetime
 import os
 import re
 from pathlib import Path
+from typing import Union
 
 import pandas as pd
 
@@ -118,7 +119,6 @@ class LabfrontLoader:
         """Constructor method"""
         self.set_path(data_path)
         self.date_column = _LABFRONT_ISO_DATE_KEY
-        self.respiration_column = _LABFRONT_RESPIRATION_COLUMN
 
     def set_path(self, data_path):
         """Set path to folder containing Labfront data.
@@ -425,14 +425,14 @@ class LabfrontLoader:
 
     def get_files_timerange(
         self,
-        user_id,
-        metric,
-        start_date,
-        end_date,
-        is_questionnaire=False,
-        is_todo=False,
-        task_name=None,
-    ):
+        user_id: str,
+        metric: str,
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        is_questionnaire: bool = False,
+        is_todo: bool = False,
+        task_name: str = None,
+    ) -> list:
         """Get files containing daily data from within a given time range.
 
         This function retrieves the files that contain data in a given time range. By setting start
@@ -548,14 +548,14 @@ class LabfrontLoader:
 
     def get_data_from_datetime(
         self,
-        user_id,
-        metric,
-        start_date=None,
-        end_date=None,
-        is_questionnaire=False,
-        is_todo=False,
-        task_name=None,
-    ):
+        user_id: str,
+        metric: str,
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        is_questionnaire: bool = False,
+        is_todo: bool = False,
+        task_name: str = None,
+    ) -> pd.DataFrame:
         """Load data from a given user in a given time frame.
 
         This function allows to load data of a given metric from a specified user
@@ -1047,20 +1047,30 @@ class LabfrontLoader:
             ]
         )
 
-        # sleep_data = pd.merge(
-        #    left=sleep_data,
-        #    right=sleep_summary,
-        #    on=_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SUMMARY_COL,
-        #    how="left",
-        # )
-
         if len(sleep_data) > 0:
+            sleep_data = pd.merge(
+                left=sleep_data,
+                right=sleep_summary,
+                on=_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SUMMARY_COL,
+                how="outer",
+            )
+
             sleep_data.loc[:, "sleep"] = 1
             sleep_data = sleep_data.drop(
                 [
                     x
                     for x in sleep_data.columns
-                    if (not x in ([_LABFRONT_ISO_DATE_KEY, "sleep"]))
+                    if (
+                        not x
+                        in (
+                            [
+                                _LABFRONT_ISO_DATE_KEY,
+                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SUMMARY_COL,
+                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL,
+                                "sleep",
+                            ]
+                        )
+                    )
                 ],
                 axis=1,
             )

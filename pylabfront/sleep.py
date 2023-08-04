@@ -137,18 +137,20 @@ def get_time_in_sleep_stage(
                 participant_sleep_summary[column].values,
                 index=participant_sleep_summary[
                     _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL
+<<<<<<< HEAD
                 ],
             ).to_dict(OrderedDict)
+=======
+                ].dt.date,
+            ).to_dict()
+>>>>>>> f62c87dcbe097632f97422daf3e8377d72c00546
             if average:
                 sleep_data_df = pd.DataFrame.from_dict(data_dict[user], orient="index")
                 average_dict[user] = {}
                 average_dict[user]["values"] = np.nanmean(
                     np.array(list(data_dict[user].values()))
                 )
-                average_dict[user]["days"] = [
-                    datetime.datetime.strftime(x, "%Y-%m-%d")
-                    for x in sleep_data_df.index
-                ]
+                average_dict[user]["days"] = [x for x in sleep_data_df.index]
 
     if average:
         return average_dict
@@ -172,31 +174,21 @@ def get_rem_sleep_duration(
     start_date : :class:`datetime.datetime`, optional
         Start date from which REM data should be extracted, by default None.
         If None is used, then the ``start_date`` will be the first day with available sleep data
-        for the given ``user_id``.
+        for the given ``user_id``, by default None
     end_date : :class:`datetime.datetime`, optional
         End date up to which REM data should be extracted, by default None.
         If None is used, then the ``end_date`` will be the last day with available sleep data
-        for the given ``user_id``.
+        for the given ``user_id``, by default None
     user_id : :class:`str`, optional
         IDs of the users for which REM data have to extracted, by default "all"
-    average : :class:`bool`, optional
-        Average REM sleep across nights, by default False.
-        If set to ``True``, then the average REM sleep from ``start_date`` to ``end_date`` is
-        returned. Otherwise, REM sleep for each night from ``start_date`` to ``end_date`` is
-        returned.
+    average : bool, optional
+        Average REM sleep across nights, by default False. If set to ``True``, then
+        the average REM sleep from ``start_date`` to ``end_date`` is returned. Otherwise,
+        REM sleep for each night from ``start_date`` to ``end_date`` is returned.
 
     Returns
     -------
-    :class:`dict`
-        The returned dictionary contains the REM sleep times for the given ``user_id``.
-        The primary key of the dictionary is always ``user_id``.
-        If ``average`` is set to True, each value is a nested dictionary
-        with the following structure:
-            - ``REM``: containing REM sleep times
-            - ``days``: days over which REM sleep times were averaged
-        If ``average`` is set to False,  each value is a nested dictionary
-        with the following structure:
-            - ``day`` : ``REM Sleep Time``
+    dict
     """
     return get_time_in_sleep_stage(
         loader, "REM", start_date, end_date, user_id, average
@@ -581,22 +573,20 @@ def get_sleep_statistics(
                 hypnogram = loader.load_hypnogram(participant, calendar_day, resolution)
             except:
                 if not average:
-                    data_dict[participant][calendar_day] = None
+                    data_dict[participant][calendar_day.date()] = None
                 continue
             sleep_statistics = yasa.sleep_statistics(
                 hypnogram["stage"], 1 / (resolution * 60)
             )
-            data_dict[participant][calendar_day] = {}
-            data_dict[participant][calendar_day] = sleep_statistics
+            data_dict[participant][calendar_day.date()] = {}
+            data_dict[participant][calendar_day.date()] = sleep_statistics
         if average:
             sleep_stats_df = pd.DataFrame.from_dict(
                 data_dict[participant], orient="index"
             )
             average_dict[participant] = {}
             average_dict[participant]["values"] = sleep_stats_df.mean().to_dict()
-            average_dict[participant]["days"] = [
-                datetime.datetime.strftime(x, "%Y-%m-%d") for x in sleep_stats_df.index
-            ]
+            average_dict[participant]["days"] = [x for x in sleep_stats_df.index]
     if average:
         return average_dict
     else:
@@ -1425,6 +1415,7 @@ def get_sleep_timestamps(loader,
             ].astype(int).apply(lambda x: datetime.timedelta(milliseconds=x))
             data_dict[user_id] = pd.Series(
                 zip(df[_LABFRONT_ISO_DATE_KEY], df["waking_time"]),
+<<<<<<< HEAD
                 df[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL],
             ).to_dict(OrderedDict)
             if average:
@@ -1435,6 +1426,10 @@ def get_sleep_timestamps(loader,
                 mean_sleep_time = utils.mean_time(sleep_times)
                 mean_wake_time = utils.mean_time(wake_times)
                 data_dict[user_id] = (mean_sleep_time,mean_wake_time)
+=======
+                df[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL].dt.date,
+            ).to_dict()
+>>>>>>> f62c87dcbe097632f97422daf3e8377d72c00546
         else:
             data_dict[user_id] = None
 
