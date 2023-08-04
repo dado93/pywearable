@@ -1156,12 +1156,16 @@ class LabfrontLoader:
         if not (start_date is None):
             if isinstance(start_date, str):
                 start_date = dateutil.parser.parse(start_date)
+            elif type(start_date) == datetime.date:
+                start_date = datetime.datetime.combine(start_date, datetime.time())
             new_start_date = start_date - datetime.timedelta(days=1)
         else:
             new_start_date = None
         if not (end_date is None):
             if isinstance(end_date, str):
                 end_date = dateutil.parser.parse(end_date)
+            elif type(end_date) == datetime.date:
+                end_date = datetime.datetime.combine(end_date, datetime.time())
             new_end_date = end_date + datetime.timedelta(days=1)
         else:
             new_end_date = None
@@ -1179,12 +1183,12 @@ class LabfrontLoader:
             ] = pd.to_datetime(
                 data[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL],
                 format="%Y-%m-%d",
-            )
+            ).dt.date
             if (start_date is None) and (end_date is None):
                 return data
             else:
-                start_date = start_date.date()
-                end_date = end_date.date()
+                start_date = None if (start_date is None) else start_date.date()
+                end_date = None if (end_date is None) else end_date.date()
                 if (start_date is None) and (not (end_date is None)):
                     return data[
                         (
