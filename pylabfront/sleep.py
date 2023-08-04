@@ -1378,37 +1378,48 @@ def get_nrem_sleep_percentage(
     )
 
 
-def get_sleep_timestamps(loader, start_date=None, end_date=None, user_ids="all"):
-    """_summary_
+def get_sleep_timestamps(loader, 
+                         start_date=None, 
+                         end_date=None, 
+                         user_ids="all",
+                         average=False):
+    """Get the timestamps of the beginning and the end of sleep occurrences.
 
+    Returns for every day, the time when the user fell asleep and when he woke up
+    The information is based on the sleep summaries of the user
     Parameters
     ----------
-    loader : _type_
-        _description_
-    start_date : _type_, optional
-        _description_, by default None
-    end_date : _type_, optional
-        _description_, by default None
-    user_ids : str, optional
-        _description_, by default "all"
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of a data loader.
+    start_date : class:`datetime.datetime`, optional
+        Start date of the period of interest, by default None.
+    end_date : class:`datetime.datetime`, optional
+        End date of the period of interest, by default None.
+    user_ids : :class:`str`, optional
+        ID of the user for which sleep timestamps are computed, by default "all".
+    average : :class:`bool`, optional
+        Whether to calculate the average sleep and awake time of the user (in hours), by default False.
 
     Returns
     -------
-    _type_
-        _description_
+    dict
+        Dictionary with user ids as primary keys, if average is False then dates as secondary keys
+        and sleep timestamps as values, otherwise (average starting time, average ending time) as values
     """
     data_dict = {}
 
     user_ids = utils.get_user_ids(loader, user_ids)
 
     for user_id in user_ids:
-        # better to give a bit of rooms before and after start_date and end_date to ensure they're included
         df = loader.load_garmin_connect_sleep_summary(
             user_id,
-            start_date - datetime.timedelta(hours=6),
-            end_date + datetime.timedelta(hours=6),
+            start_date,
+            end_date,
         )
         if len(df) > 0:
+            df = df.groupby(
+                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL
+            ).head(1)
             df["waking_time"] = df[_LABFRONT_ISO_DATE_KEY] + df[
                 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_MS_COL
             ].astype(int).apply(lambda x: datetime.timedelta(milliseconds=x))
@@ -1416,6 +1427,14 @@ def get_sleep_timestamps(loader, start_date=None, end_date=None, user_ids="all")
                 zip(df[_LABFRONT_ISO_DATE_KEY], df["waking_time"]),
                 df[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL],
             ).to_dict(OrderedDict)
+            if average:
+                sleep_times = [timestamp[0].to_pydatetime() for timestamp in data_dict[user_id].values()]
+                wake_times = [timestamp[1].to_pydatetime() for timestamp in data_dict[user_id].values()]
+                sleep_times = [item.strftime("%H:%M") for item in sleep_times]
+                wake_times = [item.strftime("%H:%M") for item in wake_times]
+                mean_sleep_time = utils.mean_time(sleep_times)
+                mean_wake_time = utils.mean_time(wake_times)
+                data_dict[user_id] = (mean_sleep_time,mean_wake_time)
         else:
             data_dict[user_id] = None
 
@@ -1424,7 +1443,8 @@ def get_sleep_timestamps(loader, start_date=None, end_date=None, user_ids="all")
 def get_sleep_midpoints(loader,
                         start_date=None,
                         end_date=None,
-                        user_ids="all"):
+                        user_ids="all",
+                        average=False):
     """Get the midpoints of sleeping occurrences
 
     Returns for every night in the period of interest the midpoint of the 
@@ -1438,6 +1458,8 @@ def get_sleep_midpoints(loader,
         End date of the period of interest, by default None.
     user : :class:`str`, optional
         ID of the user for which sleep midpoints are computed, by default "all".
+    average : bool, optional
+        Whether to return the average midpoint for the user (in hours, from midnight), by default False
     """
     data_dict = {}
 
@@ -1453,7 +1475,15 @@ def get_sleep_midpoints(loader,
                 daily_start_hour = v[0]
                 daily_end_hour = v[1]
                 midpoint = daily_start_hour + (daily_end_hour-daily_start_hour)/2
-                data_dict[user_id][k] = midpoint
+                data_dict[user_id][k.date()] = midpoint
+            if average:
+                days = list(data_dict[user_id].keys())
+                midpoints = [v.to_pydatetime() for v in data_dict[user_id].values()]
+                midpoints = [midpoint.strftime("%H:%M") for midpoint in midpoints]
+                mean_midpoint = utils.mean_time(midpoints)
+                data_dict[user_id] = {}
+                data_dict[user_id]["average midpoint"] = mean_midpoint
+                data_dict[user_id]["days"] = days                
     
     return data_dict
 
@@ -1532,13 +1562,13 @@ def get_cpd(loader,
             end_date=None,
             user=None,
             sleep_metric="midpoint",
-            chronotype_sleep_start = 24,
-            chronotype_sleep_end = 8,
+            chronotype_sleep_start = "00:00",
+            chronotype_sleep_end = "08:00",
             days_to_consider=28,
             verbose=False):
     """Computes composite phase deviation (CPD)
 
-    Returns a measure of sleep regularity, either in terms of stability of rest midpoints
+    Returns a measure of sleep regularity, either in terms of stabmidpoints = ility of rest midpoints
     if `sleep_metric` is 'midpoint', or in terms of duration is `sleep_metric` is 'duration'.
     The measure is computed for the period between `start_date` and `end_date` 
     but only keeping in consideration the most recent `days_to_consider`.
@@ -1554,14 +1584,14 @@ def get_cpd(loader,
         ID of the user for which CPD is computed, by default None.
     sleep_metric : :class:`str`, optional
         the metric for the computation of CPD, can be either "midpoint" or "duration", by default "midpoint"
-    chronotype_sleep_start : int, optional
-        the hour of reference at which the user begins to sleep, by default 24
-    chronotype_sleep_end : int, optional
-        the hour of reference at which the user wakes up, by default 8
+    chronotype_sleep_start : str, optional
+        the hour of reference at which the user begins to sleep in format HH:MM, by default "00:00"
+    chronotype_sleep_end : str, optional
+        the hour of reference at which the user wakes up in format HH:MM, by default "08:00"
     days_to_consider : int, optional
         the maximum number of days to consider in the period of interest, by default 28
     verbose : :class:`str`, optional
-        whether to show daily metric of the cpd components
+        whether to show daily cpd components
 
     Returns
     -------
@@ -1569,15 +1599,12 @@ def get_cpd(loader,
         CPD metric, indicating sleep regularity of the user
     """
 
-    if chronotype_sleep_start < chronotype_sleep_end: #the user goes to sleep after midnight
-        chronotype_sleep_start = chronotype_sleep_start + 24    
-
     if user is None:
         raise KeyError("Specify a user")
 
     if sleep_metric == "midpoint":
         # define what is the expected midpoint based on the chronotype
-        chronotype_sleep_midpoint = (chronotype_sleep_start + (chronotype_sleep_end + 24))/2 % 24
+        chronotype_sleep_midpoint = utils.mean_time([chronotype_sleep_start,chronotype_sleep_end])
         sleep_midpoints = get_sleep_midpoints(loader,start_date,end_date,user)[user]
 
         previous_midpoint = None
@@ -1589,12 +1616,12 @@ def get_cpd(loader,
             chronotype_daily_midpoint = datetime.datetime(calendar_date.year,
                                                           calendar_date.month,
                                                           calendar_date.day,
-                                                          hour=int(chronotype_sleep_midpoint%24//1),
-                                                          minute=int(chronotype_sleep_midpoint%1*60))
+                                                          hour=int(chronotype_sleep_midpoint[:2]),
+                                                          minute=int(chronotype_sleep_midpoint[3:]))
             # if the expected midpoint is prior to midnight we need to adjust the day
-            if 14 < chronotype_sleep_midpoint < 24:
+            if 14 < int(chronotype_sleep_midpoint[:2]) < 24:
                 chronotype_daily_midpoint -= datetime.timedelta(days=1)
-            # observed daily midpoint
+
             mistiming_component = (chronotype_daily_midpoint - midpoint).total_seconds()/(60*60)
             
             # irregularity component
@@ -1611,7 +1638,6 @@ def get_cpd(loader,
                     previous_day_midpoint_proxy -= datetime.timedelta(days=1)
                 
                 irregularity_component = (previous_day_midpoint_proxy - midpoint).total_seconds()/(60*60)
-                print(previous_day_midpoint_proxy, midpoint)
 
             previous_midpoint = midpoint
             
@@ -1621,7 +1647,10 @@ def get_cpd(loader,
             CPDs.append(cpd)
 
     elif sleep_metric == "duration":
-        chronotype_sleep_duration = chronotype_sleep_end + 24 - chronotype_sleep_start
+        chronotype_sleep_duration = (datetime.datetime.strptime(chronotype_sleep_end, '%H:%M') -
+                                    datetime.datetime.strptime(chronotype_sleep_start, '%H:%M')).total_seconds()/(60*60)
+        if chronotype_sleep_duration < 0: # takes care of sleep-time prior to midnight
+            chronotype_sleep_duration += 24
         sleep_durations = get_sleep_duration(loader,start_date,end_date,user)[user]
         
         CPDs = []
@@ -1680,9 +1709,20 @@ def get_sleep_metric_std(loader,
     
     if metric is None:
         raise KeyError("Must specify a valid sleep metric")
-    elif metric == "duration":
+    elif metric == "duration": # in hours
         metric_data = get_sleep_duration(loader,start_date,end_date,user)[user]
         metric_data = [duration/(1000*60*60) for duration in metric_data.values()]
+    elif metric == "midpoint": # in hours
+        midpoints = list(get_sleep_midpoints(loader,start_date,end_date,user)[user].values())
+        # need to check for possible midpoints before midnight
+        metric_data = []
+        for midpoint in midpoints:
+            midpoint_pydt = midpoint.to_pydatetime()
+            hour_component = midpoint_pydt.hour
+            minute_component = midpoint_pydt.minute
+            if hour_component > 13:
+                hour_component -= 24
+            metric_data.append(hour_component + minute_component/60)
     else:
         try:
             metric_data = metric(loader,start_date,end_date,user)[user]

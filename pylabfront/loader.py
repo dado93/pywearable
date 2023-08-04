@@ -1115,8 +1115,8 @@ class LabfrontLoader:
         Returns:
             pd.DataFrame: Dataframe containing Garmin Connect sleep summary data.
         """
-        new_start_date = start_date - datetime.timedelta(days=1)
-        new_end_date = end_date + datetime.timedelta(days=1)
+        new_start_date = start_date - datetime.timedelta(days=1) if start_date is not None else None
+        new_end_date = end_date + datetime.timedelta(days=1) if end_date is not None else None
 
         data = self.get_data_from_datetime(
             participant_id,
