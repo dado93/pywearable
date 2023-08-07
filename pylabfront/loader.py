@@ -8,6 +8,7 @@ import re
 from pathlib import Path
 from typing import Union
 import dateutil.parser
+from pytz import timezone
 
 import pandas as pd
 
@@ -135,7 +136,7 @@ class LabfrontLoader:
         self.ids, self.labfront_ids = self.get_ids()
         self.ids_dict = self.get_ids(return_dict=True)
         self.ids_list = self.get_participant_list()
-        self.data_dictionary = self.get_time_dictionary()
+        self.data_dictionary, self.metrics_data_dictionary = self.get_time_dictionary()
         self.tasks_dict = self.get_available_questionnaires(
             return_dict=True
         ) | self.get_available_todos(return_dict=True)
@@ -350,16 +351,23 @@ class LabfrontLoader:
         if not self.data_path.exists():
             raise FileNotFoundError
         participant_dict = {}
+        metrics_time_dict = {}
         for participant_folder in self.data_path.iterdir():
             # For each participant
-            participant_dict[participant_folder.name] = {}
             if participant_folder.is_dir():
+                participant_dict[participant_folder.name] = {}
+                metrics_time_dict[participant_folder.name] = {}
                 for participant_metric_folder in participant_folder.iterdir():
                     # For each metric
                     if participant_metric_folder.is_dir():
                         participant_dict[participant_folder.name][
                             participant_metric_folder.name
                         ] = {}
+                        metrics_time_dict[participant_folder.name][
+                            participant_metric_folder.name
+                        ] = {}
+                        metrics_first_ts = None
+                        metrics_last_ts = None
                         # If it is a folder, then we need to read the csv files and get first and last unix times, and min sample rate
                         for metric_data in participant_metric_folder.iterdir():
                             # For each csv folder/file
@@ -367,14 +375,32 @@ class LabfrontLoader:
                                 "csv"
                             ):
                                 # If it is a file
-                                first_ts, last_ts = self.get_labfront_file_time_stats(
+                                (first_ts, last_ts) = self.get_labfront_file_time_stats(
                                     metric_data
                                 )
+                                # Update first time stamp of the metric
+                                if metrics_first_ts is None:
+                                    metrics_first_ts = first_ts
+                                else:
+                                    if first_ts < metrics_first_ts:
+                                        metrics_first_ts = first_ts
+                                # Update last time stamp of the metric
+                                if metrics_last_ts is None:
+                                    metrics_last_ts = last_ts
+                                else:
+                                    if last_ts < metrics_last_ts:
+                                        metrics_last_ts = last_ts
                                 participant_dict[participant_folder.name][
                                     participant_metric_folder.name
                                 ][metric_data.name] = {
                                     _LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY: first_ts,
                                     _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY: last_ts,
+                                }
+                                metrics_time_dict[participant_folder.name][
+                                    participant_metric_folder.name
+                                ] = {
+                                    _LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY: metrics_first_ts,
+                                    _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY: metrics_last_ts,
                                 }
                             else:
                                 if not metric_data.is_dir():
@@ -387,20 +413,58 @@ class LabfrontLoader:
                                     if csv_file.is_file() and str(csv_file).endswith(
                                         "csv"
                                     ):
+                                        if _LABFRONT_TODO_STRING == metric_data.name:
+                                            is_questionnaire_or_to_do = False
+                                        else:
+                                            is_questionnaire_or_to_do = True
                                         # If it is a file
                                         (
                                             first_ts,
                                             last_ts,
-                                        ) = self.get_labfront_file_time_stats(csv_file)
+                                        ) = self.get_labfront_file_time_stats(
+                                            csv_file,
+                                            is_questionnaire_or_to_do=is_questionnaire_or_to_do,
+                                        )
+                                        # Update first time stamp of the metric
+                                        if metrics_first_ts is None:
+                                            metrics_first_ts = first_ts
+                                        else:
+                                            if first_ts < metrics_first_ts:
+                                                metrics_first_ts = first_ts
+                                        # Update last time stamp of the metric
+                                        if metrics_last_ts is None:
+                                            metrics_last_ts = last_ts
+                                        else:
+                                            if last_ts < metrics_last_ts:
+                                                metrics_last_ts = last_ts
                                         participant_dict[participant_folder.name][
                                             participant_metric_folder.name
                                         ][metric_data.name][csv_file.name] = {
                                             _LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY: first_ts,
                                             _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY: last_ts,
                                         }
-        return participant_dict
+                        metrics_time_dict[participant_folder.name][
+                            participant_metric_folder.name
+                        ] = {
+                            _LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY: metrics_first_ts,
+                            _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY: metrics_last_ts,
+                        }
 
-    def get_labfront_file_time_stats(self, path_to_file):
+        return participant_dict, metrics_time_dict
+
+    def get_first_unix_timestamp(self, user_id, metric):
+        return self.metrics_data_dictionary[self.get_full_id(user_id)][metric][
+            _LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY
+        ]
+
+    def get_last_unix_timestamp(self, user_id, metric):
+        return self.metrics_data_dictionary[self.get_full_id(user_id)][metric][
+            _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY
+        ]
+
+    def get_labfront_file_time_stats(
+        self, path_to_file, is_questionnaire_or_to_do=False
+    ):
         """Get time statistics from Labfront csv file.
 
         Args:
@@ -1222,6 +1286,8 @@ class LabfrontLoader:
                             <= end_date
                         )
                     ]
+        else:
+            return pd.DataFrame()
 
     def load_garmin_connect_stress(
         self, participant_id, start_date=None, end_date=None
@@ -1559,13 +1625,15 @@ class LabfrontLoader:
         Returns:
             `class: pandas.DataFrame`: Hypnogram data.
         """
-        if not isinstance(calendar_day, datetime.datetime):
+        if isinstance(calendar_day, str):
             try:
-                calendar_day = datetime.datetime.strptime(calendar_day, "%Y-%m-%d")
+                calendar_day = dateutil.parser.parse(calendar_day)
             except:
                 raise ValueError(
                     f"Could not parse {calendar_day} into a valid calendar day"
                 )
+        elif type(calendar_day) == datetime.datetime:
+            calendar_day = calendar_day.date()
         # Get start and end days from calendar date
         start_date = calendar_day - datetime.timedelta(days=1)
         end_date = calendar_day + datetime.timedelta(days=1)
@@ -1574,42 +1642,33 @@ class LabfrontLoader:
             participant_id=participant_id, start_date=start_date, end_date=end_date
         )
 
-        sleep_summary_row = sleep_summary[
-            sleep_summary.calendarDate == calendar_day
-        ].reset_index(drop=True)
-
-        sleep_start_time = (
-            pd.to_datetime(
-                (
-                    sleep_summary_row[_LABFRONT_UNIXTIMESTAMP_MS_KEY]
-                    + sleep_summary_row[_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY]
-                ),
-                unit="ms",
-                utc=True,
-            )
-            .dt.tz_localize(None)
+        sleep_summary_row = (
+            sleep_summary[sleep_summary.calendarDate == calendar_day]
+            .reset_index(drop=True)
             .iloc[0]
         )
 
-        sleep_end_time = (
-            pd.to_datetime(
-                (
-                    sleep_summary_row[_LABFRONT_UNIXTIMESTAMP_MS_KEY]
-                    + sleep_summary_row[_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY]
-                    + sleep_summary_row[
-                        _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_IN_MS_COL
-                    ]
-                    + sleep_summary_row[
-                        _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL
-                    ]
-                ),
-                unit="ms",
-                utc=True,
+        sleep_start_time = datetime.datetime.utcfromtimestamp(
+            (
+                sleep_summary_row[_LABFRONT_UNIXTIMESTAMP_MS_KEY]
+                + sleep_summary_row[_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY]
             )
-            .dt.tz_localize(None)
-            .iloc[0]
+            / 1000
         )
 
+        sleep_end_time = datetime.datetime.utcfromtimestamp(
+            (
+                sleep_summary_row[_LABFRONT_UNIXTIMESTAMP_MS_KEY]
+                + sleep_summary_row[_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY]
+                + sleep_summary_row[
+                    _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_IN_MS_COL
+                ]
+                + sleep_summary_row[
+                    _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL
+                ]
+            )
+            / 1000
+        )
         sleep_stages = self.load_garmin_connect_sleep_stage(
             participant_id=participant_id,
             start_date=sleep_start_time,
