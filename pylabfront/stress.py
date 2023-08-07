@@ -530,12 +530,11 @@ def get_sleep_battery_recovery(
                     continue
 
                 df = df[~df[_LABFRONT_BODY_BATTERY_KEY].isna()]
-                if len(df) == 0:
-                    continue
-                # find body battery the closest possible to those times, restrict search to plausible timestamps
+                df = df.groupby(_LABFRONT_ISO_DATE_KEY)[_LABFRONT_BODY_BATTERY_KEY].mean().sort_index()
+
                 data_dict[user][k] = int(
-                    df[_LABFRONT_BODY_BATTERY_KEY].iloc[-1]
-                    - df[_LABFRONT_BODY_BATTERY_KEY].iloc[0]
+                    df.iloc[-1]
+                    - df.iloc[0]
                 )
 
     return data_dict
