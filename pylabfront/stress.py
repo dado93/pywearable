@@ -636,3 +636,18 @@ def get_max_body_battery(loader, start_date, end_date, user_id="all"):
             data_dict[user] = None
 
     return data_dict
+
+def get_daily_average_stress(loader, start_date=None, end_date=None, user_id="all"):
+    
+    daily_stress_stats = get_daily_stress_statistics(loader,start_date, end_date, user_id)
+    
+    data_dict = {}
+
+    for user_id in daily_stress_stats.keys():
+        if daily_stress_stats[user_id] is None:
+            data_dict[user_id] = None
+        else:
+            data_dict[user_id] = {k.date():v[0] for k,v in daily_stress_stats[user_id].items()}
+        
+    return data_dict
+    
