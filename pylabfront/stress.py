@@ -530,6 +530,8 @@ def get_sleep_battery_recovery(
                     continue
 
                 df = df[~df[_LABFRONT_BODY_BATTERY_KEY].isna()]
+                if len(df) == 0:
+                    continue
                 df = df.groupby(_LABFRONT_ISO_DATE_KEY)[_LABFRONT_BODY_BATTERY_KEY].mean().sort_index()
 
                 data_dict[user][k] = int(
