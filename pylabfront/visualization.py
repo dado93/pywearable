@@ -519,6 +519,7 @@ def get_sleep_summary_graph(
         periods=(end_date - start_date).days,
         freq="D",
     )
+    time_period = pd.Series(time_period).dt.date
 
     # define color-coding based on garmin connect visuals
     color_dict = {1: "royalblue", 3: "darkblue", 4: "darkmagenta", 0: "hotpink"}
@@ -648,7 +649,7 @@ def get_sleep_summary_graph(
 
     ax.set_yticks(
         [i * POSITION for i in range(len(time_period))],
-        time_period.strftime("%d/%m").values,
+        [date.strftime("%d/%m") for date in time_period],
         rotation=0,
         fontsize=14,
     )
