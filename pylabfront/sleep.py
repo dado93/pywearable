@@ -1494,6 +1494,7 @@ def get_sleep_midpoints(loader,
         ID of the user for which sleep midpoints are computed, by default "all".
     average : bool, optional
         Whether to return the average midpoint for the user (in hours, from midnight), by default False
+<<<<<<< HEAD
     return_days : bool, optional
         Whether to show the days used for the computation of the average, by default False
 
@@ -1502,6 +1503,8 @@ def get_sleep_midpoints(loader,
     dict
         Dictionary with user ids as primary keys, if average is False then dates as secondary keys
         and sleep timestamps as values, otherwise the average for that user
+=======
+>>>>>>> f7aa72280ae9366d5b703dc4e3fdbb88cf093854
     """
     data_dict = {}
 
@@ -1621,7 +1624,7 @@ def get_cpd(loader,
             verbose=False):
     """Computes composite phase deviation (CPD)
 
-    Returns a measure of sleep regularity, either in terms of stability of rest midpoints
+    Returns a measure of sleep regularity, either in terms of stabmidpoints = ility of rest midpoints
     if `sleep_metric` is 'midpoint', or in terms of duration is `sleep_metric` is 'duration'.
     The measure is computed for the period between `start_date` and `end_date` 
     but only keeping in consideration the most recent `days_to_consider`.
