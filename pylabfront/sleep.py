@@ -1413,7 +1413,7 @@ def get_nrem_sleep_percentage(
 def get_sleep_timestamps(loader,
                          start_date=None,
                          end_date=None,
-                         user_ids="all",
+                         user_id="all",
                          average=False):
     """Get the timestamps of the beginning and the end of sleep occurrences.
 
@@ -1427,7 +1427,7 @@ def get_sleep_timestamps(loader,
         Start date of the period of interest, by default None.
     end_date : class:`datetime.datetime`, optional
         End date of the period of interest, by default None.
-    user_ids : :class:`str`, optional
+    user_id : :class:`str`, optional
         ID of the user for which sleep timestamps are computed, by default "all".
     average : :class:`bool`, optional
         Whether to calculate the average sleep and awake time of the user (in hours), by default False.
@@ -1440,12 +1440,12 @@ def get_sleep_timestamps(loader,
     """
     data_dict = {}
 
-    user_ids = utils.get_user_ids(loader, user_ids)
+    user_id = utils.get_user_ids(loader, user_id)
 
-    for user_id in user_ids:
+    for user in user_id:
         # better to give a bit of rooms before and after start_date and end_date to ensure they're included
         df = loader.load_garmin_connect_sleep_summary(
-            user_id,
+            user,
             start_date,
             end_date
         )
@@ -1456,27 +1456,27 @@ def get_sleep_timestamps(loader,
             df["waking_time"] = df[_LABFRONT_ISO_DATE_KEY] + df[
                 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_MS_COL
             ].astype(int).apply(lambda x: datetime.timedelta(milliseconds=x))
-            data_dict[user_id] = pd.Series(
+            data_dict[user] = pd.Series(
                 zip(df[_LABFRONT_ISO_DATE_KEY].dt.to_pydatetime(), df["waking_time"].dt.to_pydatetime()),
                 df[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL],
             ).to_dict()
             if average:
-                sleep_times = [timestamp[0] for timestamp in data_dict[user_id].values()]
-                wake_times = [timestamp[1] for timestamp in data_dict[user_id].values()]
+                sleep_times = [timestamp[0] for timestamp in data_dict[user].values()]
+                wake_times = [timestamp[1] for timestamp in data_dict[user].values()]
                 sleep_times = [item.strftime("%H:%M") for item in sleep_times]
                 wake_times = [item.strftime("%H:%M") for item in wake_times]
                 mean_sleep_time = utils.mean_time(sleep_times)
                 mean_wake_time = utils.mean_time(wake_times)
-                data_dict[user_id] = (mean_sleep_time,mean_wake_time)
+                data_dict[user] = (mean_sleep_time,mean_wake_time)
         else:
-            data_dict[user_id] = None
+            data_dict[user] = None
 
     return data_dict
 
 def get_sleep_midpoints(loader,
                         start_date=None,
                         end_date=None,
-                        user_ids="all",
+                        user_id="all",
                         average=False,
                         return_days=False):
     """Get the midpoints of sleeping occurrences
@@ -1490,7 +1490,7 @@ def get_sleep_midpoints(loader,
         Start date of the period of interest, by default None.
     end_date : :class:`datetime.datetime`, optional
         End date of the period of interest, by default None.
-    user : :class:`str`, optional
+    user_id : :class:`str`, optional
         ID of the user for which sleep midpoints are computed, by default "all".
     average : bool, optional
         Whether to return the average midpoint for the user (in hours, from midnight), by default False
@@ -1505,33 +1505,33 @@ def get_sleep_midpoints(loader,
     """
     data_dict = {}
 
-    user_ids = utils.get_user_ids(loader, user_ids)
+    user_id = utils.get_user_ids(loader, user_id)
 
-    for user_id in user_ids:
+    for user in user_id:
         sleep_timestamps = get_sleep_timestamps(loader,
                                                 start_date,
                                                 end_date,
-                                                user_id)[user_id]
+                                                user)[user]
         if sleep_timestamps is None:
-            data_dict[user_id] = None
+            data_dict[user] = None
         else:
-            data_dict[user_id] = OrderedDict()
+            data_dict[user] = OrderedDict()
             for k,v in sleep_timestamps.items():
                 daily_start_hour = v[0]
                 daily_end_hour = v[1]
                 midpoint = daily_start_hour + (daily_end_hour-daily_start_hour)/2
-                data_dict[user_id][k] = midpoint
+                data_dict[user][k] = midpoint
             if average:
-                days = list(data_dict[user_id].keys())
-                midpoints = [v for v in data_dict[user_id].values()]
+                days = list(data_dict[user].keys())
+                midpoints = [v for v in data_dict[user].values()]
                 midpoints = [midpoint.strftime("%H:%M") for midpoint in midpoints]
                 mean_midpoint = utils.mean_time(midpoints)
-                data_dict[user_id] = {}
+                data_dict[user] = {}
                 if return_days:
-                    data_dict[user_id]["average_midpoint"] = mean_midpoint
-                    data_dict[user_id]["days"] = days
+                    data_dict[user]["average_midpoint"] = mean_midpoint
+                    data_dict[user]["days"] = days
                 else:
-                    data_dict[user_id] = mean_midpoint
+                    data_dict[user] = mean_midpoint
     
     return data_dict
 
@@ -1539,7 +1539,7 @@ def get_sleep_midpoints(loader,
 def get_awakenings(loader, 
                    start_date, 
                    end_date, 
-                   user_ids="all", 
+                   user_id="all", 
                    average=False):
     """Get the number of awakenings
 
@@ -1550,30 +1550,31 @@ def get_awakenings(loader,
 
     Parameters
     ----------
-    loader : _type_
-        _description_
-    start_date : _type_
-        _description_
-    end_date : _type_
-        _description_
-    user_ids : str, optional
-        _description_, by default "all"
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    start_date : :class:`datetime.datetime`, optional
+        Start date of the period of interest, by default None.
+    end_date : :class:`datetime.datetime`, optional
+        End date of the period of interest, by default None.
+    user_id : :class:`str`, optional
+        ID of the user for which awakenings are computed, by default "all".
     average : bool, optional
-        _description_, by default False
+        Whether to return only the average number of awakenings per night for the user, by default False
 
     Returns
     -------
-    _type_
-        _description_
+    dict
+        Dictionary with user ids as primary keys, dates as secondary keys, and number of awakenings as values.
+        If `average` is set to True, the average and the dates used for its calculation are returned as values.
     """
 
-    user_ids = utils.get_user_ids(loader, user_ids)
+    user_id = utils.get_user_ids(loader, user_id)
 
     data_dict = {}
     if average:
         average_dict = {}
 
-    for user in user_ids:
+    for user in user_id:
         data_dict[user] = {}
         if average:
             average_dict[user] = {}
