@@ -5,6 +5,12 @@ This module contains utility functions that don't directly load/compute metrics
 
 import time
 import pandas as pd
+import numpy as np
+import datetime
+from cmath import phase
+from cmath import rect
+from math import degrees
+from math import radians
 
 
 _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY = 'lastSampleUnixTimestampInMs'
@@ -176,3 +182,20 @@ def trend_analysis(data_dict,
     df["NR_LOWER_BOUND"] = df["NR_MEAN"] - std_multiplier * df["NR_STD"]
     df["NR_UPPER_BOUND"] = df["NR_MEAN"] + std_multiplier * df["NR_STD"]
     return df 
+
+def mean_angle(deg):
+    return degrees(phase(sum(rect(1, radians(d)) for d in deg) / len(deg)))
+
+def mean_time(times):
+    t = (time.split(':') for time in times)
+    seconds = ((int(m) * 60 + int(h) * 3600)
+               for h, m in t)
+    day = 24 * 60 * 60
+    to_angles = [s * 360. / day for s in seconds]
+    mean_as_angle = mean_angle(to_angles)
+    mean_seconds = mean_as_angle * day / 360.
+    if mean_seconds < 0:
+        mean_seconds += day
+    h, m = divmod(mean_seconds, 3600)
+    m, s = divmod(m, 60)
+    return '%02i:%02i' % (h, m)
