@@ -1,37 +1,38 @@
 """
-This module contains utility functions that don't directly load/compute metrics
+This module contains utility functions that don't directly load/compute metrics.
 """
 
-
 import time
+from cmath import phase, rect
+from math import degrees, radians
+from typing import Union
+
 import pandas as pd
 
 
-_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY = 'lastSampleUnixTimestampInMs'
-_LABFRONT_QUESTIONNAIRE_STRING = 'questionnaire'
-_LABFRONT_TODO_STRING = 'todo'
-_MS_TO_DAY_CONVERSION = 1000*60*60*24
+_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY = "lastSampleUnixTimestampInMs"
+_LABFRONT_QUESTIONNAIRE_STRING = "questionnaire"
+_LABFRONT_TODO_STRING = "todo"
+_MS_TO_DAY_CONVERSION = 1000 * 60 * 60 * 24
 
-def get_user_ids(loader,
-                 user_id):
+
+def get_user_ids(labfront_loader, user_id: Union[str, list]):
     if user_id == "all":
-        user_id = loader.get_user_ids()
+        user_id = labfront_loader.get_full_ids()
 
-    if isinstance(user_id, str):
-        if user_id not in loader.get_user_ids():
-            raise ValueError("User not found")
-        else:
-            user_id = [user_id]
+    elif isinstance(user_id, str):
+        user_id = labfront_loader.get_full_id(user_id)
+        user_id = [user_id]
 
-    if not isinstance(user_id, list):
+    elif not isinstance(user_id, list):
         raise TypeError("user_id has to be a list.")
-    
+
     return user_id
 
-def get_summary(loader,
-                comparison_date=time.time()):
-    """ Returns a general summary of the latest update of every metric for every participant
-    
+
+def get_summary(labfront_loader, comparison_date=time.time()):
+    """Returns a general summary of the latest update of every metric for every participant
+
     Args:
         loader (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
         comparison_date (float): unix time in seconds for comparison. Defaults to the current unix time.
@@ -41,48 +42,76 @@ def get_summary(loader,
         Entries are NaN if the metric has never been registered for the participant.
     """
 
-    available_metrics = set(loader.get_available_metrics())
+    available_metrics = set(labfront_loader.get_available_metrics())
     available_metrics.discard("todo")
     available_metrics.discard("questionnaire")
     available_metrics = sorted(list(available_metrics))
-    available_questionnaires = loader.get_available_questionnaires()
-    available_todos = loader.get_available_todos()
+    available_questionnaires = labfront_loader.get_available_questionnaires()
+    available_todos = labfront_loader.get_available_todos()
 
     features_dictionary = {}
-    
-    for participant_id in sorted(loader.get_user_ids()):
-        full_participant_id = loader.get_full_id(participant_id)
+
+    for participant_id in sorted(labfront_loader.get_user_ids()):
+        full_participant_id = labfront_loader.get_full_id(participant_id)
         features_dictionary[participant_id] = {}
-        participant_metrics = loader.get_available_metrics([participant_id])
-        participant_questionnaires = loader.get_available_questionnaires([participant_id])
-        participant_todos = loader.get_available_todos([participant_id])
+        participant_metrics = labfront_loader.get_available_metrics([participant_id])
+        participant_questionnaires = labfront_loader.get_available_questionnaires(
+            [participant_id]
+        )
+        participant_todos = labfront_loader.get_available_todos([participant_id])
 
         for metric in available_metrics:
             if metric not in participant_metrics:
                 features_dictionary[participant_id][metric] = None
-            else: # figure out how many days since the last update
-               last_unix_times = [v[_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY] for v in loader.data_dictionary[full_participant_id][metric].values()]
-               number_of_days_since_update = (comparison_date*1000 - max(last_unix_times)) // _MS_TO_DAY_CONVERSION
-               features_dictionary[participant_id][metric] = number_of_days_since_update
-        
+            else:  # figure out how many days since the last update
+                last_unix_times = [
+                    v[_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY]
+                    for v in labfront_loader.data_dictionary[full_participant_id][
+                        metric
+                    ].values()
+                ]
+                number_of_days_since_update = (
+                    comparison_date * 1000 - max(last_unix_times)
+                ) // _MS_TO_DAY_CONVERSION
+                features_dictionary[participant_id][
+                    metric
+                ] = number_of_days_since_update
+
         for questionnaire in available_questionnaires:
             if questionnaire not in participant_questionnaires:
                 features_dictionary[participant_id][questionnaire] = None
             else:
-                last_unix_times = [v[_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY] for v in loader.data_dictionary[full_participant_id][_LABFRONT_QUESTIONNAIRE_STRING][questionnaire].values()]
-                number_of_days_since_update = (comparison_date*1000 - max(last_unix_times)) // _MS_TO_DAY_CONVERSION
-                features_dictionary[participant_id][questionnaire] = number_of_days_since_update
+                last_unix_times = [
+                    v[_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY]
+                    for v in labfront_loader.data_dictionary[full_participant_id][
+                        _LABFRONT_QUESTIONNAIRE_STRING
+                    ][questionnaire].values()
+                ]
+                number_of_days_since_update = (
+                    comparison_date * 1000 - max(last_unix_times)
+                ) // _MS_TO_DAY_CONVERSION
+                features_dictionary[participant_id][
+                    questionnaire
+                ] = number_of_days_since_update
 
         for todo in available_todos:
             if todo not in participant_todos:
                 features_dictionary[participant_id][todo] = None
             else:
-                last_unix_times = [v[_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY] for v in loader.data_dictionary[full_participant_id][_LABFRONT_TODO_STRING][todo].values()]
-                number_of_days_since_update = (comparison_date*1000 - max(last_unix_times)) // _MS_TO_DAY_CONVERSION
+                last_unix_times = [
+                    v[_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY]
+                    for v in labfront_loader.data_dictionary[full_participant_id][
+                        _LABFRONT_TODO_STRING
+                    ][todo].values()
+                ]
+                number_of_days_since_update = (
+                    comparison_date * 1000 - max(last_unix_times)
+                ) // _MS_TO_DAY_CONVERSION
                 features_dictionary[participant_id][todo] = number_of_days_since_update
 
     df = pd.DataFrame(features_dictionary)
     return df.T
+
 
 def is_task_repeatable(file_path):
     """Returns boolean indication of questionnaire/todo repeatability
@@ -94,13 +123,14 @@ def is_task_repeatable(file_path):
         bool: Indication if the questionnaire/todo is repeatable
     """
     csv_path = list((file_path).iterdir())[0]
-    with open(csv_path,"r") as f:
+    with open(csv_path, "r") as f:
         for _ in range(5):
             line = f.readline().split(",")
     return line[7] == "true"
 
+
 def is_weekend(day):
-    """ Indication if the day considered is either a Saturday or Sunday.
+    """Indication if the day considered is either a Saturday or Sunday.
 
     Args:
         day (datetime): date of interest.
@@ -108,11 +138,11 @@ def is_weekend(day):
     Returns:
         bool: True/False depending if day is a weekend day or not.
     """
-    return day.weekday() in [5,6]
+    return day.weekday() in [5, 6]
 
-def find_nearest_timestamp(timestamp,
-                           timestamp_array):
-    """ Finds the closest time between a set of timestamps to a given timestamp.
+
+def find_nearest_timestamp(timestamp, timestamp_array):
+    """Finds the closest time between a set of timestamps to a given timestamp.
 
     Args:
         timestamp (datetime): Date of interest, of which to find closest timestamp.
@@ -123,15 +153,18 @@ def find_nearest_timestamp(timestamp,
     """
     return min(timestamp_array, key=lambda x: abs(x - timestamp))
 
-def trend_analysis(data_dict,
-                   start_date,
-                   end_date,
-                   ma_kind = "normal",
-                   baseline_periods=7,
-                   min_periods_baseline=3,
-                   normal_range_periods=30,
-                   min_periods_normal_range=20,
-                   std_multiplier=1):
+
+def trend_analysis(
+    data_dict,
+    start_date,
+    end_date,
+    ma_kind="normal",
+    baseline_periods=7,
+    min_periods_baseline=3,
+    normal_range_periods=30,
+    min_periods_normal_range=20,
+    std_multiplier=1,
+):
     """Performs trend analysis on daily data for a pre-loaded metric.
 
     Parameters
@@ -164,15 +197,41 @@ def trend_analysis(data_dict,
     s = pd.Series(data_dict)
     s.index = pd.DatetimeIndex(s.index)
     s = s.reindex(idx, fill_value=None)
-    df = pd.DataFrame(s,columns=["metric"])
+    df = pd.DataFrame(s, columns=["metric"])
     if ma_kind == "normal":
-        df["BASELINE"] = df.metric.rolling(window=baseline_periods,min_periods=min_periods_baseline).mean()
+        df["BASELINE"] = df.metric.rolling(
+            window=baseline_periods, min_periods=min_periods_baseline
+        ).mean()
     elif ma_kind == "exponential":
-        df["BASELINE"] = df.metric.ewm(span=baseline_periods,min_periods=min_periods_baseline).mean()
+        df["BASELINE"] = df.metric.ewm(
+            span=baseline_periods, min_periods=min_periods_baseline
+        ).mean()
     else:
         raise ValueError('Moving average kind can only be "normal" or "exponential"')
-    df["NR_MEAN"] = df.metric.rolling(window=normal_range_periods,min_periods=min_periods_normal_range).mean()
-    df["NR_STD"] = df.metric.rolling(window=normal_range_periods,min_periods=min_periods_normal_range).std()
+    df["NR_MEAN"] = df.metric.rolling(
+        window=normal_range_periods, min_periods=min_periods_normal_range
+    ).mean()
+    df["NR_STD"] = df.metric.rolling(
+        window=normal_range_periods, min_periods=min_periods_normal_range
+    ).std()
     df["NR_LOWER_BOUND"] = df["NR_MEAN"] - std_multiplier * df["NR_STD"]
     df["NR_UPPER_BOUND"] = df["NR_MEAN"] + std_multiplier * df["NR_STD"]
-    return df 
+    return df
+
+
+def mean_angle(deg):
+    return degrees(phase(sum(rect(1, radians(d)) for d in deg) / len(deg)))
+
+
+def mean_time(times):
+    t = (time.split(":") for time in times)
+    seconds = ((int(m) * 60 + int(h) * 3600) for h, m in t)
+    day = 24 * 60 * 60
+    to_angles = [s * 360.0 / day for s in seconds]
+    mean_as_angle = mean_angle(to_angles)
+    mean_seconds = mean_as_angle * day / 360.0
+    if mean_seconds < 0:
+        mean_seconds += day
+    h, m = divmod(mean_seconds, 3600)
+    m, s = divmod(m, 60)
+    return "%02i:%02i" % (h, m)

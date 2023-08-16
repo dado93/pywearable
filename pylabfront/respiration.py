@@ -80,28 +80,16 @@ def get_breaths_per_minute(
                 respiratory_data = respiratory_data[respiratory_data.sleep == 1]
 
             if len(respiratory_data) > 0:
-                if day_or_night == _RESPIRATION_DAY:
-                    respiratory_data["Date"] = respiratory_data[
-                        labfront_loader.date_column
-                    ].dt.date
-                    data_dict[user] = (
-                        respiratory_data.groupby("Date")[
-                            loader._LABFRONT_RESPIRATION_COLUMN
-                        ]
-                        .mean()
-                        .to_dict()
-                    )
-                else:
-                    respiratory_data["Date"] = respiratory_data[
-                        loader._LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL
-                    ].dt.date
-                    data_dict[user] = (
-                        respiratory_data.groupby("Date")[
-                            loader._LABFRONT_RESPIRATION_COLUMN
-                        ]
-                        .mean()
-                        .to_dict()
-                    )
+                respiratory_data["Date"] = respiratory_data[
+                    labfront_loader.date_column
+                ].dt.date
+                data_dict[user] = (
+                    respiratory_data.groupby("Date")[
+                        loader._LABFRONT_RESPIRATION_COLUMN
+                    ]
+                    .mean()
+                    .to_dict()
+                )
                 if average:
                     respiration_data_df = pd.DataFrame.from_dict(
                         data_dict[user], orient="index"

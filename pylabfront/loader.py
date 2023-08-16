@@ -6,9 +6,8 @@ import datetime
 import os
 import re
 from pathlib import Path
-from typing import Union
+from typing import Union, Tuple
 import dateutil.parser
-from pytz import timezone
 
 import pandas as pd
 
@@ -113,42 +112,60 @@ class LabfrontLoader:
 
     Parameters
     ----------
-        data_path: `class:str`
+        data_path: str or Path
             Path to folder containing Labfront data.
     """
 
-    def __init__(self, data_path):
+    def __init__(self, data_path: Union[str, Path]):
         """Constructor method"""
         self.set_path(data_path)
         self.date_column = _LABFRONT_ISO_DATE_KEY
 
-    def set_path(self, data_path):
+    def set_path(self, data_path: Union[str, Path]):
         """Set path to folder containing Labfront data.
+
+        This function allows to change the path of Labfront data
+        to be loaded.
 
         Parameters
         ----------
-            data_path: :class:`str`
-                Path to folder containing Labfront data.
+        data_path : str or Path
+            Path to folder containing Labfront data.
         """
         if not isinstance(data_path, Path):
             data_path = Path(data_path)
         self.data_path = data_path
         self.ids, self.labfront_ids = self.get_ids()
+        self.full_ids = self.get_full_ids()
         self.ids_dict = self.get_ids(return_dict=True)
-        self.ids_list = self.get_participant_list()
         self.data_dictionary, self.metrics_data_dictionary = self.get_time_dictionary()
         self.tasks_dict = self.get_available_questionnaires(
             return_dict=True
         ) | self.get_available_todos(return_dict=True)
 
-    def get_user_id(self, full_id):
-        regex_match = re.search(".{8}-.{4}-.{4}-.{4}-.{12}", full_id)
-        if regex_match:
-            labfront_id = full_id[regex_match.span()[0] : regex_match.span()[1]]
-            id = full_id[: regex_match.span()[0] - 1]
+    def get_user_id(self, full_id: str) -> str:
+        """Extract user ID from full ID.
+
+        Parameters
+        ----------
+        full_id : str
+            Full ID, composed of User ID and Labfront ID.
+
+        Returns
+        -------
+        str
+            User ID.
+
+        Raises
+        ------
+        ValueError
+            If not user ID could be extracted.
+        """
+        if "_" in full_id:
+            # Labfront separates user ID from Labfront ID using "_"
+            return full_id.split("_")[0]
         else:
-            raise ValueError("Could not extract user id.")
-        return id
+            raise ValueError("Could not extract user ID.")
 
     def get_user_ids(self):
         return self.ids
@@ -156,56 +173,76 @@ class LabfrontLoader:
     def get_labfront_ids(self):
         return self.labfront_ids
 
-    def get_ids(self, return_dict=False):
-        """Get user IDs from folder with data.
+    def get_ids(self, return_dict: bool = False) -> Union[Tuple[list, list], dict]:
+        """Get IDs of users from folder with data.
 
         This function returns both user IDs (set in the Labfront dashboard
-        when inserting new participants by the study coordinator)
+        when new participants are inserted by the study coordinator)
         and Labfront IDs. You can either choose to get the IDs in a dictionary format,
         or as two separate lists.
 
         Parameters
         ----------
-        folder: :class:`str`
-            Path to folder containing data from participants.
-        return_dict: :class:`bool`, optional
-            Whether to return a dictionary or two separate lists, by default False.
+        return_dict : bool, optional
+             Whether to return a dictionary or two separate lists, by default False
 
         Returns
         -------
-            list: User IDs of participants (set by study coordinator)
-            list: Labfront IDs of participants
+        (list, list) or dict
+            User IDs and Labfront IDs, as a tuple with two lists if `return_dict` was `False`,
+            otherwise as a dictionary.
         """
         # Get the names of the folder in root_folder
-        folder_names = os.listdir(self.data_path)
         ids = []
         labfront_ids = []
-        for folder_name in folder_names:
+        for folder_name in self.data_path.iterdir():
             # Check that we have a folder
-            if os.path.isdir(os.path.join(self.data_path, folder_name)):
+            if folder_name.is_dir():
                 # Check if we have a Labfront ID
-                regex_match = re.search(".{8}-.{4}-.{4}-.{4}-.{12}", folder_name)
-                if regex_match:
-                    labfront_id = folder_name[
-                        regex_match.span()[0] : regex_match.span()[1]
-                    ]
-                    id = folder_name[: regex_match.span()[0] - 1]
-                else:
-                    labfront_id = ""
-                    id = folder_name
-                # labfront_id = folder_name[-_LABFRONT_ID_LENGHT + 1 :]
-                # id = folder_name[: (len(folder_name) - _LABFRONT_ID_LENGHT)]
-                labfront_ids.append(labfront_id)
-                ids.append(id)
+                if "_" in folder_name.name:
+                    labfront_id = folder_name.name.split("_")[1]
+                    id = folder_name.name.split("_")[0]
+                    labfront_ids.append(labfront_id)
+                    ids.append(id)
         if return_dict:
             return dict(zip(ids, labfront_ids))
         return ids, labfront_ids
 
-    def get_participant_list(self):
-        """Get list of users in "[user_id]_[labfront_id]" format.
+    def get_full_id(self, id: str):
+        """Get full participant ID.
+
+        Args:
+            id (str): Unique identifier for the participant.
 
         Returns:
-            list: List of user IDs.
+            str: Full participant ID.
+        """
+        if "_" in id:
+            # This is already a full ID
+            return id
+        elif id in self.ids:
+            # This is a user ID
+            # Check if we have duplicates
+            if self.ids.count(id) > 1:
+                raise ValueError(
+                    f"Multiple users exist with ID {id}. Specificy either Labfront ID or full ID."
+                )
+            return id + "_" + self.ids_dict[id]
+        elif id in self.labfront_ids:
+            # This is a Labfront ID
+            # -> Invert dictionary
+            inv_ids_dict = {v: k for k, v in self.ids_dict.items()}
+            return inv_ids_dict[id] + "_" + id
+        else:
+            raise ValueError(f"Could not get full_id from {id}")
+
+    def get_full_ids(self) -> list:
+        """Get list of users in "[user_id]_[labfront_id]" format.
+
+        Returns
+        -------
+        list
+            List of user IDs.
         """
         participant_ids = [
             k + "_" + v for k, v in self.get_ids(return_dict=True).items()
@@ -319,7 +356,7 @@ class LabfrontLoader:
         else:
             return sorted(list(todos))
 
-    def get_time_dictionary(self):
+    def get_time_dictionary(self) -> (list, list):
         """Create a dictionary with start and end times for all files for all users.
 
         This function creates and returns a dictionary with start and
@@ -539,8 +576,12 @@ class LabfrontLoader:
             with ValueError as e:
                 raise e + "Please specify name of questionnaire or of todo."
 
-        if user_id not in self.ids:
-            return []
+        if not (
+            (user_id in self.ids)
+            or (user_id in self.labfront_ids)
+            or (user_id in self.full_ids)
+        ):
+            raise ValueError(f"User with ID {user_id} was not found.")
 
         # Get full participant_id (user + labfront)
         participant_id = self.get_full_id(user_id)
@@ -636,30 +677,41 @@ class LabfrontLoader:
         This function allows to load data of a given metric from a specified user
         only within a given timeframe. If `start_date` and `end_date` are set to None, then
         all data available for the user of interest are returned.
-        If no data are available, then an empty DataFrame is returned.
+        If no data are available, then an empty :class:`pandas.DataFrame` is returned.
 
         Parameters
         ----------
-            user_id: :class:`str`
-                User identifier, set by study coordinator.
-            metric (str): Metric of interest
-            start_date (datetime): Start date and time of interest. Defaults to None.
-            end_date (datetime): End date and time of interest. Defaults to None.
-            is_questionnaire (bool, optional): Metric of interest is a questionnaire. Defaults to False.
-            is_todo (bool, optional): Metric of interest is a todo. Defaults to False.
-            task_name (str, optional): Name of the questionnaire or of the todo. Defaults to None.
-
-        Raises
-        ------
-            ValueError: Not possible to load from both questionnaires and todos at the same time.
-            ValueError: No name specified for questionnaire or todo.
-            ValueError: The ID of the participant was not found among available IDs.
+        user_id : str
+            User identifier.
+        metric : str
+            Metric of interest.
+        start_date : datetime.datetime or datetime.date or str or None, optional
+            Start date and time of interest, by default None
+        end_date : datetime.datetime or datetime.date or str or None, optional
+            End date and time of interest, by default None
+        is_questionnaire : bool, optional
+            Metric of interest is a questionnaire, by default False
+        is_todo : bool, optional
+            Metric of interest is a todo, by default False
+        task_name : str, optional
+            Name of the questionnaire or of the todo, by default None
 
         Returns
         -------
-            :class:`pd.DataFrame`: Dataframe with the data of interest.
+        pd.DataFrame
+            Dataframe with the data of interest.
+
+        Raises
+        ------
+        ValueError
+            Not possible to load from both questionnaires and todos at the same time.
+        ValueError
+            No name specified for questionnaire or todo.
+        ValueError
+            The ID was not found among available IDs.
         """
 
+        # Check questionnaire or todo
         if is_questionnaire and is_todo:
             raise ValueError("Select only questionnaire or todo.")
         if (is_questionnaire or is_todo) and (task_name is None):
@@ -667,9 +719,14 @@ class LabfrontLoader:
         if is_questionnaire or is_todo:
             task_name = self.get_task_full_id(task_name.lower())
 
-        if user_id not in self.ids:
-            raise ValueError(f"participant_id {user_id} not found.")
+        if not (
+            (user_id in self.ids)
+            or (user_id in self.labfront_ids)
+            or (user_id in self.full_ids)
+        ):
+            raise ValueError(f"User with ID {user_id} was not found.")
 
+        # Check dates and times
         if not (
             (type(start_date) == datetime.datetime)
             or (type(start_date) == datetime.date)
@@ -790,8 +847,6 @@ class LabfrontLoader:
             raise ValueError(
                 f"Could not find questions for questionnaire {questionnaire_name}"
             )
-        # From full ID to user ID
-        participant_id = self.get_user_id(participant_id)
 
         files = self.get_files_from_timerange(
             participant_id,
@@ -805,8 +860,6 @@ class LabfrontLoader:
 
         if len(files) == 0:
             return {}
-        # Convert participant id to full ID
-        participant_id = self.get_full_id(participant_id)
 
         path_to_folder = (
             self.data_path
@@ -856,7 +909,7 @@ class LabfrontLoader:
             for k in questionnaire_questions.keys()
         ]
 
-        for participant in self.ids:
+        for participant in self.full_ids:
             try:
                 questionnaire_data = self.load_questionnaire(
                     participant, task_name=questionnaire
@@ -967,7 +1020,6 @@ class LabfrontLoader:
         participant_ids = utils.get_user_ids(self, user_id)
 
         for participant_id in participant_ids:
-            participant_id = self.get_full_id(participant_id)
             participant_path = self.data_path / participant_id
             participant_metrics = set(
                 [
@@ -978,20 +1030,6 @@ class LabfrontLoader:
             )
             metrics |= participant_metrics
         return sorted(list(metrics))
-
-    def get_full_id(self, id):
-        """Get full participant ID.
-
-        Args:
-            id (str): Unique identifier for the participant.
-
-        Returns:
-            str: Full participant ID.
-        """
-        if self.ids_dict[id] == "":
-            return id
-        else:
-            return id + "_" + self.ids_dict[id]
 
     def get_task_full_id(self, task_id):
         """Get full task ID.
@@ -1123,21 +1161,20 @@ class LabfrontLoader:
         ).reset_index(drop=True)
 
         # Add calendar date from sleep summary
-        sleep_summary = (
-            self.load_garmin_connect_sleep_summary(
-                participant_id,
-                start_date,
-                end_date,
-            )
-            .reset_index(drop=True)
-            .loc[
+        sleep_summary = self.load_garmin_connect_sleep_summary(
+            participant_id,
+            start_date,
+            end_date,
+        ).reset_index(drop=True)
+
+        if len(sleep_summary) > 0:
+            sleep_summary = sleep_summary.loc[
                 :,
                 [
                     _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SUMMARY_COL,
                     _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL,
                 ],
             ]
-        )
 
         if len(sleep_data) > 0:
             sleep_data = pd.merge(
