@@ -618,42 +618,6 @@ class LabfrontLoader:
 
         return first_unix_timestamp, last_unix_timestamp
 
-    """
-    Get files containing daily data from within a given time range.
-
-        This function retrieves the files that contain data in a given time range. By setting start
-        and end times to the time range of interest, this function returns all the files that
-        contain data within this time range. This function is based on unix timestamps, thus it
-        does not take into account timezones. In order to find the files containing data within
-        the timerange, 12 hours are removed (added) from the start_date (end_date).
-        In case no files are available to be loaded, then an empty list is returned.
-
-        Parameters
-        ----------
-            participant_id: class:`str`
-                Unique participant identifier, set by study coordinator.
-            metric: class:`str`
-                Metric of interest.
-            start_date: class:`datetime.datetime`
-                Start date and time of interest
-            end_date: class:`datetime.datetime`
-                End date and time of interest
-            is_questionnaire: class:`bool`, optional
-                Metric of interest is a questionnaire, by default False.
-            is_todo: class:`bool`, optional
-                Metric of interest is a todo, by defaults False.
-            task_name: :class:`str`, optional
-                Name of the questionnaire or of the todo, by default None.
-
-        Raises
-        ------
-            ValueError: If both `is_questionnaire` and `is_todo` are set to True
-
-        Returns
-        -------
-            :class:`list`: Array with files that are closest to the requested datetime.
-    """
-
     def get_files_from_timerange(
         self,
         user_id: str,
@@ -2021,7 +1985,7 @@ class LabfrontLoader:
         end_date = calendar_day + datetime.timedelta(days=1)
         # Load sleep summary and sleep stages data
         sleep_summary = self.load_garmin_connect_sleep_summary(
-            participant_id=user_id, start_date=start_date, end_date=end_date
+            user_id=user_id, start_date=start_date, end_date=end_date
         )
 
         sleep_summary_row = (
@@ -2052,7 +2016,7 @@ class LabfrontLoader:
             / 1000
         )
         sleep_stages = self.load_garmin_connect_sleep_stage(
-            participant_id=user_id,
+            user_id=user_id,
             start_date=sleep_start_time,
             end_date=sleep_end_time,
         )
