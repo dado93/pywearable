@@ -101,11 +101,7 @@ def get_time_in_sleep_stage(
     if average:
         average_dict = {}
 
-    if user_id == "all":
-        # get all participant ids automatically
-        user_id = loader.get_user_ids()
-    if isinstance(user_id, str):
-        user_id = [user_id]
+    user_id = utils.get_user_ids(loader, user_id)
 
     if not isinstance(user_id, list):
         raise TypeError("user_id has to be a list.")
@@ -552,15 +548,7 @@ def get_sleep_statistics(
     Returns:
         _type_: _description_
     """
-    if user_id == "all":
-        # get all participant ids automatically
-        user_id = labfront_loader.get_user_ids()
-
-    if isinstance(user_id, str):
-        user_id = [user_id]
-
-    if not isinstance(user_id, list):
-        raise TypeError("user_id has to be a list.")
+    user_id = utils.get_user_ids(labfront_loader, user_id)
 
     data_dict = {}
     average_dict = {}
