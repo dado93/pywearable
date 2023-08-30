@@ -1040,7 +1040,7 @@ class LabfrontLoader:
         for participant in self.full_ids:
             try:
                 questionnaire_data = self.load_questionnaire(
-                    participant, task_name=questionnaire
+                    participant, questionnaire_name=questionnaire
                 )
             except KeyError:
                 if verbose:

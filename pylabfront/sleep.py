@@ -1610,18 +1610,16 @@ def get_awakenings(loader, start_date, end_date, user_id="all", average=False):
         return average_dict
     return data_dict
 
-
-def get_cpd(
-    loader,
-    start_date=None,
-    end_date=None,
-    user=None,
-    sleep_metric="midpoint",
-    chronotype_sleep_start="00:00",
-    chronotype_sleep_end="08:00",
-    days_to_consider=28,
-    verbose=False,
-):
+def get_cpd(loader, 
+            start_date=None,
+            end_date=None,
+            user=None,
+            sleep_metric="midpoint",
+            chronotype_sleep_start = "00:00",
+            chronotype_sleep_end = "08:00",
+            days_to_consider=28,
+            verbose=False,
+            average=True):
     """Computes composite phase deviation (CPD)
 
     Returns a measure of sleep regularity, either in terms of stabmidpoints = ility of rest midpoints
@@ -1648,6 +1646,8 @@ def get_cpd(
         the maximum number of days to consider in the period of interest, by default 28
     verbose : :class:`str`, optional
         whether to show daily cpd components
+    average : :class:`bool`, optional
+        whether to return the CPD or the single day CPD components
 
     Returns
     -------
@@ -1667,6 +1667,7 @@ def get_cpd(
 
         previous_midpoint = None
         CPDs = []
+        dates = []
 
         try:
             for calendar_date, midpoint in list(sleep_midpoints.items())[
@@ -1715,6 +1716,7 @@ def get_cpd(
                         f"Date: {calendar_date}. Mistiming component: {round(mistiming_component,2)}. Irregularity component {round(irregularity_component,2)}."
                     )
                 CPDs.append(cpd)
+                dates.append(calendar_date)
         except:
             return np.nan
 
@@ -1733,6 +1735,7 @@ def get_cpd(
             return np.nan
 
         CPDs = []
+        dates = []
         previous_duration = None
 
         try:
@@ -1758,13 +1761,17 @@ def get_cpd(
                         f"Date: {calendar_date}. Mistiming component: {round(mistiming_component,2)}. Irregularity component {round(irregularity_component,2)}."
                     )
                 CPDs.append(cpd)
+                dates.append(calendar_date)
         except:
             return np.nan
 
     else:
         raise KeyError("The sleep metric must be either 'midpoint' or 'duration'")
-
-    return np.mean(CPDs)
+    
+    if average:
+        return np.mean(CPDs)
+    else:
+        return {dates[i]:CPDs[i] for i in range(len(dates))}
 
 
 def get_sleep_metric_std(
