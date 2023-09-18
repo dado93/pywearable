@@ -1424,6 +1424,7 @@ class LabfrontLoader:
         user_id: str,
         start_date: Union[str, datetime.date, datetime.date] = None,
         end_date: Union[str, datetime.date, datetime.date] = None,
+        same_day_filter: bool = True,
     ) -> pd.DataFrame:
         """Load Garmin Connect sleep summary data.
 
@@ -1478,6 +1479,32 @@ class LabfrontLoader:
                 data[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL],
                 format="%Y-%m-%d",
             ).dt.date
+
+            if same_day_filter:
+                data["validationMap"] = data["validation"].map(
+                    {
+                        "AUTO_TENTATIVE": 1,
+                        "AUTO_FINAL": 2,
+                        "ENHANCED_TENTATIVE": 3,
+                        "ENHANCED_FINAL": 4,
+                    }
+                )
+                data = (
+                    data.sort_values(
+                        by=(
+                            [
+                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL,
+                                "validationMap",
+                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_IN_MS_COL,
+                            ]
+                        ),
+                        ascending=True,
+                    )
+                    .groupby(_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL)
+                    .tail(1)
+                )
+                data = data.drop(["validationMap"], axis=1)
+
             if (start_date is None) and (end_date is None):
                 return data
             else:
@@ -1993,6 +2020,7 @@ class LabfrontLoader:
             .reset_index(drop=True)
             .iloc[0]
         )
+        sleep_summary_id = sleep_summary_row["sleepSummaryId"]
 
         sleep_start_time = datetime.datetime.utcfromtimestamp(
             (
@@ -2020,6 +2048,9 @@ class LabfrontLoader:
             start_date=sleep_start_time,
             end_date=sleep_end_time,
         )
+        sleep_stages = sleep_stages[
+            sleep_stages["sleepSummaryId"] == sleep_summary_id
+        ].reset_index(drop=True)
 
         intervals = int(
             divmod((sleep_end_time - sleep_start_time).total_seconds(), 60)[0]

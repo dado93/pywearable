@@ -12,7 +12,6 @@ import pandas as pd
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import seaborn as sns
 import july
 import hrvanalysis
 
@@ -519,7 +518,7 @@ def get_sleep_summary_graph(
         periods=(end_date - start_date).days,
         freq="D",
     )
-    
+
     time_period = pd.Series(time_period).dt.date
 
     # define color-coding based on garmin connect visuals
