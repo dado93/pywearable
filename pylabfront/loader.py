@@ -135,9 +135,10 @@ class LabfrontLoader:
         if not isinstance(data_path, Path):
             data_path = Path(data_path)
         self.data_path = data_path
-        self.ids, self.labfront_ids = self.get_ids()
-        self.full_ids = self.get_full_ids()
-        self.ids_dict = self.get_ids(return_dict=True)
+        self.ids, self.labfront_ids = self.retrieve_ids()
+        self.ids_dict = self.retrieve_ids(return_dict=True)
+        self.full_ids = self.retrieve_full_ids()
+
         self.data_dictionary, self.metrics_data_dictionary = self.get_time_dictionary()
         self.tasks_dict = self.get_available_questionnaires(
             return_dict=True
@@ -167,13 +168,37 @@ class LabfrontLoader:
         else:
             raise ValueError("Could not extract user ID.")
 
-    def get_user_ids(self):
+    def get_user_ids(self) -> list:
+        """Get available user IDs.
+
+        Returns
+        -------
+        list
+            List of available user IDs.
+        """
         return self.ids
 
-    def get_labfront_ids(self):
+    def get_labfront_ids(self) -> list:
+        """Get available Labfront IDs.
+
+        Returns
+        -------
+        list
+            List of available Labfront IDs.
+        """
         return self.labfront_ids
 
-    def get_ids(self, return_dict: bool = False) -> Union[Tuple[list, list], dict]:
+    def get_full_ids(self) -> list:
+        """Get available full IDs, composed of both user and Labfront IDs.
+
+        Returns
+        -------
+        list
+            List of available full IDs.
+        """
+        return self.full_ids
+
+    def retrieve_ids(self, return_dict: bool = False) -> Union[Tuple[list, list], dict]:
         """Get IDs of users from folder with data.
 
         This function returns both user IDs (set in the Labfront dashboard
@@ -208,14 +233,39 @@ class LabfrontLoader:
             return dict(zip(ids, labfront_ids))
         return ids, labfront_ids
 
-    def get_full_id(self, id: str):
+    def retrieve_full_ids(self) -> list:
+        """Get list of users in "[user_id]_[labfront_id]" format.
+
+        Returns
+        -------
+        list
+            List of user IDs.
+        """
+        participant_ids = [
+            k + "_" + v for k, v in self.retrieve_ids(return_dict=True).items()
+        ]
+        return participant_ids
+
+    def get_full_id(self, id: str) -> str:
         """Get full participant ID.
 
-        Args:
-            id (str): Unique identifier for the participant.
+        Parameters
+        ----------
+        id : str
+            Identifier for the user. This can be either the user ID,
+            the Labfront ID, or the full ID.
 
-        Returns:
-            str: Full participant ID.
+        Returns
+        -------
+        str
+            Full ID for the user, composed of both user and Labfront IDs.
+
+        Raises
+        ------
+        ValueError
+            Multiple users exist with the same user ID.
+        ValueError
+            Invalid ID.
         """
         if "_" in id:
             # This is already a full ID
@@ -236,33 +286,23 @@ class LabfrontLoader:
         else:
             raise ValueError(f"Could not get full_id from {id}")
 
-    def get_full_ids(self) -> list:
-        """Get list of users in "[user_id]_[labfront_id]" format.
-
-        Returns
-        -------
-        list
-            List of user IDs.
-        """
-        participant_ids = [
-            k + "_" + v for k, v in self.get_ids(return_dict=True).items()
-        ]
-        return participant_ids
-
-    def get_available_questionnaires(self, user_id="all", return_dict=False):
+    def get_available_questionnaires(
+        self, user_id: Union[str, list] = "all", return_dict: bool = False
+    ) -> list:
         """Get the list of available questionnaires.
 
         Parameters
         ----------
-            user_id: class:`list`
+            user_id: str or list, optional
                 IDs of the users for which to return available questionnaires, by default "all".
-            return_dict: class:`bool`
+            return_dict: bool, optional
                 Whether to return a dictionary of the name of the questionnaires and their full ids,
                 or simply a sorted list of the available questionnaires, by default False.
 
         Returns
         -------
-            list: alphabetically sorted names of the questionnaires for the user(s).
+            list
+                alphabetically sorted names of the questionnaires for the user(s).
         """
         if not self.data_path.exists():
             raise FileNotFoundError
@@ -302,24 +342,29 @@ class LabfrontLoader:
         else:
             return sorted(list(questionnaires))
 
-    def get_available_todos(self, user_id="all", return_dict=False):
+    def get_available_todos(
+        self, user_id: Union[str, list] = "all", return_dict: bool = False
+    ) -> list:
         """Get available todos for given users.
 
         Parameters
         ----------
-            user_id (list):  IDs of participants. Defaults to "all".
-            return_dict (bool): Whether to return a dictionary of the name of the todos
-            and their full ids, or simply a sorted list of the available todos. Defaults to False.
+        user_id : str or list, optional
+            ID(s) of the users for which todos should be retrieved, by default "all"
+        return_dict : bool, optional
+            Whether to return a dictionary of the name of the todos
+            and their full ids, or simply a sorted list of the available todos, by default False
 
         Returns
         -------
-            list: alphabetically sorted names of the todos for the participant(s).
+        list
+            alphabetically sorted names of the todos for the user(s).
 
         Raises
         ------
-            FileNotFoundError: if data path does not exist
+        FileNotFoundError
+            if data path does not exist
         """
-
         if not self.data_path.exists():
             raise FileNotFoundError
 
@@ -356,35 +401,46 @@ class LabfrontLoader:
         else:
             return sorted(list(todos))
 
-    def get_time_dictionary(self) -> (list, list):
-        """Create a dictionary with start and end times for all files for all users.
-
-        This function creates and returns a dictionary with start and
-        end unix times for all the files that are present in Labfront
-        data folder for all the participants.
-        This is useful to easily determine, based on an
-        input time and date, which files need to be loaded.
-        The returned dictionary has the following structure::
-
-            {
-                'participant-01': {
-                    'garmin-connect-pulse-ox':
-                    {
-                        '000000_garmin-connect-pulse-ox_sample-participant-01_6732ab82.csv':
-                        {
-                            'firstSampleUnixTimestampInMs': 1672740900000
-                            'lastSampleUnixTimestampInMs': 1675248720000
-                        }
-                    }
-                }
-            }
-
+    # """Create a dictionary with start and end times for all files for all users.
+    #
+    #    This function creates and returns a dictionary with start and
+    #    end unix times for all the files that are present in Labfront
+    #    data folder for all the participants.
+    #    This is useful to easily determine, based on an
+    #    input time and date, which files need to be loaded.
+    #    The returned dictionary has the following structure::
+    #
+    #        {
+    #            'participant-01': {
+    #                'garmin-connect-pulse-ox':
+    #                {
+    #                    '000000_garmin-connect-pulse-ox_sample-participant-01_6732ab82.csv':
+    #                    {
+    #                        'firstSampleUnixTimestampInMs': 1672740900000
+    #                        'lastSampleUnixTimestampInMs': 1675248720000
+    #                    }
+    #                }
+    #            }
+    #        }
+    #
+    #
+    #    Returns
+    #    -------
+    #        class:`dict`: Dictionary with start and end times for all files.
+    # """
+    def get_time_dictionary(self) -> Tuple[list, list]:
+        """_summary_
 
         Returns
         -------
-            class:`dict`: Dictionary with start and end times for all files.
-        """
+        Tuple[list, list]
+            _description_
 
+        Raises
+        ------
+        FileNotFoundError
+            _description_
+        """
         if not self.data_path.exists():
             raise FileNotFoundError
         participant_dict = {}
@@ -489,27 +545,64 @@ class LabfrontLoader:
 
         return participant_dict, metrics_time_dict
 
-    def get_first_unix_timestamp(self, user_id, metric):
+    def get_first_unix_timestamp(self, user_id: str, metric: str) -> int:
+        """Get first available unix timestamp for a given user and metric.
+
+        Parameters
+        ----------
+        user_id : str
+            ID of the user.
+        metric : str
+            Metric of interest.
+
+        Returns
+        -------
+        int
+            First available unix timestamp.
+        """
         return self.metrics_data_dictionary[self.get_full_id(user_id)][metric][
             _LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY
         ]
 
     def get_last_unix_timestamp(self, user_id, metric):
+        """Get last available unix timestamp for a given user and metric.
+
+        Parameters
+        ----------
+        user_id : str
+            ID of the user.
+        metric : _type_
+            Metric of interest.
+
+        Returns
+        -------
+        int
+            Last available unix timestamp.
+        """
         return self.metrics_data_dictionary[self.get_full_id(user_id)][metric][
             _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY
         ]
 
     def get_labfront_file_time_stats(
-        self, path_to_file, is_questionnaire_or_to_do=False
-    ):
+        self, path_to_file: Union[str, Path], is_questionnaire_or_to_do: bool = False
+    ) -> Tuple[int, int]:
         """Get time statistics from Labfront csv file.
 
-        Args:
-            path_to_file (str): Path to the file from which stats have to be extracted
+        This function retrieves first and last unix timestamps (in ms) from
+        a given Labfront CSV file without reading the whole content of the
+        file.
 
-        Returns:
-            int: First unix timestamp of data in csv file
-            int: Last unix timestamp of data in csv file
+        Parameters
+        ----------
+        path_to_file : str or Path
+            Path to the file from which stats have to be extracted
+        is_questionnaire_or_to_do : bool, optional
+            Whether the file is a questionnaire or not, by default False
+
+        Returns
+        -------
+        Tuple[int, int]
+            Tuple containing first and last unix timestamp of data in the CSV file.
         """
 
         # Get first and last unix timestamps from header
@@ -533,7 +626,7 @@ class LabfrontLoader:
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
         is_questionnaire: bool = False,
         is_todo: bool = False,
-        task_name: str = None,
+        task_name: str = "",
     ) -> list:
         """Get files containing daily data from within a given time range.
 
@@ -546,35 +639,35 @@ class LabfrontLoader:
 
         Parameters
         ----------
-            participant_id: class:`str`
-                Unique participant identifier, set by study coordinator.
-            metric: class:`str`
-                Metric of interest.
-            start_date: class:`datetime.datetime`
-                Start date and time of interest
-            end_date: class:`datetime.datetime`
-                End date and time of interest
-            is_questionnaire: class:`bool`, optional
-                Metric of interest is a questionnaire, by default False.
-            is_todo: class:`bool`, optional
-                Metric of interest is a todo, by defaults False.
-            task_name: :class:`str`, optional
-                Name of the questionnaire or of the todo, by default None.
-
-        Raises
-        ------
-            ValueError: If both `is_questionnaire` and `is_todo` are set to True
+        user_id : str
+            User ID.
+        metric : str
+            Metric of interest.
+        start_date : datetime.datetime or datetime.date or str or None, optional
+            Start date for data retrieval, by default None
+        end_date : datetime.datetime or datetime.date or str or None, optional
+            End date for data retrieval, by default None
+        is_questionnaire : bool, optional
+            Metric of interest is a questionnaire, by default False
+        is_todo : bool, optional
+            Metric of interest is a todo, by default False
+        task_name : str, optional
+            Name of the questionnaire or of the todo, by default None
 
         Returns
         -------
-            :class:`list`: Array with files that are closest to the requested datetime.
+        list
+            _description_
+
+        Raises
+        ------
+        ValueError
+            Invalid settings for questionnaire and todos, or invalid ID.
         """
         if is_questionnaire and is_todo:
-            with ValueError as e:
-                raise e + "Select only questionnaire or todo."
-        if (is_questionnaire or is_todo) and (task_name is None):
-            with ValueError as e:
-                raise e + "Please specify name of questionnaire or of todo."
+            raise ValueError("Select only questionnaire or todo.")
+        if (is_questionnaire or is_todo) and (task_name == ""):
+            raise ValueError("Please specify name of questionnaire or of todo.")
 
         if not (
             (user_id in self.ids)
@@ -829,7 +922,42 @@ class LabfrontLoader:
         else:
             return data.reset_index(drop=True)
 
-    def get_questionnaire_questions(self, questionnaire_name):
+    def get_questionnaire_questions(self, questionnaire_name: str) -> dict:
+        """Retrieve questions and answers for a given questionnaire.
+
+        This function returns all the questions and answers for a given
+        questionnaire. The return value is a dictionary, which has questions
+        numbers (1_1, 1_2, 2_1, ...) as keys and question information as
+        values.::
+
+            {
+                '1_1': {
+                    'type': 'radio',
+                    'description': 'SLEEP QUALITY: Compared to your usual wake-up, how would you rate quality of sleep?',
+                    'options': ['Much better than usual', 'Better than usual', 'As usual', 'Worse than usual', 'Much worse than usual']
+                },
+                '1_2': {
+                    'type': 'radio',
+                    'description': 'ENERGY: Compared to your usual wake-up, how would you rate your energy?',
+                    'options': ['Much better than usual', 'Better than usual', 'As usual', 'Worse than usual', 'Much worse than usual']
+                }
+            }
+
+        Parameters
+        ----------
+        questionnaire_name : str
+            Name of the questionnaire for which questions must be retrieved
+
+        Returns
+        -------
+        dict
+            Dictionary with question number as keys and question info as values
+
+        Raises
+        ------
+        ValueError
+            if questionnaire name does not exist
+        """
         no_user_id = True
         full_task_id = self.get_task_full_id(questionnaire_name)
         for user_id in self.data_dictionary.keys():
@@ -912,7 +1040,7 @@ class LabfrontLoader:
         for participant in self.full_ids:
             try:
                 questionnaire_data = self.load_questionnaire(
-                    participant, task_name=questionnaire
+                    participant, questionnaire_name=questionnaire
                 )
             except KeyError:
                 if verbose:
@@ -981,11 +1109,18 @@ class LabfrontLoader:
                 )
         return questionnaire_df
 
-    def get_header_length(self, file_path):
+    def get_header_length(self, file_path: Union[str, Path]) -> int:
         """Get header length of Labfront csv file.
 
-        Args:
-            file_path (str): Path to csv file.
+        Parameters
+        ----------
+        file_path : str or Path
+            Path to file.
+
+        Returns
+        -------
+        int
+            Lenght of the header.
         """
         # Read first line of file
         with open(file_path, "r", encoding="utf-8") as f:
@@ -993,11 +1128,18 @@ class LabfrontLoader:
         header_length = int(line[1])
         return header_length
 
-    def get_key_length(self, file_path):
+    def get_key_length(self, file_path: Union[str, Path]) -> int:
         """Get key length of Labfront questionnaire csv file.
 
-        Args:
-            file_path (str): Path to csv file of the questionnaire.
+        Parameters
+        ----------
+        file_path : str or Path
+            Path to file.
+
+        Returns
+        -------
+        int
+            Lenght of the key header.
         """
         with open(file_path, "r", encoding="utf-8") as f:
             while True:
@@ -1007,13 +1149,18 @@ class LabfrontLoader:
         key_length = int(line[1])
         return key_length
 
-    def get_available_metrics(self, user_id="all"):
-        """
-        Args:
-            user_id (list):  IDs of users. Defaults to "all".
+    def get_available_metrics(self, user_id: Union[str, list] = "all") -> list:
+        """Get the list of available metrics for a given user.
 
-        Returns:
-            list: alphabetically sorted names of the metrics for the participant(s).
+        Parameters
+        ----------
+        user_id : str or list, optional
+            ID of the user(s), by default "all"
+
+        Returns
+        -------
+        list
+            alphabetically sorted names of the metrics for the participant(s).
         """
         metrics = set()
 
@@ -1031,35 +1178,49 @@ class LabfrontLoader:
             metrics |= participant_metrics
         return sorted(list(metrics))
 
-    def get_task_full_id(self, task_id):
-        """Get full task ID.
+    def get_task_full_id(self, task_id: str) -> str:
+        """Get the full ID (name and ID) of a given questionnaire or todo.
 
-        Args:
-            task_id (str): Name of the task (questionnaire or todo).
+        Parameters
+        ----------
+        task_id : str
+            ID of the task.
 
-        Returns:
-            str: Full task ID.
+        Returns
+        -------
+        str
+            Full ID of the task.
         """
+
         return self.tasks_dict[task_id.lower()]
 
     def load_garmin_connect_heart_rate(
-        self, participant_id, start_date=None, end_date=None
-    ):
+        self,
+        user_id: str,
+        start_date: Union[str, datetime.date, datetime.date] = None,
+        end_date: Union[str, datetime.date, datetime.date] = None,
+    ) -> pd.DataFrame:
         """Load Garmin Connect heart rate data.
 
-        This function loads Garmin Connect heart rate data from a given
-        participant and within a specified date and time range.
+        This function loads heart rate data from a given
+        user and within a specified date and time range.
 
-        Args:
-            participant_id (str): Full ID of the participant
-            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
+        Parameters
+        ----------
+        user_id : str
+            ID of the user.
+        start_date : str or datetime.date or datetime.date, optional
+            Start date from which data should be retrieved, by default None
+        end_date : str or datetime.date or datetime.date, optional
+            End date from which data should be retrieved, by default None
 
-        Returns:
-            pd.DataFrame: Dataframe containing Garmin Connect heart rate data.
+        Returns
+        -------
+        pd.DataFrame
+            Dataframe containing heart rate data.
         """
         data = self.get_data_from_datetime(
-            participant_id,
+            user_id,
             _LABFRONT_GARMIN_CONNECT_HEART_RATE_STRING,
             start_date,
             end_date,
@@ -1067,35 +1228,39 @@ class LabfrontLoader:
         return data
 
     def load_garmin_connect_pulse_ox(
-        self, participant_id, start_date=None, end_date=None
-    ):
+        self,
+        user_id: str,
+        start_date: Union[str, datetime.date, datetime.datetime] = None,
+        end_date: Union[str, datetime.date, datetime.datetime] = None,
+    ) -> pd.DataFrame:
         """Load Garmin Connect pulse ox data.
 
-        This function loads Garmin Connect pulse ox data from a given
-        participant and within a specified date and time range. This
-        function loads both daily and sleep pulse ox data. The
-        resulting data frame contains an additional column named 'sleep',
-        equal to 1 for pulse ox data acquired during sleep.
+        Parameters
+        ----------
+        user_id : str
+            Identifier of the user. This can be the user ID, Labfront ID, or
+            the full ID. If multiple users exist with the same user ID, then
+            it is necessary to pass either the Labfront ID or the full ID.
+        start_date : Union[str, datetime.date, datetime.datetime], optional
+            Start date from which data should be retrieved, by default None
+        end_date : Union[str, datetime.date, datetime.datetime], optional
+            End date from which data should be retrieved, by default None
 
-        Args:
-            data_path (str): Path to the folder containing Labfront data.
-            participant_id (str): Full ID of the participant
-            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
-
-        Returns:
-            pd.DataFrame: Dataframe containing Garmin Connect pulse ox data.
+        Returns
+        -------
+        pd.DataFrame
+            Dataframe containing Garmin Connect pulse ox data.
         """
         # We need to load both sleep and daily pulse ox
         daily_data = self.get_data_from_datetime(
-            participant_id,
+            user_id,
             _LABFRONT_GARMIN_CONNECT_DAILY_PULSE_OX_STRING,
             start_date,
             end_date,
         ).reset_index(drop=True)
         # Add sleep label to sleep pulse ox
         sleep_data = self.get_data_from_datetime(
-            participant_id,
+            user_id,
             _LABFRONT_GARMIN_CONNECT_SLEEP_PULSE_OX_STRING,
             start_date,
             end_date,
@@ -1122,8 +1287,11 @@ class LabfrontLoader:
             return sleep_data
 
     def load_garmin_connect_respiration(
-        self, participant_id, start_date=None, end_date=None
-    ):
+        self,
+        user_id: str,
+        start_date: Union[str, datetime.date, datetime.datetime] = None,
+        end_date: Union[str, datetime.date, datetime.datetime] = None,
+    ) -> pd.DataFrame:
         """Load Garmin Connect respiratory data.
 
         This function loads Garmin Connect respiratory data from a given
@@ -1134,19 +1302,23 @@ class LabfrontLoader:
 
         Parameters
         ----------
-            participant_id: :class:`str`
-                Idenfier of the user.
-            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
+        user_id : str
+            ID of the user for which data must be loaded. This can be the user ID,
+            Labfront ID, or the full ID. If multiple users exist with the same user ID,
+            then it is necessary to pass either the Labfront ID or the full ID.
+        start_date : str or datetime.date or datetime.datetime, optional
+            Start date from which data should be retrieved, by default None
+        end_date : Union[str, datetime.date, datetime.datetime], optional
+            End date from which data should be retrieved, by default None
 
         Returns
         -------
-            :class:`pd.DataFrame`
-                Dataframe containing Garmin Connect respiration data.
+        pd.DataFrame
+             Dataframe containing Garmin Connect respiration data.
         """
         # We need to load both sleep and daily respiration
         daily_data = self.get_data_from_datetime(
-            participant_id,
+            user_id,
             _LABFRONT_GARMIN_CONNECT_DAILY_RESPIRATION_STRING,
             start_date,
             end_date,
@@ -1154,7 +1326,7 @@ class LabfrontLoader:
 
         # Get sleep data
         sleep_data = self.get_data_from_datetime(
-            participant_id,
+            user_id,
             _LABFRONT_GARMIN_CONNECT_SLEEP_RESPIRATION_STRING,
             start_date,
             end_date,
@@ -1162,7 +1334,7 @@ class LabfrontLoader:
 
         # Add calendar date from sleep summary
         sleep_summary = self.load_garmin_connect_sleep_summary(
-            participant_id,
+            user_id,
             start_date,
             end_date,
         ).reset_index(drop=True)
@@ -1215,23 +1387,32 @@ class LabfrontLoader:
             return daily_data
 
     def load_garmin_connect_sleep_stage(
-        self, participant_id, start_date=None, end_date=None
-    ):
+        self,
+        user_id: str,
+        start_date: Union[str, datetime.date, datetime.date] = None,
+        end_date: Union[str, datetime.date, datetime.date] = None,
+    ) -> pd.DataFrame:
         """Load Garmin Connect sleep stage data.
 
-        This function loads Garmin Connect sleep stage data from a given
-        participant and within a specified date and time range.
+        This function loads sleep stage data from a given
+        user and within a specified date and time range.
 
-        Args:
-            participant_id (str): Full ID of the participant
-            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
+        Parameters
+        ----------
+        user_id : str
+            ID of the user.
+        start_date : str or datetime.date or datetime.date, optional
+            Start date from which data should be retrieved, by default None
+        end_date : str or datetime.date or datetime.date, optional
+            End date from which data should be retrieved, by default None
 
-        Returns:
-            pd.DataFrame: Dataframe containing Garmin Connect sleep stage data.
+        Returns
+        -------
+        pd.DataFrame
+            Dataframe containing sleep stages data.
         """
         data = self.get_data_from_datetime(
-            participant_id,
+            user_id,
             _LABFRONT_GARMIN_CONNECT_SLEEP_STAGE_STRING,
             start_date,
             end_date,
@@ -1239,21 +1420,33 @@ class LabfrontLoader:
         return data
 
     def load_garmin_connect_sleep_summary(
-        self, participant_id, start_date=None, end_date=None
-    ):
+        self,
+        user_id: str,
+        start_date: Union[str, datetime.date, datetime.date] = None,
+        end_date: Union[str, datetime.date, datetime.date] = None,
+    ) -> pd.DataFrame:
         """Load Garmin Connect sleep summary data.
 
-        This function loads Garmin Connect sleep summary data from a given
-        participant and within a specified date and time range.
+        This function loads sleep summary data from a given
+        user and within a specified date and time range.
 
-        Args:
-            participant_id (str): Full ID of the participant
-            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
+        Parameters
+        ----------
+        user_id : str
+            ID of the user.
+        start_date : str or datetime.date or datetime.date, optional
+            Start date from which data should be retrieved, by default None
+        end_date : str or datetime.date or datetime.date, optional
+            End date from which data should be retrieved, by default None
 
-        Returns:
-            pd.DataFrame: Dataframe containing Garmin Connect sleep summary data.
+        Returns
+        -------
+        pd.DataFrame
+            Dataframe containing sleep summary data.
         """
+
+        # Let's add one day to the end_date and remove one day for start_date
+        # TODO is this required?
         if not (start_date is None):
             if isinstance(start_date, str):
                 start_date = dateutil.parser.parse(start_date)
@@ -1272,7 +1465,7 @@ class LabfrontLoader:
             new_end_date = None
 
         data = self.get_data_from_datetime(
-            participant_id,
+            user_id,
             _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_STRING,
             new_start_date,
             new_end_date,
@@ -1327,44 +1520,62 @@ class LabfrontLoader:
             return pd.DataFrame()
 
     def load_garmin_connect_stress(
-        self, participant_id, start_date=None, end_date=None
-    ):
+        self,
+        user_id: str,
+        start_date: Union[str, datetime.date, datetime.date] = None,
+        end_date: Union[str, datetime.date, datetime.date] = None,
+    ) -> pd.DataFrame:
         """Load Garmin Connect stress data.
 
-        This function loads Garmin Connect stress data from a given
-        participant and within a specified date and time range.
+        This function loads stress data from a given
+        user and within a specified date and time range.
 
-        Args:
-            participant_id (str): Full ID of the participant
-            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
+        Parameters
+        ----------
+        user_id : str
+            ID of the user.
+        start_date : str or datetime.date or datetime.date, optional
+            Start date from which data should be retrieved, by default None
+        end_date : str or datetime.date or datetime.date, optional
+            End date from which data should be retrieved, by default None
 
-        Returns:
-            pd.DataFrame: Dataframe containing Garmin Connect stress data.
+        Returns
+        -------
+        pd.DataFrame
+            Dataframe containing stress data.
         """
         data = self.get_data_from_datetime(
-            participant_id, _LABFRONT_GARMIN_CONNECT_STRESS_STRING, start_date, end_date
+            user_id, _LABFRONT_GARMIN_CONNECT_STRESS_STRING, start_date, end_date
         )
         return data
 
     def load_garmin_device_heart_rate(
-        self, participant_id, start_date=None, end_date=None
-    ):
-        """Load Garmin device heart rate data.
+        self,
+        user_id: str,
+        start_date: Union[str, datetime.date, datetime.date] = None,
+        end_date: Union[str, datetime.date, datetime.date] = None,
+    ) -> pd.DataFrame:
+        """Load Garmin Device (SDK) heart rate data.
 
-        This function loads Garmin device heart rate data from a given
-        participant and within a specified date and time range.
+        This function loads heart rate data from a given
+        user and within a specified date and time range.
 
-        Args:
-            participant_id (str): Full ID of the participant
-            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
+        Parameters
+        ----------
+        user_id : str
+            ID of the user.
+        start_date : str or datetime.date or datetime.date, optional
+            Start date from which data should be retrieved, by default None
+        end_date : str or datetime.date or datetime.date, optional
+            End date from which data should be retrieved, by default None
 
-        Returns:
-            pd.DataFrame: Dataframe containing Garmin device heart rate data.
+        Returns
+        -------
+        pd.DataFrame
+            Dataframe containing heart rate data.
         """
         data = self.get_data_from_datetime(
-            participant_id,
+            user_id,
             _LABFRONT_GARMIN_DEVICE_HEART_RATE_STRING,
             start_date,
             end_date,
@@ -1372,23 +1583,32 @@ class LabfrontLoader:
         return data
 
     def load_garmin_device_pulse_ox(
-        self, participant_id, start_date=None, end_date=None
-    ):
-        """Load Garmin device pulse ox data.
+        self,
+        user_id: str,
+        start_date: Union[str, datetime.date, datetime.date] = None,
+        end_date: Union[str, datetime.date, datetime.date] = None,
+    ) -> pd.DataFrame:
+        """Load Garmin Device (SDK) pulse ox data.
 
-        This function loads Garmin device pulse ox data from a given
-        participant and within a specified date and time range.
+        This function loads pulse ox data from a given
+        user and within a specified date and time range.
 
-        Args:
-            participant_id (str): Full ID of the participant
-            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
+        Parameters
+        ----------
+        user_id : str
+            ID of the user.
+        start_date : str or datetime.date or datetime.date, optional
+            Start date from which data should be retrieved, by default None
+        end_date : str or datetime.date or datetime.date, optional
+            End date from which data should be retrieved, by default None
 
-        Returns:
-            pd.DataFrame: Dataframe containing Garmin device pulse ox data.
+        Returns
+        -------
+        pd.DataFrame
+            Dataframe containing pulse ox data.
         """
         data = self.get_data_from_datetime(
-            participant_id,
+            user_id,
             _LABFRONT_GARMIN_DEVICE_PULSE_OX_STRING,
             start_date,
             end_date,
@@ -1396,127 +1616,155 @@ class LabfrontLoader:
         return data
 
     def load_garmin_device_respiration(
-        self, participant_id, start_date=None, end_date=None
-    ):
-        """Load Garmin device respiratory data.
+        self,
+        user_id: str,
+        start_date: Union[str, datetime.date, datetime.date] = None,
+        end_date: Union[str, datetime.date, datetime.date] = None,
+    ) -> pd.DataFrame:
+        """Load Garmin Device respiration data.
 
-        This function loads Garmin device respiratory data from a given
-        participant and within a specified date and time range.
+        This function loads steps data from a given
+        user and within a specified date and time range.
 
-        Args:
-            participant_id (str): Full ID of the participant
-            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
+        Parameters
+        ----------
+        user_id : str
+            ID of the user.
+        start_date : str or datetime.date or datetime.date, optional
+            Start date from which data should be retrieved, by default None
+        end_date : str or datetime.date or datetime.date, optional
+            End date from which data should be retrieved, by default None
 
-        Returns:
-            pd.DataFrame: Dataframe containing Garmin device respiratory data.
+        Returns
+        -------
+        pd.DataFrame
+            Dataframe containing respiration data.
         """
         data = self.get_data_from_datetime(
-            participant_id,
+            user_id,
             _LABFRONT_GARMIN_DEVICE_RESPIRATION_STRING,
             start_date,
             end_date,
         )
         return data
 
-    def load_garmin_device_step(self, participant_id, start_date=None, end_date=None):
-        """Load Garmin device step data.
+    def load_garmin_device_step(
+        self,
+        user_id: str,
+        start_date: Union[str, datetime.date, datetime.date] = None,
+        end_date: Union[str, datetime.date, datetime.date] = None,
+    ) -> pd.DataFrame:
+        """Load Garmin Device (SDK) steps data.
 
-        This function loads Garmin device step data from a given
-        participant and within a specified date and time range.
+        This function loads steps data from a given
+        user and within a specified date and time range.
 
-        Args:
-            participant_id (str): Full ID of the participant
-            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
+        Parameters
+        ----------
+        user_id : str
+            ID of the user.
+        start_date : str or datetime.date or datetime.date, optional
+            Start date from which data should be retrieved, by default None
+        end_date : str or datetime.date or datetime.date, optional
+            End date from which data should be retrieved, by default None
 
-        Returns:
-            pd.DataFrame: Dataframe containing Garmin device step data.
+        Returns
+        -------
+        pd.DataFrame
+            Dataframe containing steps data.
         """
         data = self.get_data_from_datetime(
-            participant_id, _LABFRONT_GARMIN_DEVICE_STEP_STRING, start_date, end_date
+            user_id, _LABFRONT_GARMIN_DEVICE_STEP_STRING, start_date, end_date
         )
         return data
 
-    def load_garmin_device_stress(self, participant_id, start_date=None, end_date=None):
-        """Load Garmin device stress data.
+    def load_garmin_device_stress(
+        self,
+        user_id: str,
+        start_date: Union[str, datetime.date, datetime.date] = None,
+        end_date: Union[str, datetime.date, datetime.date] = None,
+    ) -> pd.DataFrame:
+        """Load Garmin device (SDK) stress data.
 
-        This function loads Garmin device stress data from a given
-        participant and within a specified date and time range.
+        This function loads stress data from a given
+        user and within a specified date and time range.
 
-        Args:
-            participant_id (str): Full ID of the participant
-            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
+        Parameters
+        ----------
+        user_id : str
+            ID of the user.
+        start_date : str or datetime.date or datetime.date, optional
+            Start date from which data should be retrieved, by default None
+        end_date : str or datetime.date or datetime.date, optional
+            End date from which data should be retrieved, by default None
 
-        Returns:
-            pd.DataFrame: Dataframe containing Garmin device stress data.
+        Returns
+        -------
+        pd.DataFrame
+            Dataframe containing BBI data.
         """
         data = self.get_data_from_datetime(
-            participant_id, _LABFRONT_GARMIN_DEVICE_STRESS_STRING, start_date, end_date
+            user_id, _LABFRONT_GARMIN_DEVICE_STRESS_STRING, start_date, end_date
         )
         return data
 
-    def load_garmin_device_stress(self, participant_id, start_date=None, end_date=None):
-        """Load Garmin device stress data.
+    def load_garmin_device_bbi(
+        self,
+        user_id: str,
+        start_date: Union[str, datetime.date, datetime.date] = None,
+        end_date: Union[str, datetime.date, datetime.date] = None,
+    ) -> pd.DataFrame:
+        """Load BBI data.
 
-        This function loads Garmin device stress data from a given
-        participant and within a specified date and time range.
+        This function loads Beat to Beat Intervals (BBI) data from a given
+        user and within a specified date and time range.
 
-        Args:
-            participant_id (str): Full ID of the participant
-            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
+        Parameters
+        ----------
+        user_id : str
+            ID of the user.
+        start_date : str or datetime.date or datetime.date, optional
+            Start date from which data should be retrieved, by default None
+        end_date : str or datetime.date or datetime.date, optional
+            End date from which data should be retrieved, by default None
 
-        Returns:
-            pd.DataFrame: Dataframe containing Garmin device stress data.
-        """
-        data = utils.get_data_from_datetime(
-            self,
-            participant_id,
-            _LABFRONT_GARMIN_DEVICE_STRESS_STRING,
-            start_date,
-            end_date,
-        )
-        return data
-
-    def load_garmin_device_bbi(self, participant_id, start_date=None, end_date=None):
-        """Load Garmin device BBI data.
-
-        This function loads Garmin device beat-to-beat interval (BBI) data from a given
-        participant and within a specified date and time range.
-
-        Args:
-            participant_id (str): Full ID of the participant
-            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
-
-        Returns:
-            pd.DataFrame: Dataframe containing Garmin device BBI data.
+        Returns
+        -------
+        pd.DataFrame
+            Dataframe containing BBI data.
         """
         data = self.get_data_from_datetime(
-            participant_id, _LABFRONT_GARMIN_DEVICE_BBI_STRING, start_date, end_date
+            user_id, _LABFRONT_GARMIN_DEVICE_BBI_STRING, start_date, end_date
         )
         return data
 
     def load_garmin_connect_body_composition(
-        self, participant_id, start_date=None, end_date=None
-    ):
+        self,
+        user_id: str,
+        start_date: Union[str, datetime.date, datetime.date] = None,
+        end_date: Union[str, datetime.date, datetime.date] = None,
+    ) -> pd.DataFrame:
         """Load Garmin Connect body composition data.
 
         This function loads Garmin Connect body composition data from a given
         participant and within a specified date and time range.
 
-        Args:
-            participant_id (str): Full ID of the participant
-            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
+        Parameters
+        ----------
+        user_id : str
+            ID of the user.
+        start_date : str or datetime.date or datetime.date, optional
+            Start date from which data should be retrieved, by default None
+        end_date : str or datetime.date or datetime.date, optional
+            End date from which data should be retrieved, by default None
 
-        Returns:
-            pd.DataFrame: Dataframe containing Garmin Connect body composition data.
+        Returns
+        -------
+        pd.DataFrame
+            Dataframe containing Garmin Connect body composition data.
         """
         data = self.get_data_from_datetime(
-            participant_id,
+            user_id,
             _LABFRONT_GARMIN_CONNECT_BODY_COMPOSITION_STRING,
             start_date,
             end_date,
@@ -1524,25 +1772,34 @@ class LabfrontLoader:
         return data
 
     def load_garmin_connect_daily_summary(
-        self, participant_id, start_date=None, end_date=None
-    ):
+        self,
+        user_id: str,
+        start_date: Union[str, datetime.date, datetime.date] = None,
+        end_date: Union[str, datetime.date, datetime.date] = None,
+    ) -> pd.DataFrame:
         """Load Garmin Connect daily summary data.
 
         This function loads Garmin Connect daily summary data from a given
         participant and within a specified date and time range.
 
-        Args:
-            participant_id (str): Full ID of the participant
-            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
+        Parameters
+        ----------
+        user_id : str
+            ID of the user.
+        start_date : str or datetime.date or datetime.date, optional
+            Start date from which data should be retrieved, by default None
+        end_date : str or datetime.date or datetime.date, optional
+            End date from which data should be retrieved, by default None
 
-        Returns:
-            pd.DataFrame: Dataframe containing Garmin Connect daily summary data.
+        Returns
+        -------
+        pd.DataFrame
+            Dataframe containing Garmin Connect daily summary data.
         """
         new_start_date = start_date - datetime.timedelta(days=1)
         new_end_date = end_date + datetime.timedelta(days=1)
         data = self.get_data_from_datetime(
-            participant_id,
+            user_id,
             _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STRING,
             new_start_date,
             new_end_date,
@@ -1574,53 +1831,84 @@ class LabfrontLoader:
 
         return data
 
-    def load_garmin_connect_epoch(self, participant_id, start_date=None, end_date=None):
+    def load_garmin_connect_epoch(
+        self,
+        user_id: str,
+        start_date: Union[str, datetime.date, datetime.date] = None,
+        end_date: Union[str, datetime.date, datetime.date] = None,
+    ) -> pd.DataFrame:
         """Load Garmin Connect epoch data.
 
         This function loads Garmin Connect epoch data from a given
         participant and within a specified date and time range.
 
-        Args:
-            participant_id (str): Full ID of the participant
-            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
+        Parameters
+        ----------
+        user_id : str
+            ID of the user.
+        start_date : str or datetime.date or datetime.date, optional
+            Start date from which data should be retrieved, by default None
+        end_date : str or datetime.date or datetime.date, optional
+            End date from which data should be retrieved, by default None
 
-        Returns:
-            pd.DataFrame: Dataframe containing Garmin Connect epoch data.
+        Returns
+        -------
+        pd.DataFrame
+            Dataframe containing Garmin Connect epoch data.
         """
         data = self.get_data_from_datetime(
-            participant_id, _LABFRONT_GARMIN_CONNECT_EPOCH_STRING, start_date, end_date
+            user_id, _LABFRONT_GARMIN_CONNECT_EPOCH_STRING, start_date, end_date
         )
         return data
 
-    def load_todo(self, participant_id, start_date=None, end_date=None, task_name=None):
+    def load_todo(
+        self,
+        user_id: str,
+        start_date: Union[str, datetime.date, datetime.date] = None,
+        end_date: Union[str, datetime.date, datetime.date] = None,
+        todo_name: str = None,
+    ):
         """Load todo data.
 
         This function loads todo data from a given
         participant and within a specified date and time range.
 
-        Args:
-            participant_id (str): Full ID of the participant
-            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
-            task_name (str, optional): Name of the todo of interest. Defaults to None.
+        Parameters
+        ----------
+        user_id : str
+            ID of the user for which todo data have to be loaded.
+            This can be the user ID, Labfront ID, or
+            the full ID. If multiple users exist with the same user ID, then
+            it is necessary to pass either the Labfront ID or the full ID.
+        start_date : str or datetime.date or datetime.date, optional
+            Start data for data loading, by default None
+        end_date : str or datetime.date or datetime.date, optional
+            End data for data loading, by default None
+        todo_name : str, optional
+            Name of the todo to be loaded, by default None
 
-        Returns:
-            pd.DataFrame: Dataframe containing todo data.
+        Returns
+        -------
+        pd.DataFrame
+            Todo data.
         """
         data = self.get_data_from_datetime(
-            participant_id,
+            user_id,
             _LABFRONT_TODO_STRING,
             start_date,
             end_date,
             is_todo=True,
-            task_name=task_name,
+            task_name=todo_name,
         )
         return data
 
     def load_questionnaire(
-        self, participant_id, start_date=None, end_date=None, task_name=None
-    ):
+        self,
+        user_id: str,
+        start_date: Union[str, datetime.date, datetime.date] = None,
+        end_date: Union[str, datetime.date, datetime.date] = None,
+        questionnaire_name: str = None,
+    ) -> pd.DataFrame:
         """Load questionnaire data.
 
         This function loads questionnaire data from a given
@@ -1628,40 +1916,61 @@ class LabfrontLoader:
 
         Parameters
         ----------
-            participant_id: :class:`str`
-                ID of the participant
-            start_date (datetime, optional): Start date from which data should be retrieved. Defaults to None.
-            end_date (datetime, optional): End date from which data should be retrieved. Defaults to None.
-            task_name (str, optional): Name of the questionnaire of interest. Defaults to None.
+        user_id : str
+            ID of the user for which questionnaire data have to be loaded.
+            This can be the user ID, Labfront ID, or
+            the full ID. If multiple users exist with the same user ID, then
+            it is necessary to pass either the Labfront ID or the full ID.
+        start_date : str or datetime.date or datetime.date, optional
+            Start data for data loading, by default None
+        end_date : str or datetime.date or datetime.date, optional
+            End data for data loading, by default None
+        questionnaire_name : str, optional
+            Name of the questionnaire to be loaded, by default None
 
         Returns
         -------
-            pd.DataFrame: Dataframe containing questionnaire data.
+        pd.DataFrame
+            Questionnaire data.
         """
         data = self.get_data_from_datetime(
-            participant_id,
+            user_id,
             _LABFRONT_QUESTIONNAIRE_STRING,
             start_date,
             end_date,
             is_questionnaire=True,
-            task_name=task_name,
+            task_name=questionnaire_name,
         )
         return data
 
-    def load_hypnogram(self, participant_id, calendar_day, resolution=1):
-        """Load hypnogram for participant.
+    def load_hypnogram(
+        self,
+        user_id: str,
+        calendar_day: Union[str, datetime.date, datetime.datetime],
+        resolution: int = 1,
+    ) -> pd.DataFrame:
+        """Load hypnogram for given user for a given day.
 
-        Args:
-            participant_id (str): Unique identifier of the participant.
-            calendar_day (`class: datetime.datetime`): Calendar day for which hypnogram is requested.
-            resolution (int, optional): Desired resolution (in minutes) requested for the hypnogram. Defaults to 1.
+        Parameters
+        ----------
+        participant_id : str
+            Unique identifier of the user.
+        calendar_day : str or datetime.date or datetime.date
+            Calendar day for which hypnogram has to be provided.
+        resolution : int, optional
+            Desired resolution (in minutes) requested for the hypnogram, by default 1
 
-        Raises:
-            ValueError: If `calendar_day` is not a valid day.
+        Returns
+        -------
+        pd.DataFrame
+            Hypnogram data.
 
-        Returns:
-            `class: pandas.DataFrame`: Hypnogram data.
+        Raises
+        ------
+        ValueError
+            If date is passed as str and cannot be parsed.
         """
+
         if isinstance(calendar_day, str):
             try:
                 calendar_day = dateutil.parser.parse(calendar_day)
@@ -1676,7 +1985,7 @@ class LabfrontLoader:
         end_date = calendar_day + datetime.timedelta(days=1)
         # Load sleep summary and sleep stages data
         sleep_summary = self.load_garmin_connect_sleep_summary(
-            participant_id=participant_id, start_date=start_date, end_date=end_date
+            user_id=user_id, start_date=start_date, end_date=end_date
         )
 
         sleep_summary_row = (
@@ -1707,7 +2016,7 @@ class LabfrontLoader:
             / 1000
         )
         sleep_stages = self.load_garmin_connect_sleep_stage(
-            participant_id=participant_id,
+            user_id=user_id,
             start_date=sleep_start_time,
             end_date=sleep_end_time,
         )
@@ -1748,7 +2057,7 @@ class LabfrontLoader:
 
         return hypnogram
 
-    def _convert_sleep_stages(self, x):
+    def _convert_sleep_stages(self, x: str):
         """Convert Garmin sleep stages from Garmin-specific to yasa values.
 
         The implemented convention is as follows:
@@ -1757,11 +2066,15 @@ class LabfrontLoader:
             - deep: Yasa state 3
             - others: Yasa state 1
 
-        Args:
-            x (str): Garmin sleep stage.
+        Parameters
+        ----------
+        x : str
+            Garmin sleep stage.
 
-        Returns:
-            int: Yasa sleep stage.
+        Returns
+        -------
+        int
+            Yasa sleep stage.
         """
         if x == "rem":
             return 4
