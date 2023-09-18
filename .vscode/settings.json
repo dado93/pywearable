@@ -1,6 +1,9 @@
 {
     "[python]": {
-        "editor.defaultFormatter": "ms-python.black-formatter"
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": true
+        }
     },
     "autoDocstring.docstringFormat": "numpy",
     "autoDocstring.includeExtendedSummary": true,
