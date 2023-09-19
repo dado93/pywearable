@@ -6,17 +6,17 @@ import datetime
 import os
 import re
 from pathlib import Path
-from typing import Union, Tuple
-import dateutil.parser
+from typing import Tuple, Union
 
+import dateutil.parser
 import pandas as pd
 
-import pylabfront.utils as utils
+from . import constants, utils
 
 # Labfront-specific constants
 _LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY = "firstSampleUnixTimestampInMs"
 _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY = "lastSampleUnixTimestampInMs"
-_LABFRONT_ISO_DATE_KEY = "isoDate"
+constants._ISODATE_COL = "isoDate"
 _LABFRONT_CSV_STATS_SKIP_ROWS = 3
 _LABFRONT_QUESTIONNAIRE_STRING = "questionnaire"
 _LABFRONT_TODO_STRING = "todo"
@@ -66,12 +66,11 @@ _LABFRONT_GARMIN_CONNECT_STRESS_STRING = _LABFRONT_GARMIN_CONNECT_STRING + "-str
 _LABFRONT_SPO2_COLUMN = "spo2"
 _LABFRONT_RESPIRATION_COLUMN = "breathsPerMinute"
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL = "calendarDate"
-_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_IN_MS_COL = "durationInMs"
-_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL = "awakeDurationInMs"
-_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_STAGE_COL = "type"
+_SLEEP_SUMMARY_SLEEP_DURATION_IN_MS_COL = "durationInMs"
+_SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL = "awakeDurationInMs"
+_SLEEP_SUMMARY_ID_COL = "sleepSummaryId"
 
-_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL = "calendarDate"
-_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SUMMARY_COL = "sleepSummaryId"
+_DAILY_SUMMARY_CALENDAR_DATE_COL = "calendarDate"
 
 
 ###################################################
@@ -119,7 +118,7 @@ class LabfrontLoader:
     def __init__(self, data_path: Union[str, Path]):
         """Constructor method"""
         self.set_path(data_path)
-        self.date_column = _LABFRONT_ISO_DATE_KEY
+        self.date_column = constants._ISODATE_COL
 
     def set_path(self, data_path: Union[str, Path]):
         """Set path to folder containing Labfront data.
@@ -884,40 +883,40 @@ class LabfrontLoader:
             data = pd.concat([data, tmp], ignore_index=True)
         if _LABFRONT_GARMIN_CONNECT_STRING in metric:
             # Convert to datetime according to isoformat
-            data[_LABFRONT_ISO_DATE_KEY] = (
+            data[constants._ISODATE_COL] = (
                 data[_LABFRONT_UNIXTIMESTAMP_MS_KEY]
                 + data[_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY]
             )
-            data[_LABFRONT_ISO_DATE_KEY] = pd.to_datetime(
-                data[_LABFRONT_ISO_DATE_KEY], unit="ms", utc=True
+            data[constants._ISODATE_COL] = pd.to_datetime(
+                data[constants._ISODATE_COL], unit="ms", utc=True
             )
-            data[_LABFRONT_ISO_DATE_KEY] = data[_LABFRONT_ISO_DATE_KEY].dt.tz_localize(
+            data[constants._ISODATE_COL] = data[constants._ISODATE_COL].dt.tz_localize(
                 None
             )
         else:
             # Convert unix time stamp
-            data[_LABFRONT_ISO_DATE_KEY] = pd.to_datetime(
+            data[constants._ISODATE_COL] = pd.to_datetime(
                 data[_LABFRONT_UNIXTIMESTAMP_MS_KEY], unit="ms", utc=True
             )
-            data[_LABFRONT_ISO_DATE_KEY] = data.groupby(
+            data[constants._ISODATE_COL] = data.groupby(
                 _LABFRONT_GARMIN_DEVICE_TIMEZONEOFFSET_MS_KEY, group_keys=False
-            )[_LABFRONT_ISO_DATE_KEY].apply(
+            )[constants._ISODATE_COL].apply(
                 lambda x: x.dt.tz_convert(x.name).dt.tz_localize(tz=None)
             )
 
         # Get data only from given start and end dates
         if (start_date is None) and (not end_date is None):
-            return data[(data[_LABFRONT_ISO_DATE_KEY] <= end_date)].reset_index(
+            return data[(data[constants._ISODATE_COL] <= end_date)].reset_index(
                 drop=True
             )
         elif (not start_date is None) and (end_date is None):
-            return data[(data[_LABFRONT_ISO_DATE_KEY] >= start_date)].reset_index(
+            return data[(data[constants._ISODATE_COL] >= start_date)].reset_index(
                 drop=True
             )
         elif (not start_date is None) and (not end_date is None):
             return data[
-                (data[_LABFRONT_ISO_DATE_KEY] >= start_date)
-                & (data[_LABFRONT_ISO_DATE_KEY] <= end_date)
+                (data[constants._ISODATE_COL] >= start_date)
+                & (data[constants._ISODATE_COL] <= end_date)
             ].reset_index(drop=True)
         else:
             return data.reset_index(drop=True)
@@ -1274,12 +1273,12 @@ class LabfrontLoader:
                 [
                     x
                     for x in sleep_data.columns
-                    if (not x in ([_LABFRONT_ISO_DATE_KEY, "sleep"]))
+                    if (not x in ([constants._ISODATE_COL, "sleep"]))
                 ],
                 axis=1,
             )
             merged_data = daily_data.merge(
-                sleep_data, on=_LABFRONT_ISO_DATE_KEY, how="left"
+                sleep_data, on=constants._ISODATE_COL, how="left"
             )
             merged_data.loc[merged_data.sleep != 1, "sleep"] = 0
             return merged_data
@@ -1343,8 +1342,8 @@ class LabfrontLoader:
             sleep_summary = sleep_summary.loc[
                 :,
                 [
-                    _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SUMMARY_COL,
-                    _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL,
+                    constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL,
+                    constants._SLEEP_SUMMARY_CALENDAR_DATE_COL,
                 ],
             ]
 
@@ -1352,7 +1351,7 @@ class LabfrontLoader:
             sleep_data = pd.merge(
                 left=sleep_data,
                 right=sleep_summary,
-                on=_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SUMMARY_COL,
+                on=constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL,
                 how="outer",
             )
 
@@ -1365,8 +1364,8 @@ class LabfrontLoader:
                         not x
                         in (
                             [
-                                _LABFRONT_ISO_DATE_KEY,
-                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SUMMARY_COL,
+                                constants._ISODATE_COL,
+                                _SLEEP_SUMMARY_ID_COL,
                                 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL,
                                 "sleep",
                             ]
@@ -1378,7 +1377,7 @@ class LabfrontLoader:
             # Merge dataframes
             # We need to merge the dataframes because the daily_data already contain sleep_data
             merged_data = daily_data.merge(
-                sleep_data, on=_LABFRONT_ISO_DATE_KEY, how="left"
+                sleep_data, on=constants._ISODATE_COL, how="left"
             )
             merged_data.loc[merged_data.sleep != 1, "sleep"] = 0
             return merged_data
@@ -1493,14 +1492,14 @@ class LabfrontLoader:
                     data.sort_values(
                         by=(
                             [
-                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL,
+                                constants._SLEEP_SUMMARY_CALENDAR_DATE_COL,
                                 "validationMap",
-                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_IN_MS_COL,
+                                constants._SLEEP_SUMMARY_DURATION_IN_MS_COL,
                             ]
                         ),
                         ascending=True,
                     )
-                    .groupby(_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL)
+                    .groupby(constants._SLEEP_SUMMARY_CALENDAR_DATE_COL)
                     .tail(1)
                 )
                 data = data.drop(["validationMap"], axis=1)
@@ -1512,36 +1511,16 @@ class LabfrontLoader:
                 end_date = None if (end_date is None) else end_date.date()
                 if (start_date is None) and (not (end_date is None)):
                     return data[
-                        (
-                            data[
-                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL
-                            ]
-                            <= end_date
-                        )
+                        (data[constants._SLEEP_SUMMARY_CALENDAR_DATE_COL] <= end_date)
                     ]
                 elif (not (start_date is None)) and (end_date is None):
                     return data[
-                        (
-                            data[
-                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL
-                            ]
-                            >= start_date
-                        )
+                        (data[constants._SLEEP_SUMMARY_CALENDAR_DATE_COL] >= start_date)
                     ]
                 else:
                     return data[
-                        (
-                            data[
-                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL
-                            ]
-                            >= start_date
-                        )
-                        & (
-                            data[
-                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL
-                            ]
-                            <= end_date
-                        )
+                        (data[constants._SLEEP_SUMMARY_CALENDAR_DATE_COL] >= start_date)
+                        & (data[constants._SLEEP_SUMMARY_CALENDAR_DATE_COL] <= end_date)
                     ]
         else:
             return pd.DataFrame()
@@ -1838,22 +1817,14 @@ class LabfrontLoader:
             year=end_date.year, month=end_date.month, day=end_date.day
         )
         if len(data) > 0:
-            data[
-                _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL
-            ] = pd.to_datetime(
-                data[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL],
+            data[_DAILY_SUMMARY_CALENDAR_DATE_COL] = pd.to_datetime(
+                data[_DAILY_SUMMARY_CALENDAR_DATE_COL],
                 format="%Y-%m-%d",
             )
 
             data = data[
-                (
-                    data[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL]
-                    >= start_date
-                )
-                & (
-                    data[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL]
-                    <= end_date
-                )
+                (data[_DAILY_SUMMARY_CALENDAR_DATE_COL] >= start_date)
+                & (data[_DAILY_SUMMARY_CALENDAR_DATE_COL] <= end_date)
             ]
 
         return data
@@ -2034,12 +2005,8 @@ class LabfrontLoader:
             (
                 sleep_summary_row[_LABFRONT_UNIXTIMESTAMP_MS_KEY]
                 + sleep_summary_row[_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY]
-                + sleep_summary_row[
-                    _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_IN_MS_COL
-                ]
-                + sleep_summary_row[
-                    _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL
-                ]
+                + sleep_summary_row[_SLEEP_SUMMARY_SLEEP_DURATION_IN_MS_COL]
+                + sleep_summary_row[_SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL]
             )
             / 1000
         )
@@ -2049,7 +2016,8 @@ class LabfrontLoader:
             end_date=sleep_end_time,
         )
         sleep_stages = sleep_stages[
-            sleep_stages["sleepSummaryId"] == sleep_summary_id
+            sleep_stages[constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL]
+            == sleep_summary_id
         ].reset_index(drop=True)
 
         intervals = int(
@@ -2060,31 +2028,27 @@ class LabfrontLoader:
             for i in range(intervals)
         ]
 
-        hypnogram = pd.DataFrame(data={_LABFRONT_ISO_DATE_KEY: time_delta_intervals})
+        hypnogram = pd.DataFrame(data={constants._ISODATE_COL: time_delta_intervals})
 
         hypnogram = hypnogram.merge(
             sleep_stages.loc[
                 :,
                 [
-                    _LABFRONT_ISO_DATE_KEY,
-                    _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_STAGE_COL,
+                    constants._ISODATE_COL,
+                    constants._SLEEP_STAGE_SLEEP_TYPE_COL,
                 ],
             ],
             how="left",
-            on=_LABFRONT_ISO_DATE_KEY,
+            on=constants._ISODATE_COL,
         )
 
-        hypnogram[
-            _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_STAGE_COL
-        ] = hypnogram.loc[
-            :, _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_STAGE_COL
-        ].fillna(
-            method="ffill"
-        )
+        hypnogram[constants._SLEEP_STAGE_SLEEP_TYPE_COL] = hypnogram.loc[
+            :, constants._SLEEP_STAGE_SLEEP_TYPE_COL
+        ].fillna(method="ffill")
 
-        hypnogram["stage"] = hypnogram[
-            _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_STAGE_COL
-        ].apply(self._convert_sleep_stages)
+        hypnogram["stage"] = hypnogram[constants._SLEEP_STAGE_SLEEP_TYPE_COL].apply(
+            self._convert_sleep_stages
+        )
 
         return hypnogram
 
@@ -2107,11 +2071,13 @@ class LabfrontLoader:
         int
             Yasa sleep stage.
         """
-        if x == "rem":
+        if x == constants._SLEEP_STAGE_REM_STAGE_VALUE:
             return 4
-        elif x == "awake":
+        elif x == constants._SLEEP_STAGE_AWAKE_STAGE_VALUE:
             return 0
-        elif x == "deep":
+        elif x == constants._SLEEP_STAGE_DEEP_STAGE_VALUE:
             return 3
-        else:
+        elif x == constants._SLEEP_STAGE_LIGHT_STAGE_VALUE:
             return 1
+        elif x == constants._SLEEP_STAGE_UNMEASURABLE_STAGE_VALUE:
+            return -1
