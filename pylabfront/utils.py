@@ -11,8 +11,6 @@ from typing import Union
 import dateutil.parser
 import pandas as pd
 
-from . import loader
-
 _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY = "lastSampleUnixTimestampInMs"
 _LABFRONT_QUESTIONNAIRE_STRING = "questionnaire"
 _LABFRONT_TODO_STRING = "todo"
@@ -51,7 +49,7 @@ def check_date(
     return date
 
 
-def get_user_ids(labfront_loader: loader.LabfrontLoader, user_id: Union[str, list]):
+def get_user_ids(labfront_loader, user_id: Union[str, list]):
     if user_id == "all":
         user_id = labfront_loader.get_full_ids()
 
