@@ -14,7 +14,7 @@ import pylabfront.utils as utils
 from . import constants, loader
 
 _MS_TO_MINUTES_CONVERSION = 1000 * 60
-_ACTIVITY_TIME_IN_MINUTES = "activityTimeInMinutes"
+_ACTIVITY_TIME_IN_MINUTES = "activeTimeInMinutes"
 
 
 def get_activity_series(
@@ -709,21 +709,21 @@ def get_average_daily_activity_minutes(
                 .reset_index()
             )
             df = df.rename(
-                columns={constants._EPOCH_ACTIVE_TIME_MS_COL: "activeTimeInMinutes"}
+                columns={constants._EPOCH_ACTIVE_TIME_MS_COL: _ACTIVITY_TIME_IN_MINUTES}
             )
             if return_as_ratio:
                 time_collected_per_day = (
-                    df.groupby(["date"])["activeTimeInMinutes"].sum().reset_index()
+                    df.groupby(["date"])[_ACTIVITY_TIME_IN_MINUTES].sum().reset_index()
                 )
                 # pivot the data so to be in dimensions that allow for division with pandas funcs
                 activity_durations_per_day = df.pivot(
                     index="date",
                     columns=constants._EPOCH_INTENSITY_COL,
-                    values="activeTimeInMinutes",
+                    values=_ACTIVITY_TIME_IN_MINUTES,
                 ).reset_index()
                 ratio_df = (
                     activity_durations_per_day.iloc[:, 1:].div(
-                        time_collected_per_day["activeTimeInMinutes"], axis=0
+                        time_collected_per_day[_ACTIVITY_TIME_IN_MINUTES], axis=0
                     )
                     * 100
                 ).fillna(0)
@@ -731,7 +731,7 @@ def get_average_daily_activity_minutes(
             else:
                 activities_dict[id] = round(
                     df.groupby([constants._EPOCH_INTENSITY_COL])[
-                        "activeTimeInMinutes"
+                        _ACTIVITY_TIME_IN_MINUTES
                     ].mean()
                     / _MS_TO_MINUTES_CONVERSION,
                     1,
