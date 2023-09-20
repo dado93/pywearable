@@ -35,7 +35,7 @@ _QUESTIONNAIRE_FOLDER = "questionnaire"
 _TODO_FOLDER = "todo"
 
 #################################################
-#                CSV FILES - COLUMN NAMES       #
+#          CSV FILES - COLUMN NAMES             #
 #################################################
 # General columns #
 _ISODATE_COL = "isoDate"
@@ -62,6 +62,15 @@ _SLEEP_STAGE_DURATION_IN_MS_COL = "durationInMs"
 
 # Daily summary columns #
 _DAILY_SUMMARY_CALENDAR_DATE_COL = "calendarDate"
+_DAILY_SUMMARY_STEPS_COL = "steps"
+_DAILY_SUMMARY_DISTANCE_COL = "distanceInMeters"
+_DAILY_SUMMARY_STEPS_GOAL_COL = "stepsGoal"
+_DAILY_SUMMARY_MODERATE_INTENSITY_COL = "moderateIntensityDurationInMs"
+_DAILY_SUMMARY_VIGOROUS_INTENSITY_COL = "vigorousIntensityDurationInMs"
+
+# Epochs #
+_EPOCH_INTENSITY_COL = "intensity"
+_EPOCH_ACTIVE_TIME_MS_COL = "activeTimeInMs"
 
 # Todo/Questionnaire columns #
 _TODO_NAME_COL = "todoName"
@@ -81,6 +90,11 @@ _SLEEP_STAGE_LIGHT_STAGE_VALUE = "light"
 _SLEEP_STAGE_DEEP_STAGE_VALUE = "deep"
 _SLEEP_STAGE_AWAKE_STAGE_VALUE = "awake"
 _SLEEP_STAGE_UNMEASURABLE_STAGE_VALUE = "unmeasurable"
+
+# Epochs #
+_EPOCH_ACTIVITY_ACTIVE_VALUE = "ACTIVE"
+_EPOCH_ACTIVITY_HIGHLY_ACTIVE_VALUE = "HIGHLY_ACTIVE"
+_EPOCH_ACTIVITY_SEDENTARY_VALUE = "SEDENTARY"
 
 # Todo/Questionnaire values #
 _QUESTIONNAIRE_QUESTION_TYPE_RADIO_VALUE = "radio"

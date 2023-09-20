@@ -97,7 +97,7 @@ def get_time_in_bed(
 
     Parameters
     ----------
-    loader : :class:`loader.LabfrontLoader`
+    loader : :class:`pylabfront.loader.LabfrontLoader`
         An instance of a data loader.
     user_id : :class:`str` or :class:`list`
         The id(s) for which TIB must be retrieved.
@@ -176,7 +176,7 @@ def get_sleep_period_time(
 
     Parameters
     ----------
-    loader : :class:`loader.LabfrontLoader`
+    loader : :class:`pylabfront.loader.LabfrontLoader`
         An instance of a data loader.
     user_id : :class:`str` or :class:`list`
         The id(s) for which SPT must be retrieved.
