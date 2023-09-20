@@ -1,5 +1,3 @@
-import re
-
 import pandas as pd
 
 from . import constants, loader
@@ -7,15 +5,39 @@ from . import constants, loader
 
 def process_questionnaire(
     labfront_loader: loader.LabfrontLoader, questionnaire: str, verbose: bool = False
-):
+) -> pd.DataFrame:
+    """Process questionnaire to extract answers.
+
+    This function process all the questionnaire answers
+    from all users and report them in a structured format
+    through a :class:`pd.DataFrame`.
+
+    Example :class:`pd.DataFrame`::
+
+        timezone,unixTimestampInMs,isoDate,userId,How are you?
+        Europe/Rome,1683599224781,2023-05-09 04:27:04.781,User1_4a520aea-12d9-4513-8a0c-3055d399b097,Come al solito,Peggio del solito
+        Europe/Budapest,1683698097137,2023-05-10 07:54:57.137,User1_4a520aea-12d9-4513-8a0c-3055d399b097,Peggio del solito,Come al solito
+        Europe/Budapest,1683784544642,2023-05-11 07:55:44.642,User1_4a520aea-12d9-4513-8a0c-3055d399b097,Come al solito,Peggio del solito
+        Europe/Berlin,1683870934322,2023-05-12 07:55:34.322,User1_a520aea-12d9-4513-8a0c-3055d399b097,Peggio del solito,
+
+    Parameters
+    ----------
+    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+        An instance of a :class:`pylabfront.loader.LabfrontLoader`.
+    questionnaire : str
+        Unique identifier for the questionnaire to be analyzed.
+    verbose : bool, optional
+        If `True`, print out information on the terminal, by default False
+
+    Returns
+    -------
+    pd.DataFrame
+        A :class:`pd.DataFrame` with questions as columns, together with
+        a `userId` column and standard columns for date and time
+        information.
+    """
     questionnaire_df = pd.DataFrame()
-    questionnaire_questions = labfront_loader.get_questionnaire_questions(
-        labfront_loader, questionnaire
-    )
-    questions = [
-        questionnaire_questions[k]["description"]
-        for k in questionnaire_questions.keys()
-    ]
+    questionnaire_questions = labfront_loader.get_questionnaire_questions(questionnaire)
 
     for participant in labfront_loader.get_full_ids():
         try:

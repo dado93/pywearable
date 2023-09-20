@@ -62,6 +62,8 @@ def get_activity_series(
     user_ids = utils.get_user_ids(labfront_loader, user_id)
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
+    if end_date is None:
+        end_date = datetime.datetime.now()
     for id in user_ids:
         try:
             df = labfront_loader.load_garmin_connect_epoch(
@@ -284,6 +286,8 @@ def get_steps_series(
     user_ids = utils.get_user_ids(labfront_loader, user_id)
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
+    if end_date is None:
+        end_date = datetime.datetime.now()
     for id in user_ids:
         try:
             df = labfront_loader.load_garmin_connect_epoch(
@@ -336,6 +340,8 @@ def get_distance_series(
     user_ids = utils.get_user_ids(labfront_loader, user_id)
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
+    if end_date is None:
+        end_date = datetime.datetime.now()
     for id in user_ids:
         try:
             df = labfront_loader.load_garmin_connect_epoch(
@@ -457,6 +463,8 @@ def get_daily_distance(
     user_ids = utils.get_user_ids(labfront_loader, user_id)
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
+    if end_date is None:
+        end_date = datetime.datetime.now()
     for id in user_ids:
         participant_epochs = labfront_loader.load_garmin_connect_epoch(
             id,
@@ -586,6 +594,8 @@ def get_daily_intensity_minutes(
     user_id = utils.get_user_ids(labfront_loader, user_id)
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
+    if end_date is None:
+        end_date = datetime.datetime.now()
     for user in user_id:
         participant_daily_summaries = labfront_loader.load_garmin_connect_daily_summary(
             user, start_date, end_date + datetime.timedelta(hours=23, minutes=45)
@@ -691,6 +701,8 @@ def get_average_daily_activity_minutes(
     user_ids = utils.get_user_ids(labfront_loader, user_id)
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
+    if end_date is None:
+        end_date = datetime.datetime.now()
     for id in user_ids:
         try:
             # get data for the period desired
@@ -933,6 +945,8 @@ def get_average_weekly_activities(
     user_ids = utils.get_user_ids(labfront_loader, user_id)
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
+    if end_date is None:
+        end_date = datetime.datetime.now()
     for id in user_ids:
         try:
             # get data for that period

@@ -79,6 +79,7 @@ _QUESTIONNAIRE_QUESTION_DESCRIPTION_COL = "questionDescription"
 _QUESTIONNAIRE_QUESTION_TYPE_COL = "questionType"
 _QUESTIONNAIRE_SECTION_INDEX_COL = "sectionIndex"
 _QUESTIONNAIRE_QUESTION_INDEX_COL = "questionIndex"
+_TASK_SCHEDULE_COL = "taskScheduleRepeat"
 
 #################################################
 #           CSV FILES - COLUMN VALUES          #

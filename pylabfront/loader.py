@@ -1765,9 +1765,9 @@ class LabfrontLoader:
         """
         data = self.get_data_from_datetime(
             user_id,
-            constants._QUESTIONNAIRE_FOLDER,
-            start_date,
-            end_date,
+            metric=constants._QUESTIONNAIRE_FOLDER,
+            start_date=start_date,
+            end_date=end_date,
             is_questionnaire=True,
             task_name=questionnaire_name,
         )
