@@ -51,7 +51,7 @@ def get_time_in_bed(
     of the sleep, given by the sum of all sleep stages and unmeasurable sleep
     as well. The value is reported in minutes.
 
-    .. math:: TIB = N1 + N2 + N3 + REM + UNMEASURABLE
+    .. math:: TIB = N1 + N2 + N3 + REM + UNMEASURABLE + AWAKE
 
     Depending on the value of the ``average`` parameter, this function
     returns TIB for each calendar day (``average=False``) from ``start_date`` to
@@ -1784,9 +1784,7 @@ def get_cpd(
         if chronotype_sleep_duration < 0:  # takes care of sleep-time prior to midnight
             chronotype_sleep_duration += 24
         try:
-            sleep_durations = get_time_in_bed(
-                loader, start_date, end_date, user
-            )[  # TODO check if ok
+            sleep_durations = get_total_sleep_time(loader, start_date, end_date, user)[
                 user
             ]
         except:
@@ -1862,7 +1860,7 @@ def get_sleep_metric_std(
     if metric is None:
         raise KeyError("Must specify a valid sleep metric")
     elif metric == "duration":  # in hours
-        metric_data = get_time_in_bed(loader, start_date, end_date, user)[user]
+        metric_data = get_sleep_period_time(loader, start_date, end_date, user)[user]
         metric_data = [duration / (1000 * 60 * 60) for duration in metric_data.values()]
     elif metric == "midpoint":  # in hours
         midpoints = list(
