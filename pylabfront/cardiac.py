@@ -3,15 +3,16 @@ This module contains all the functions related to the analysis
 of Labfront cardiac data.
 """
 
-import pylabfront.utils as utils
-import pylabfront.sleep as sleep
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 import datetime
 
 import hrvanalysis
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import pyhrv
+
+import pylabfront.sleep as sleep
+import pylabfront.utils as utils
 
 _LABFRONT_SPO2_COLUMN = "spo2"
 
@@ -33,7 +34,7 @@ def get_rest_spO2(
 ):
     """Get spO2 during sleep.
 
-    This function returns the mean rest spO2 computed for every day. 
+    This function returns the mean rest spO2 computed for every day.
 
     Parameters
     ----------
@@ -57,7 +58,7 @@ def get_rest_spO2(
         Dictionary with participant id as primary key, calendar days as secondary keys, and rest spO2 as value.
     """
 
-    user_id = utils.get_user_ids(loader,user_id)
+    user_id = utils.get_user_ids(loader, user_id)
 
     data_dict = {}
     if average:
@@ -71,9 +72,9 @@ def get_rest_spO2(
             spo2_data = spo2_data[spo2_data.sleep == 1]
             if len(spo2_data) > 0:
                 data_dict[user] = (
-                    spo2_data.groupby(
-                        spo2_data[loader.date_column].dt.date
-                    )[_LABFRONT_SPO2_COLUMN]
+                    spo2_data.groupby(spo2_data[loader.date_column].dt.date)[
+                        _LABFRONT_SPO2_COLUMN
+                    ]
                     .mean()
                     .to_dict()
                 )
@@ -95,19 +96,16 @@ def get_rest_spO2(
         return average_dict
     return data_dict
 
-def get_cardiac_statistic(loader,
-    statistic,
-    start_date=None,
-    end_date=None,
-    user_id="all",
-    average=False
+
+def get_cardiac_statistic(
+    loader, statistic, start_date=None, end_date=None, user_id="all", average=False
 ):
     """Get a single cardiac summary statistic.
 
     This function returns the cardiac statistic. Valid options for the
     cardiac statistic are:
         - :const:`cardiac._LABFRONT_RESTING_HR_COLUMN`: Average heart rate at rest during the monitoring period.
-        - :const:`cardiac._LABFRONT_AVG_HR_COLUMN`: Average of heart rate values captured during the monitoring period. 
+        - :const:`cardiac._LABFRONT_AVG_HR_COLUMN`: Average of heart rate values captured during the monitoring period.
         - :const:`cardiac._LABFRONT_MAX_HR_COLUMN`: Maximum of heart rate values captured during the monitoring period.
         - :const:`cardiac._LABFRONT_MIN_HR_COLUMN`: Minimum of heart rate values captured during the monitoring period.
 
@@ -137,7 +135,7 @@ def get_cardiac_statistic(loader,
     :class:`dict`
         Dictionary with data of the required cardiac statistic.
     """
-    user_id = utils.get_user_ids(loader,user_id)
+    user_id = utils.get_user_ids(loader, user_id)
 
     data_dict = {}
     if average:
@@ -145,12 +143,20 @@ def get_cardiac_statistic(loader,
 
     for user in user_id:
         try:
-            daily_summary_data = loader.load_garmin_connect_daily_summary(user,start_date,end_date)
+            daily_summary_data = loader.load_garmin_connect_daily_summary(
+                user, start_date, end_date
+            )
             if len(daily_summary_data) > 0:
-                daily_summary_data = daily_summary_data.groupby(_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATA_COL).tail(1)
-                data_dict[user] = pd.Series(daily_summary_data[statistic].values,
-                                            index=daily_summary_data[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATA_COL].dt.date).to_dict()
-        
+                daily_summary_data = daily_summary_data.groupby(
+                    _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATA_COL
+                ).tail(1)
+                data_dict[user] = pd.Series(
+                    daily_summary_data[statistic].values,
+                    index=daily_summary_data[
+                        _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATA_COL
+                    ].dt.date,
+                ).to_dict()
+
             if average:
                 cardiac_data_df = pd.DataFrame.from_dict(
                     data_dict[user], orient="index"
@@ -165,21 +171,18 @@ def get_cardiac_statistic(loader,
                 ]
         except:
             data_dict[user] = None
-    
+
     if average:
         return average_dict
     return data_dict
 
 
-def get_rest_heart_rate(loader,
-    start_date=None,
-    end_date=None,
-    user_id="all",
-    average=False
+def get_rest_heart_rate(
+    loader, start_date=None, end_date=None, user_id="all", average=False
 ):
     """Get heart rate during sleep.
 
-    This function returns the heart rate while sleeping computed for every day. 
+    This function returns the heart rate while sleeping computed for every day.
 
     Parameters
     ----------
@@ -204,17 +207,17 @@ def get_rest_heart_rate(loader,
         and resting heart rate as value.
     """
 
-    return get_cardiac_statistic(loader,_LABFRONT_RESTING_HR_COLUMN,start_date,end_date,user_id,average)
+    return get_cardiac_statistic(
+        loader, _LABFRONT_RESTING_HR_COLUMN, start_date, end_date, user_id, average
+    )
 
-def get_max_heart_rate(loader,
-    start_date=None,
-    end_date=None,
-    user_id="all",
-    average=False
+
+def get_max_heart_rate(
+    loader, start_date=None, end_date=None, user_id="all", average=False
 ):
     """Get maximum daily heart rate.
 
-    This function returns the maximum heart rate recoreded for every day. 
+    This function returns the maximum heart rate recoreded for every day.
 
     Parameters
     ----------
@@ -239,17 +242,17 @@ def get_max_heart_rate(loader,
         and maximum heart rate as value.
     """
 
-    return get_cardiac_statistic(loader,_LABFRONT_MAX_HR_COLUMN,start_date,end_date,user_id,average)
+    return get_cardiac_statistic(
+        loader, _LABFRONT_MAX_HR_COLUMN, start_date, end_date, user_id, average
+    )
 
-def get_min_heart_rate(loader,
-    start_date=None,
-    end_date=None,
-    user_id="all",
-    average=False
+
+def get_min_heart_rate(
+    loader, start_date=None, end_date=None, user_id="all", average=False
 ):
     """Get minimum daily heart rate.
 
-    This function returns the minimum heart rate recoreded for every day. 
+    This function returns the minimum heart rate recoreded for every day.
 
     Parameters
     ----------
@@ -273,17 +276,17 @@ def get_min_heart_rate(loader,
         Dictionary with participant id as primary key, calendar days as secondary keys,
         and minimum heart rate as value.
     """
-    return get_cardiac_statistic(loader,_LABFRONT_MIN_HR_COLUMN,start_date,end_date,user_id,average)
+    return get_cardiac_statistic(
+        loader, _LABFRONT_MIN_HR_COLUMN, start_date, end_date, user_id, average
+    )
 
-def get_avg_heart_rate(loader,
-    start_date=None,
-    end_date=None,
-    user_id="all",
-    average=False
+
+def get_avg_heart_rate(
+    loader, start_date=None, end_date=None, user_id="all", average=False
 ):
     """Get average daily heart rate.
 
-    This function returns the average heart rate recorded for every day. 
+    This function returns the average heart rate recorded for every day.
 
     Parameters
     ----------
@@ -307,17 +310,21 @@ def get_avg_heart_rate(loader,
         Dictionary with participant id as primary key, calendar days as secondary keys,
         and average heart rate as value.
     """
-    return get_cardiac_statistic(loader,_LABFRONT_AVG_HR_COLUMN,start_date,end_date,user_id,average)
+    return get_cardiac_statistic(
+        loader, _LABFRONT_AVG_HR_COLUMN, start_date, end_date, user_id, average
+    )
 
 
-def filter_bbi(bbi,
-               remove_outliers=True,
-               remove_ectopic=True,
-               verbose=False,
-               low_rri=300,
-               high_rri=2000,
-               ectopic_method="malik",
-               interpolation_method="linear"):
+def filter_bbi(
+    bbi,
+    remove_outliers=True,
+    remove_ectopic=True,
+    verbose=False,
+    low_rri=300,
+    high_rri=2000,
+    ectopic_method="malik",
+    interpolation_method="linear",
+):
     """Get filtered bbi data.
 
     This function returns bbi data filtered out from outliers and/or ectopic beats.
@@ -342,27 +349,30 @@ def filter_bbi(bbi,
         method used to interpolate missing values after the removal of outliers/ectopic beats, by default "linear"
     """
     if remove_outliers:
-        bbi  = hrvanalysis.remove_outliers(bbi,
-                                           low_rri=low_rri,
-                                           high_rri=high_rri,
-                                           verbose=verbose)
-        bbi = hrvanalysis.interpolate_nan_values(bbi,
-                                                 interpolation_method=interpolation_method)
+        bbi = hrvanalysis.remove_outliers(
+            bbi, low_rri=low_rri, high_rri=high_rri, verbose=verbose
+        )
+        bbi = hrvanalysis.interpolate_nan_values(
+            bbi, interpolation_method=interpolation_method
+        )
     if remove_ectopic:
-        bbi = hrvanalysis.remove_ectopic_beats(bbi,
-                                               method=ectopic_method,
-                                               verbose=verbose)
-        bbi = hrvanalysis.interpolate_nan_values(bbi,
-                                                 interpolation_method=interpolation_method)
+        bbi = hrvanalysis.remove_ectopic_beats(
+            bbi, method=ectopic_method, verbose=verbose
+        )
+        bbi = hrvanalysis.interpolate_nan_values(
+            bbi, interpolation_method=interpolation_method
+        )
     return bbi
 
 
-def get_hrv_time_domain(loader,
-                        start_date=None,
-                        end_date=None,
-                        user_id="all",
-                        pyhrv=False,
-                        filtering_kwargs={}):
+def get_hrv_time_domain(
+    loader,
+    start_date=None,
+    end_date=None,
+    user_id="all",
+    pyhrv=False,
+    filtering_kwargs={},
+):
     """Get time-domain heart rate variability features.
 
     This function returns a dictionary containing for every user of interest
@@ -389,31 +399,33 @@ def get_hrv_time_domain(loader,
         Dictionary with participant id as primary key, time-domain hrv feature names as secondary keys,
         and the values of the features as dictionary values.
     """
-    user_id = utils.get_user_ids(loader,user_id)
+    user_id = utils.get_user_ids(loader, user_id)
     data_dict = {}
 
     for user in user_id:
         try:
-            bbi = loader.load_garmin_device_bbi(user,start_date,end_date).bbi
+            bbi = loader.load_garmin_device_bbi(user, start_date, end_date).bbi
             bbi = filter_bbi(bbi, **filtering_kwargs)
-            if pyhrv: # pyhrv has more features but it's a lot slower
+            if pyhrv:  # pyhrv has more features but it's a lot slower
                 td_features = pyhrv.time_domain.time_domain(bbi).as_dict()
             else:
                 td_features = hrvanalysis.get_time_domain_features(bbi)
             data_dict[user] = td_features
         except:
             data_dict[user] = None
-    
+
     return data_dict
 
 
-def get_hrv_frequency_domain(loader,
-                            start_date=None,
-                            end_date=None,
-                            user_id="all",
-                            method="ar",
-                            filtering_kwargs={},
-                            method_kwargs={}):
+def get_hrv_frequency_domain(
+    loader,
+    start_date=None,
+    end_date=None,
+    user_id="all",
+    method="ar",
+    filtering_kwargs={},
+    method_kwargs={},
+):
     """Get frequency-domain heart rate variability features.
 
     This function returns a dictionary containing for every user of interest
@@ -439,9 +451,9 @@ def get_hrv_frequency_domain(loader,
     Returns
     -------
     :class:`dict`
-        Dictionary with participant id as primary key, 
+        Dictionary with participant id as primary key,
         frequency-domain hrv feature names and method params as secondary keys,
-        and the values of the features and params as dictionary values. 
+        and the values of the features and params as dictionary values.
         In case the value is a list, the items are relative (in order) to vlf, lf, hf ranges.
 
     Raises
@@ -449,39 +461,47 @@ def get_hrv_frequency_domain(loader,
     KeyError
         if the method specified isn't available the function returns this error.
     """
-    user_id = utils.get_user_ids(loader,user_id)
+    user_id = utils.get_user_ids(loader, user_id)
     data_dict = {}
 
     for user in user_id:
         try:
-            bbi = loader.load_garmin_device_bbi(user,start_date,end_date).bbi
+            bbi = loader.load_garmin_device_bbi(user, start_date, end_date).bbi
             bbi = filter_bbi(bbi, **filtering_kwargs)
             if method == "ar":
-                fd_features = pyhrv.frequency_domain.ar_psd(bbi,show=False,**method_kwargs).as_dict()
+                fd_features = pyhrv.frequency_domain.ar_psd(
+                    bbi, show=False, **method_kwargs
+                ).as_dict()
             elif method == "welch":
-                fd_features = pyhrv.frequency_domain.welch_psd(bbi,show=False,**method_kwargs).as_dict()
+                fd_features = pyhrv.frequency_domain.welch_psd(
+                    bbi, show=False, **method_kwargs
+                ).as_dict()
             elif method == "lomb":
-                fd_features = pyhrv.frequency_domain.lomb_psd(bbi,show=False,**method_kwargs).as_dict()
+                fd_features = pyhrv.frequency_domain.lomb_psd(
+                    bbi, show=False, **method_kwargs
+                ).as_dict()
             else:
                 raise KeyError("method specified unknown.")
             plt.close()
             data_dict[user] = fd_features
         except:
             data_dict[user] = None
-    
+
     return data_dict
 
 
-def get_hrv_nonlinear_domain(loader,
-                            start_date=None,
-                            end_date=None,
-                            user_id="all",
-                            dfa=True,
-                            sampen=False,
-                            filtering_kwargs={},
-                            poincare_kwargs={},
-                            sampen_kwargs={},
-                            dfa_kwargs={}):
+def get_hrv_nonlinear_domain(
+    loader,
+    start_date=None,
+    end_date=None,
+    user_id="all",
+    dfa=True,
+    sampen=False,
+    filtering_kwargs={},
+    poincare_kwargs={},
+    sampen_kwargs={},
+    dfa_kwargs={},
+):
     """Get non linear domain heart rate variability features.
 
     This function returns a dictionary containing for every user of interest
@@ -513,40 +533,47 @@ def get_hrv_nonlinear_domain(loader,
 
     Returns
     -------
-    Dictionary with participant id as primary key, 
+    Dictionary with participant id as primary key,
     non linear domain hrv feature names as secondary keys,
-    and the values of the features as dictionary values. 
+    and the values of the features as dictionary values.
     """
-    user_id = utils.get_user_ids(loader,user_id)
+    user_id = utils.get_user_ids(loader, user_id)
     data_dict = {}
 
     for user in user_id:
         try:
-            bbi = loader.load_garmin_device_bbi(user,start_date,end_date).bbi
+            bbi = loader.load_garmin_device_bbi(user, start_date, end_date).bbi
             bbi = filter_bbi(bbi, **filtering_kwargs)
             non_linear_features = {}
-            non_linear_features |= pyhrv.nonlinear.poincare(bbi,show=False,**poincare_kwargs).as_dict()
+            non_linear_features |= pyhrv.nonlinear.poincare(
+                bbi, show=False, **poincare_kwargs
+            ).as_dict()
             plt.close()
             if dfa:
-                non_linear_features |= pyhrv.nonlinear.dfa(bbi,show=False,**dfa_kwargs).as_dict()
+                non_linear_features |= pyhrv.nonlinear.dfa(
+                    bbi, show=False, **dfa_kwargs
+                ).as_dict()
                 plt.close()
-            if sampen: # for long bbi series this takes a lot of time
-                non_linear_features |= pyhrv.nonlinear.sample_entropy(bbi,**sampen_kwargs).as_dict()
+            if sampen:  # for long bbi series this takes a lot of time
+                non_linear_features |= pyhrv.nonlinear.sample_entropy(
+                    bbi, **sampen_kwargs
+                ).as_dict()
             data_dict[user] = non_linear_features
         except:
             data_dict[user] = None
-    
+
     return data_dict
 
 
-def get_hrv_features(loader,
-                     start_date=None,
-                     end_date=None,
-                     user_id="all",
-                     filtering_kwargs={},
-                     time_domain_kwargs={},
-                     frequency_domain_kwargs={},
-                     nonlinear_domain_kwargs={}
+def get_hrv_features(
+    loader,
+    start_date=None,
+    end_date=None,
+    user_id="all",
+    filtering_kwargs={},
+    time_domain_kwargs={},
+    frequency_domain_kwargs={},
+    nonlinear_domain_kwargs={},
 ):
     """Compute all hrv features (time, frequency, and non-linear domain) for a given period.
     Can be extremely computationally intensive if the period is too long.
@@ -572,46 +599,55 @@ def get_hrv_features(loader,
 
     Returns
     -------
-    Dictionary with participant id as primary key, 
+    Dictionary with participant id as primary key,
     hrv feature names and params for their calculation as secondary keys,
-    and the values of the features or the params as dictionary values. 
+    and the values of the features or the params as dictionary values.
     """
-    user_id = utils.get_user_ids(loader,user_id)
+    user_id = utils.get_user_ids(loader, user_id)
     data_dict = {}
 
     for user in user_id:
         try:
             features = {}
-            features |= get_hrv_time_domain(loader,
-                                            start_date,
-                                            end_date,
-                                            user,
-                                            filtering_kwargs=filtering_kwargs,
-                                            **time_domain_kwargs)[user]
-            features |= get_hrv_frequency_domain(loader,
-                                                 start_date,
-                                                 end_date,
-                                                 user,
-                                                 filtering_kwargs=filtering_kwargs,
-                                                 **frequency_domain_kwargs)[user]
-            features |= get_hrv_nonlinear_domain(loader,
-                                                 start_date,
-                                                 end_date,
-                                                 user,
-                                                 filtering_kwargs=filtering_kwargs,
-                                                 **nonlinear_domain_kwargs)[user]
+            features |= get_hrv_time_domain(
+                loader,
+                start_date,
+                end_date,
+                user,
+                filtering_kwargs=filtering_kwargs,
+                **time_domain_kwargs
+            )[user]
+            features |= get_hrv_frequency_domain(
+                loader,
+                start_date,
+                end_date,
+                user,
+                filtering_kwargs=filtering_kwargs,
+                **frequency_domain_kwargs
+            )[user]
+            features |= get_hrv_nonlinear_domain(
+                loader,
+                start_date,
+                end_date,
+                user,
+                filtering_kwargs=filtering_kwargs,
+                **nonlinear_domain_kwargs
+            )[user]
             data_dict[user] = features
         except:
             data_dict[user] = None
-    
+
     return data_dict
 
-def get_night_rmssd(loader,
-                  start_date=None,
-                  end_date=None,
-                  user_id="all",
-                  coverage=0.7,
-                  method="all night"):
+
+def get_night_rmssd(
+    loader,
+    start_date=None,
+    end_date=None,
+    user_id="all",
+    coverage=0.7,
+    method="all night",
+):
     """Compute rmssd metrics considering night data for the specified participants and period.
 
     Parameters
@@ -634,43 +670,53 @@ def get_night_rmssd(loader,
     Dictionary with participants as primary key,
     dates as secondary keys, and rmssd computed overnight as values.
     """
-    
-    user_id = utils.get_user_ids(loader,user_id)
+
+    user_id = utils.get_user_ids(loader, user_id)
     data_dict = {}
 
     for user in user_id:
         try:
-            sleeping_timestamps = sleep.get_sleep_timestamps(loader,start_date,end_date,user)[user]
+            sleeping_timestamps = sleep.get_sleep_timestamps(
+                loader, start_date, end_date, user
+            )[user]
             daily_means = {}
 
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
-                bbi_df = loader.load_garmin_device_bbi(user,start_hour,end_hour)
+                bbi_df = loader.load_garmin_device_bbi(user, start_hour, end_hour)
                 bbi_df = bbi_df.set_index("isoDate")
-                
-                if method == "filter awake": # this filters out bbi relative to awake periods during sleep
-                    bbi_df = _filter_out_awake_bbi(loader,user,bbi_df,date)
 
-                counts = bbi_df.resample('5min').bbi.count() 
-                means = bbi_df.resample('5min').bbi.mean() 
-                coverage_filter = (counts > (300/(means/1000)*coverage)).values
-                ST_analysis = bbi_df.resample('5min').bbi.apply(lambda x: pyhrv.time_domain.rmssd(x)[0] if x.count() > 5 else 0)
-                ST_analysis = ST_analysis.iloc[coverage_filter & (ST_analysis != 0).values]
+                if (
+                    method == "filter awake"
+                ):  # this filters out bbi relative to awake periods during sleep
+                    bbi_df = _filter_out_awake_bbi(loader, user, bbi_df, date)
+
+                counts = bbi_df.resample("5min").bbi.count()
+                means = bbi_df.resample("5min").bbi.mean()
+                coverage_filter = (counts > (300 / (means / 1000) * coverage)).values
+                ST_analysis = bbi_df.resample("5min").bbi.apply(
+                    lambda x: pyhrv.time_domain.rmssd(x)[0] if x.count() > 5 else 0
+                )
+                ST_analysis = ST_analysis.iloc[
+                    coverage_filter & (ST_analysis != 0).values
+                ]
                 rmssd_values_daily = ST_analysis.values
                 daily_mean = rmssd_values_daily.mean()
-                daily_means[date] = round(daily_mean,1)
+                daily_means[date] = round(daily_mean, 1)
             data_dict[user] = daily_means
         except:
             data_dict[user] = None
-    
+
     return data_dict
 
 
-def get_night_sdnn(loader,
-                  start_date=None,
-                  end_date=None,
-                  user_id="all",
-                  coverage=0.7,
-                  method="all night"):
+def get_night_sdnn(
+    loader,
+    start_date=None,
+    end_date=None,
+    user_id="all",
+    coverage=0.7,
+    method="all night",
+):
     """Compute sdnn metrics considering night data for the specified participants and period.
 
     Parameters
@@ -693,42 +739,51 @@ def get_night_sdnn(loader,
     Dictionary with participants as primary key,
     dates as secondary keys, and sdnn computed overnight as values.
     """
-    
-    user_id = utils.get_user_ids(loader,user_id)
+
+    user_id = utils.get_user_ids(loader, user_id)
     data_dict = {}
 
     for user in user_id:
         try:
-            sleeping_timestamps = sleep.get_sleep_timestamps(loader,start_date,end_date,user)[user]
+            sleeping_timestamps = sleep.get_sleep_timestamps(
+                loader, start_date, end_date, user
+            )[user]
 
             daily_means = {}
 
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
-                bbi_df = loader.load_garmin_device_bbi(user,start_hour,end_hour)
+                bbi_df = loader.load_garmin_device_bbi(user, start_hour, end_hour)
                 bbi_df = bbi_df.set_index("isoDate")
                 if method == "filter awake":
-                    bbi_df = _filter_out_awake_bbi(loader,user,bbi_df,date)
-                counts = bbi_df.resample('5min').bbi.count() 
-                means = bbi_df.resample('5min').bbi.mean() 
-                coverage_filter = (counts > (300/(means/1000)*coverage)).values
-                ST_analysis = bbi_df.resample('5min').bbi.apply(lambda x: pyhrv.time_domain.sdnn(x)[0] if x.count() > 5 else 0)
-                ST_analysis = ST_analysis.iloc[coverage_filter & (ST_analysis != 0).values]
+                    bbi_df = _filter_out_awake_bbi(loader, user, bbi_df, date)
+                counts = bbi_df.resample("5min").bbi.count()
+                means = bbi_df.resample("5min").bbi.mean()
+                coverage_filter = (counts > (300 / (means / 1000) * coverage)).values
+                ST_analysis = bbi_df.resample("5min").bbi.apply(
+                    lambda x: pyhrv.time_domain.sdnn(x)[0] if x.count() > 5 else 0
+                )
+                ST_analysis = ST_analysis.iloc[
+                    coverage_filter & (ST_analysis != 0).values
+                ]
                 sdnn_values_daily = ST_analysis.values
                 daily_mean = sdnn_values_daily.mean()
-                daily_means[date] = round(daily_mean,1)
+                daily_means[date] = round(daily_mean, 1)
             data_dict[user] = daily_means
         except:
             data_dict[user] = None
-    
+
     return data_dict
 
-def get_night_lf(loader,
-                 start_date=None,
-                 end_date=None,
-                 user_id="all",
-                 coverage=0.7,
-                 method="all night",
-                 minimal_periods=10):
+
+def get_night_lf(
+    loader,
+    start_date=None,
+    end_date=None,
+    user_id="all",
+    coverage=0.7,
+    method="all night",
+    minimal_periods=10,
+):
     """Compute LF power metrics considering night data for the specified participants and period.
 
     Parameters
@@ -751,44 +806,55 @@ def get_night_lf(loader,
     Dictionary with participants as primary key,
     dates as secondary keys, and LF absolute power computed overnight as values.
     """
-    user_id = utils.get_user_ids(loader,user_id)
+    user_id = utils.get_user_ids(loader, user_id)
     data_dict = {}
 
     for user in user_id:
         try:
-            sleeping_timestamps = sleep.get_sleep_timestamps(loader,start_date,end_date,user)[user]
+            sleeping_timestamps = sleep.get_sleep_timestamps(
+                loader, start_date, end_date, user
+            )[user]
 
             daily_means = {}
 
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
-                bbi_df = loader.load_garmin_device_bbi(user,start_hour,end_hour)
+                bbi_df = loader.load_garmin_device_bbi(user, start_hour, end_hour)
                 bbi_df = bbi_df.set_index("isoDate")
                 if method == "filter awake":
-                    bbi_df = _filter_out_awake_bbi(loader,user,bbi_df,date)
-                counts = bbi_df.resample('5min').bbi.count() 
-                means = bbi_df.resample('5min').bbi.mean() 
-                coverage_filter = (counts > (300/(means/1000)*coverage)).values
-                ST_analysis = bbi_df.resample('5min').bbi.apply(lambda x: pyhrv.frequency_domain.welch_psd(nni=x,
-                                                                                                           show=False,
-                                                                                                           mode="dev")[0]["fft_abs"][1] if x.count() > 5 else 0)
-                ST_analysis = ST_analysis.iloc[coverage_filter & (ST_analysis != 0).values]
+                    bbi_df = _filter_out_awake_bbi(loader, user, bbi_df, date)
+                counts = bbi_df.resample("5min").bbi.count()
+                means = bbi_df.resample("5min").bbi.mean()
+                coverage_filter = (counts > (300 / (means / 1000) * coverage)).values
+                ST_analysis = bbi_df.resample("5min").bbi.apply(
+                    lambda x: pyhrv.frequency_domain.welch_psd(
+                        nni=x, show=False, mode="dev"
+                    )[0]["fft_abs"][1]
+                    if x.count() > 5
+                    else 0
+                )
+                ST_analysis = ST_analysis.iloc[
+                    coverage_filter & (ST_analysis != 0).values
+                ]
                 lf_values_daily = ST_analysis.dropna().values
                 if len(lf_values_daily) >= minimal_periods:
                     daily_mean = lf_values_daily.mean()
-                    daily_means[date] = round(daily_mean,1)
+                    daily_means[date] = round(daily_mean, 1)
             data_dict[user] = daily_means
         except:
             data_dict[user] = None
-    
+
     return data_dict
 
-def get_night_hf(loader,
-                 start_date=None,
-                 end_date=None,
-                 user_id="all",
-                 coverage=0.7,
-                 method="all night",
-                 minimal_periods=10):
+
+def get_night_hf(
+    loader,
+    start_date=None,
+    end_date=None,
+    user_id="all",
+    coverage=0.7,
+    method="all night",
+    minimal_periods=10,
+):
     """Compute HF power metrics considering night data for the specified participants and period.
 
     Parameters
@@ -810,44 +876,55 @@ def get_night_hf(loader,
     -------
     Dictionary with participants as primary key,
     dates as secondary keys, and LF absolute power computed overnight as values.
-    """    
-    user_id = utils.get_user_ids(loader,user_id)
+    """
+    user_id = utils.get_user_ids(loader, user_id)
     data_dict = {}
 
     for user in user_id:
         try:
-            sleeping_timestamps = sleep.get_sleep_timestamps(loader,start_date,end_date,user)[user]
+            sleeping_timestamps = sleep.get_sleep_timestamps(
+                loader, start_date, end_date, user
+            )[user]
 
             daily_means = {}
 
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
-                bbi_df = loader.load_garmin_device_bbi(user,start_hour,end_hour)
+                bbi_df = loader.load_garmin_device_bbi(user, start_hour, end_hour)
                 bbi_df = bbi_df.set_index("isoDate")
                 if method == "filter awake":
-                    bbi_df = _filter_out_awake_bbi(loader,user,bbi_df,date)
-                counts = bbi_df.resample('5min').bbi.count() 
-                means = bbi_df.resample('5min').bbi.mean() 
-                coverage_filter = (counts > (300/(means/1000)*coverage)).values
-                ST_analysis = bbi_df.resample('5min').bbi.apply(lambda x: pyhrv.frequency_domain.welch_psd(nni=x,
-                                                                                                           show=False,
-                                                                                                           mode="dev")[0]["fft_abs"][2] if x.count() > 5 else 0)
-                ST_analysis = ST_analysis.iloc[coverage_filter & (ST_analysis != 0).values]
+                    bbi_df = _filter_out_awake_bbi(loader, user, bbi_df, date)
+                counts = bbi_df.resample("5min").bbi.count()
+                means = bbi_df.resample("5min").bbi.mean()
+                coverage_filter = (counts > (300 / (means / 1000) * coverage)).values
+                ST_analysis = bbi_df.resample("5min").bbi.apply(
+                    lambda x: pyhrv.frequency_domain.welch_psd(
+                        nni=x, show=False, mode="dev"
+                    )[0]["fft_abs"][2]
+                    if x.count() > 5
+                    else 0
+                )
+                ST_analysis = ST_analysis.iloc[
+                    coverage_filter & (ST_analysis != 0).values
+                ]
                 hf_values_daily = ST_analysis.dropna().values
                 if len(hf_values_daily) >= minimal_periods:
                     daily_mean = hf_values_daily.mean()
-                    daily_means[date] = round(daily_mean,1)
+                    daily_means[date] = round(daily_mean, 1)
             data_dict[user] = daily_means
         except:
             data_dict[user] = None
-    
+
     return data_dict
 
-def get_night_lfhf(loader,
-                 start_date=None,
-                 end_date=None,
-                 user_id="all",
-                 coverage=0.7,
-                 method="all night"):
+
+def get_night_lfhf(
+    loader,
+    start_date=None,
+    end_date=None,
+    user_id="all",
+    coverage=0.7,
+    method="all night",
+):
     """Compute LF/HF ratio metrics considering night data for the specified participants and period.
 
     Parameters
@@ -870,41 +947,32 @@ def get_night_lfhf(loader,
     Dictionary with participants as primary key,
     dates as secondary keys, and LF/HF ratio computed overnight as values.
     """
-    
-    user_id = utils.get_user_ids(loader,user_id)
+
+    user_id = utils.get_user_ids(loader, user_id)
     data_dict = {}
 
     for user in user_id:
         try:
-            lf_dict = get_night_lf(loader,
-                              start_date,
-                              end_date,
-                              user,
-                              coverage=coverage,
-                              method=method)[user]
-            hf_dict = get_night_hf(loader,
-                              start_date,
-                              end_date,
-                              user,
-                              coverage=coverage,
-                              method=method)[user]
+            lf_dict = get_night_lf(
+                loader, start_date, end_date, user, coverage=coverage, method=method
+            )[user]
+            hf_dict = get_night_hf(
+                loader, start_date, end_date, user, coverage=coverage, method=method
+            )[user]
             lfhf_dict = {}
             for date in lf_dict.keys():
                 lf = lf_dict[date]
                 hf = hf_dict[date]
-                lfhf_dict[date] = lf/hf
+                lfhf_dict[date] = lf / hf
 
             data_dict[user] = lfhf_dict
         except:
             data_dict[user] = None
-    
+
     return data_dict
 
 
-def _filter_out_awake_bbi(loader,
-                          user,
-                          bbi_df,
-                          date):
+def _filter_out_awake_bbi(loader, user, bbi_df, date):
     """Filters out night bbi data relative to periods where the user was awake
 
     Parameters
@@ -921,29 +989,37 @@ def _filter_out_awake_bbi(loader,
     Returns
     -------
     pandas.DataFrame
-    DataFrame in the same format of `bbi_df`, including only bbi data of periods when the participant is asleep. 
+    DataFrame in the same format of `bbi_df`, including only bbi data of periods when the participant is asleep.
     """
-    hypnogram = loader.load_hypnogram(user,date)
+    hypnogram = loader.load_hypnogram(user, date)
     hypnogram["stages_diff"] = np.concatenate(
-                        [
-                            [0],
-                            hypnogram.iloc[1:, :].stage.values
-                            - hypnogram.iloc[:-1, :].stage.values,
-                        ]
-                    )
+        [
+            [0],
+            hypnogram.iloc[1:, :].stage.values - hypnogram.iloc[:-1, :].stage.values,
+        ]
+    )
     # if there has been a negative change and the current stage is awake, then count it as awakening start
     hypnogram["awakening_start"] = np.logical_and(
-                        hypnogram.stage == 0, hypnogram.stages_diff < 0
-                    )
+        hypnogram.stage == 0, hypnogram.stages_diff < 0
+    )
     # if there has been a positive change and the previous stage was awake, then count it as awakening end
-    hypnogram["awakening_end"] = np.concatenate([
-        [0],
-        np.logical_and((hypnogram.iloc[:-1, :].stage == 0).values, (hypnogram.iloc[1:, :].stages_diff > 0).values)
-    ])
-    relevant_rows = hypnogram.loc[np.logical_or(hypnogram.awakening_start==1, hypnogram.awakening_end==1)][:20]
+    hypnogram["awakening_end"] = np.concatenate(
+        [
+            [0],
+            np.logical_and(
+                (hypnogram.iloc[:-1, :].stage == 0).values,
+                (hypnogram.iloc[1:, :].stages_diff > 0).values,
+            ),
+        ]
+    )
+    relevant_rows = hypnogram.loc[
+        np.logical_or(hypnogram.awakening_start == 1, hypnogram.awakening_end == 1)
+    ][:20]
     awakening_starts = relevant_rows.isoDate.iloc[::2].values
     awakening_ends = relevant_rows.isoDate.iloc[1::2].values
-    for awakening_start, awakening_end in zip(awakening_starts,awakening_ends):
-        bbi_df = bbi_df.loc[(bbi_df.index < awakening_start) | (bbi_df.index > awakening_end)]
+    for awakening_start, awakening_end in zip(awakening_starts, awakening_ends):
+        bbi_df = bbi_df.loc[
+            (bbi_df.index < awakening_start) | (bbi_df.index > awakening_end)
+        ]
 
     return bbi_df
