@@ -696,18 +696,6 @@ def get_sleep_summary_graph(
         except:  # skip missing dates
             continue
 
-    # Find sleep summary with highest duration and latest start time
-    sleep_summaries["overallDurationInSeconds"] = (
-        sleep_summaries[pylabfront.constants._SLEEP_SUMMARY_DURATION_IN_MS_COL]
-        + sleep_summaries[pylabfront.constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL]
-    ) / 1000
-    sleep_summaries["latest_longest"] = (
-        sleep_summaries["secondsDiff"] + sleep_summaries["overallDurationInSeconds"]
-    )
-    latest_longest_sleep = sleep_summaries.iloc[
-        sleep_summaries["latest_longest"].idxmax()
-    ]
-
     # Set limits to be an hour lower than lowest difference
     # and one hour more than longest and latest sleep
     ax.set_xlim(
@@ -716,6 +704,7 @@ def get_sleep_summary_graph(
             sleep_summaries["endSecondsDiff"].max() + 3600,
         ]
     )
+    print(sleep_summaries)
 
     # graph and legend params
     ax.spines["top"].set_visible(False)
@@ -734,9 +723,9 @@ def get_sleep_summary_graph(
 
     formatter = FuncFormatter(format_func)
 
-    ax.xaxis.set_major_formatter(formatter)
+    # ax.xaxis.set_major_formatter(formatter)
     # this locates y-ticks at the hours
-    ax.xaxis.set_major_locator(MultipleLocator(base=3600))
+    # ax.xaxis.set_major_locator(MultipleLocator(base=3600))
 
     # graph params
     ax.set_axisbelow(True)
