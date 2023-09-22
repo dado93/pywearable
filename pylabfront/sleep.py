@@ -2236,7 +2236,7 @@ def _compute_sleep_period_time(
         )
 
     def sleep_diff(group):
-        start = group[constants._UNIXTIMESTAMPS_IN_MS_COL]
+        start = group[constants._UNIXTIMESTAMP_IN_MS_COL]
         duration = group[constants._SLEEP_STAGE_DURATION_IN_MS_COL]
         return (start.iloc[-1] + duration.iloc[-1] - start.iloc[0]) / (1000 * 60)
 
