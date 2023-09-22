@@ -1908,13 +1908,19 @@ class LabfrontLoader:
         )
 
         # Keep only sleep stages with correct sleep summaries
-        sleep_stages = sleep_stages[
-            sleep_stages[pylabfront.constants._SLEEP_STAGE_SLEEP_SUMMARY_ID_COL].isin(
-                sleep_summaries[
-                    pylabfront.constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL
-                ].unique()
-            )
-        ].reset_index(drop=True)
+        sleep_stages = (
+            sleep_stages[
+                sleep_stages[
+                    pylabfront.constants._SLEEP_STAGE_SLEEP_SUMMARY_ID_COL
+                ].isin(
+                    sleep_summaries[
+                        pylabfront.constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL
+                    ].unique()
+                )
+            ]
+            .sort_values(by=[pylabfront.constants._UNIXTIMESTAMP_IN_MS_COL])
+            .reset_index(drop=True)
+        )
 
         # set index on sleep summaries
         sleep_summaries = sleep_summaries.set_index(
