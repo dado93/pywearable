@@ -810,6 +810,7 @@ def get_errorbar_graph(
     """Plots an errorbar graph with respect to the ``variable_of_interest`` for a specific question in a questionnaire
 
     For every category of answer given
+
     Parameters
     ----------
     quest_df : pd.DataFrame
@@ -936,6 +937,7 @@ def compare_against_group(
 
     This functions compare an user against a chosen population with respect to a specific metric.
     The metric should be evaluated for both the user and the comparison group prior to the calling of the function.
+
     Parameters
     ----------
     user_data : float
