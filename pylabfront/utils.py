@@ -2,20 +2,53 @@
 This module contains utility functions that don't directly load/compute metrics.
 """
 
+import datetime
 import time
 import hrvanalysis
 from cmath import phase, rect
 from math import degrees, radians
 from typing import Union
 
+import dateutil.parser
 import pandas as pd
 import numpy as np
-
 
 _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY = "lastSampleUnixTimestampInMs"
 _LABFRONT_QUESTIONNAIRE_STRING = "questionnaire"
 _LABFRONT_TODO_STRING = "todo"
 _MS_TO_DAY_CONVERSION = 1000 * 60 * 60 * 24
+
+
+def check_date(
+    date: Union[datetime.datetime, datetime.date, str, None]
+) -> datetime.datetime:
+    """Convert date to :class:`datetime.datetime` format
+
+    Parameters
+    ----------
+    date : datetime.datetime or datetime.date or str or None
+        Date to be converted
+
+    Returns
+    -------
+    datetime.datetime
+        Converted date.
+
+    Raises
+    ------
+    ValueError
+        If ``date`` is not of valid format.
+    """
+    # Check dates and times
+    if isinstance(date, str):
+        date = dateutil.parser.parse(date)
+    elif type(date) == datetime.date:
+        date = datetime.datetime.combine(date, datetime.time())
+    elif date is None:
+        date = None
+    else:
+        raise ValueError(f"{type(date)} is not valid.")
+    return date
 
 
 def get_user_ids(labfront_loader, user_id: Union[str, list]):

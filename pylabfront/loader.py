@@ -6,102 +6,13 @@ import datetime
 import os
 import re
 from pathlib import Path
-from typing import Union, Tuple
-import dateutil.parser
+from typing import Tuple, Union
 
+import dateutil.parser
 import pandas as pd
 
-import pylabfront.utils as utils
-
-# Labfront-specific constants
-_LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY = "firstSampleUnixTimestampInMs"
-_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY = "lastSampleUnixTimestampInMs"
-_LABFRONT_ISO_DATE_KEY = "isoDate"
-_LABFRONT_CSV_STATS_SKIP_ROWS = 3
-_LABFRONT_QUESTIONNAIRE_STRING = "questionnaire"
-_LABFRONT_TODO_STRING = "todo"
-_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY = "timezoneOffsetInMs"
-_LABFRONT_GARMIN_DEVICE_TIMEZONEOFFSET_MS_KEY = "timezone"
-_LABFRONT_UNIXTIMESTAMP_MS_KEY = "unixTimestampInMs"
-_LABFRONT_TODO_NAME_KEY = "todoName"
-_LABFRONT_QUESTIONNAIRE_NAME_KEY = "questionnaireName"
-
-###################################################
-# Garmin Connect metrics - Labfront folder names  #
-###################################################
-_LABFRONT_GARMIN_CONNECT_STRING = "garmin-connect"
-_LABFRONT_GARMIN_CONNECT_BODY_COMPOSITION_STRING = (
-    _LABFRONT_GARMIN_CONNECT_STRING + "-body-composition"
-)
-_LABFRONT_GARMIN_CONNECT_HEART_RATE_STRING = (
-    _LABFRONT_GARMIN_CONNECT_STRING + "-daily-heart-rate"
-)
-_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STRING = (
-    _LABFRONT_GARMIN_CONNECT_STRING + "-daily-summary"
-)
-_LABFRONT_GARMIN_CONNECT_DAILY_PULSE_OX_STRING = (
-    _LABFRONT_GARMIN_CONNECT_STRING + "-pulse-ox"
-)
-_LABFRONT_GARMIN_CONNECT_SLEEP_PULSE_OX_STRING = (
-    _LABFRONT_GARMIN_CONNECT_STRING + "-sleep-pulse-ox"
-)
-_LABFRONT_GARMIN_CONNECT_DAILY_RESPIRATION_STRING = (
-    _LABFRONT_GARMIN_CONNECT_STRING + "-respiration"
-)
-_LABFRONT_GARMIN_CONNECT_SLEEP_RESPIRATION_STRING = (
-    _LABFRONT_GARMIN_CONNECT_STRING + "-sleep-respiration"
-)
-_LABFRONT_GARMIN_CONNECT_SLEEP_STAGE_STRING = (
-    _LABFRONT_GARMIN_CONNECT_STRING + "-sleep-stage"
-)
-_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_STRING = (
-    _LABFRONT_GARMIN_CONNECT_STRING + "-sleep-summary"
-)
-_LABFRONT_GARMIN_CONNECT_EPOCH_STRING = _LABFRONT_GARMIN_CONNECT_STRING + "-epoch"
-_LABFRONT_GARMIN_CONNECT_STRESS_STRING = _LABFRONT_GARMIN_CONNECT_STRING + "-stress"
-
-###################################################
-#  Garmin Connect metrics - Labfront folder names #
-###################################################
-_LABFRONT_SPO2_COLUMN = "spo2"
-_LABFRONT_RESPIRATION_COLUMN = "breathsPerMinute"
-_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL = "calendarDate"
-_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_IN_MS_COL = "durationInMs"
-_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL = "awakeDurationInMs"
-_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_STAGE_COL = "type"
-
-_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL = "calendarDate"
-_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SUMMARY_COL = "sleepSummaryId"
-
-
-###################################################
-#  Garmin Device metrics - Labfront csv columns  #
-###################################################
-_LABFRONT_GARMIN_DEVICE_STRING = "garmin-device"
-_LABFRONT_GARMIN_DEVICE_BBI_STRING = _LABFRONT_GARMIN_DEVICE_STRING + "-bbi"
-_LABFRONT_GARMIN_DEVICE_HEART_RATE_STRING = (
-    _LABFRONT_GARMIN_DEVICE_STRING + "-heart-rate"
-)
-_LABFRONT_GARMIN_DEVICE_PULSE_OX_STRING = _LABFRONT_GARMIN_DEVICE_STRING + "-pulse-ox"
-_LABFRONT_GARMIN_DEVICE_RESPIRATION_STRING = (
-    _LABFRONT_GARMIN_DEVICE_STRING + "-respiration"
-)
-_LABFRONT_GARMIN_DEVICE_STEP_STRING = _LABFRONT_GARMIN_DEVICE_STRING + "-step"
-_LABFRONT_GARMIN_DEVICE_STRESS_STRING = _LABFRONT_GARMIN_DEVICE_STRING + "-stress"
-
-_LABFRONT_QUESTIONNAIRE_QUESTION_DESCRIPTION_COL = "questionDescription"
-_LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_COL = "questionType"
-_LABFRONT_QUESTIONNAIRE_QUESTION_NAME_REGEX = "option\dName"
-_LABFRONT_QUESTIONNAIRE_SECTION_INDEX_COL = "sectionIndex"
-_LABFRONT_QUESTIONNAIRE_QUESTION_INDEX_COL = "questionIndex"
-
-###################################################
-#         Labfront questionnaires columns         #
-###################################################
-
-_LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_RADIO_VAL = "radio"
-_LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_MULTI_SELECT_VAL = "multi_select"
-_LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_TEXT_VAL = "text"
+import pylabfront.constants
+import pylabfront.utils
 
 
 class LabfrontLoader:
@@ -119,7 +30,7 @@ class LabfrontLoader:
     def __init__(self, data_path: Union[str, Path]):
         """Constructor method"""
         self.set_path(data_path)
-        self.date_column = _LABFRONT_ISO_DATE_KEY
+        self.date_column = pylabfront.constants._ISODATE_COL
 
     def set_path(self, data_path: Union[str, Path]):
         """Set path to folder containing Labfront data.
@@ -310,12 +221,14 @@ class LabfrontLoader:
         questionnaires = set()
         questionnaires_dict = {}
 
-        participant_ids = utils.get_user_ids(self, user_id)
+        participant_ids = pylabfront.utils.get_user_ids(self, user_id)
 
         for participant_id in participant_ids:
             participant_id = self.get_full_id(participant_id)
             participant_path = (
-                self.data_path / participant_id / _LABFRONT_QUESTIONNAIRE_STRING
+                self.data_path
+                / participant_id
+                / pylabfront.constants._QUESTIONNAIRE_FOLDER
             )
             if participant_path.exists():
                 participant_questionnaires = set(
@@ -332,8 +245,8 @@ class LabfrontLoader:
                         questionnaire_name = pd.read_csv(
                             list((participant_path / questionnaire).iterdir())[0],
                             nrows=1,
-                            skiprows=_LABFRONT_CSV_STATS_SKIP_ROWS,
-                        )[_LABFRONT_QUESTIONNAIRE_NAME_KEY][0]
+                            skiprows=pylabfront.constants._CSV_STATS_SKIP_ROWS,
+                        )[pylabfront.constants._QUESTIONNAIRE_NAME_COL][0]
                         questionnaires_dict[questionnaire_name.lower()] = questionnaire
                 questionnaires |= participant_questionnaires
 
@@ -371,11 +284,13 @@ class LabfrontLoader:
         todos = set()
         todos_dict = {}
 
-        participant_ids = utils.get_user_ids(self, user_id)
+        participant_ids = pylabfront.utils.get_user_ids(self, user_id)
 
         for participant_id in participant_ids:
             participant_id = self.get_full_id(participant_id)
-            participant_path = self.data_path / participant_id / _LABFRONT_TODO_STRING
+            participant_path = (
+                self.data_path / participant_id / pylabfront.constants._TODO_FOLDER
+            )
             if participant_path.exists():
                 participant_todos = set(
                     [
@@ -391,8 +306,8 @@ class LabfrontLoader:
                         todo_name = pd.read_csv(
                             list((participant_path / todo).iterdir())[0],
                             nrows=1,
-                            skiprows=_LABFRONT_CSV_STATS_SKIP_ROWS,
-                        )[_LABFRONT_TODO_NAME_KEY][0]
+                            skiprows=pylabfront.constants._CSV_STATS_SKIP_ROWS,
+                        )[pylabfront.constants._TODO_NAME_COL][0]
                         todos_dict[todo_name.lower()] = todo
                 todos |= participant_todos
 
@@ -486,14 +401,14 @@ class LabfrontLoader:
                                 participant_dict[participant_folder.name][
                                     participant_metric_folder.name
                                 ][metric_data.name] = {
-                                    _LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY: first_ts,
-                                    _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY: last_ts,
+                                    pylabfront.constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: first_ts,
+                                    pylabfront.constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: last_ts,
                                 }
                                 metrics_time_dict[participant_folder.name][
                                     participant_metric_folder.name
                                 ] = {
-                                    _LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY: metrics_first_ts,
-                                    _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY: metrics_last_ts,
+                                    pylabfront.constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: metrics_first_ts,
+                                    pylabfront.constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: metrics_last_ts,
                                 }
                             else:
                                 if not metric_data.is_dir():
@@ -506,7 +421,10 @@ class LabfrontLoader:
                                     if csv_file.is_file() and str(csv_file).endswith(
                                         "csv"
                                     ):
-                                        if _LABFRONT_TODO_STRING == metric_data.name:
+                                        if (
+                                            pylabfront.constants._TODO_FOLDER
+                                            == metric_data.name
+                                        ):
                                             is_questionnaire_or_to_do = False
                                         else:
                                             is_questionnaire_or_to_do = True
@@ -533,14 +451,14 @@ class LabfrontLoader:
                                         participant_dict[participant_folder.name][
                                             participant_metric_folder.name
                                         ][metric_data.name][csv_file.name] = {
-                                            _LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY: first_ts,
-                                            _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY: last_ts,
+                                            pylabfront.constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: first_ts,
+                                            pylabfront.constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: last_ts,
                                         }
                         metrics_time_dict[participant_folder.name][
                             participant_metric_folder.name
                         ] = {
-                            _LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY: metrics_first_ts,
-                            _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY: metrics_last_ts,
+                            pylabfront.constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: metrics_first_ts,
+                            pylabfront.constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: metrics_last_ts,
                         }
 
         return participant_dict, metrics_time_dict
@@ -561,7 +479,7 @@ class LabfrontLoader:
             First available unix timestamp.
         """
         return self.metrics_data_dictionary[self.get_full_id(user_id)][metric][
-            _LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY
+            pylabfront.constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
         ]
 
     def get_last_unix_timestamp(self, user_id, metric):
@@ -580,7 +498,7 @@ class LabfrontLoader:
             Last available unix timestamp.
         """
         return self.metrics_data_dictionary[self.get_full_id(user_id)][metric][
-            _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY
+            pylabfront.constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
         ]
 
     def get_labfront_file_time_stats(
@@ -607,13 +525,13 @@ class LabfrontLoader:
 
         # Get first and last unix timestamps from header
         header = pd.read_csv(
-            path_to_file, nrows=1, skiprows=_LABFRONT_CSV_STATS_SKIP_ROWS
+            path_to_file, nrows=1, skiprows=pylabfront.constants._CSV_STATS_SKIP_ROWS
         )
         first_unix_timestamp = header[
-            _LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY
+            pylabfront.constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
         ].iloc[0]
         last_unix_timestamp = header[
-            _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY
+            pylabfront.constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
         ].iloc[0]
 
         return first_unix_timestamp, last_unix_timestamp
@@ -693,7 +611,7 @@ class LabfrontLoader:
 
         # Convert dictionary to a pandas dataframe, so that we can sort it
         temp_pd = pd.DataFrame.from_dict(temp_dict, orient="index").sort_values(
-            by=_LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY
+            by=pylabfront.constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
         )
 
         if (start_date is None) and (end_date is None):
@@ -710,11 +628,11 @@ class LabfrontLoader:
         if not (start_date is None):
             start_date_unix_ms = int(datetime.datetime.timestamp(start_date) * 1000)
             temp_pd["before_start_date"] = temp_pd[
-                _LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY
+                pylabfront.constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
             ].apply(lambda x: True if x < start_date_unix_ms else False)
             # Compute difference with first and last columns
             temp_pd["start_diff"] = abs(
-                temp_pd[_LABFRONT_FIRST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY]
+                temp_pd[pylabfront.constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL]
                 - start_date_unix_ms
             )
 
@@ -722,10 +640,10 @@ class LabfrontLoader:
         if not (end_date is None):
             end_date_unix_ms = int(datetime.datetime.timestamp(end_date) * 1000)
             temp_pd["after_end_date"] = temp_pd[
-                _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY
+                pylabfront.constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
             ].apply(lambda x: True if x > end_date_unix_ms else False)
             temp_pd["end_diff"] = abs(
-                temp_pd[_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY]
+                temp_pd[pylabfront.constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL]
                 - end_date_unix_ms
             )
         print(temp_pd)
@@ -856,12 +774,15 @@ class LabfrontLoader:
             path_to_folder = (
                 self.data_path
                 / participant_id
-                / _LABFRONT_QUESTIONNAIRE_STRING
+                / pylabfront.constants._QUESTIONNAIRE_FOLDER
                 / task_name
             )
         elif is_todo:
             path_to_folder = (
-                self.data_path / participant_id / _LABFRONT_TODO_STRING / task_name
+                self.data_path
+                / participant_id
+                / pylabfront.constants._QUESTIONNAIRE_FOLDER
+                / task_name
             )
         else:
             path_to_folder = self.data_path / participant_id / metric
@@ -873,241 +794,55 @@ class LabfrontLoader:
         data = pd.read_csv(path_to_folder / files[0], skiprows=n_rows_to_skip)
         for f in files[1:]:
             tmp = pd.read_csv(path_to_folder / f, skiprows=n_rows_to_skip)
-            if _LABFRONT_GARMIN_CONNECT_STRING in metric:
+            if pylabfront.constants._GARMIN_CONNECT_BASE_FOLDER in metric:
                 tmp = tmp.drop(
                     [
-                        _LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY,
-                        _LABFRONT_UNIXTIMESTAMP_MS_KEY,
+                        pylabfront.constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL,
+                        pylabfront.constants._UNIXTIMESTAMP_IN_MS_COL,
                     ],
                     axis=1,
                 )
             data = pd.concat([data, tmp], ignore_index=True)
-        if _LABFRONT_GARMIN_CONNECT_STRING in metric:
+        if pylabfront.constants._GARMIN_CONNECT_BASE_FOLDER in metric:
             # Convert to datetime according to isoformat
-            data[_LABFRONT_ISO_DATE_KEY] = (
-                data[_LABFRONT_UNIXTIMESTAMP_MS_KEY]
-                + data[_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY]
+            data[pylabfront.constants._ISODATE_COL] = (
+                data[pylabfront.constants._UNIXTIMESTAMP_IN_MS_COL]
+                + data[pylabfront.constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL]
             )
-            data[_LABFRONT_ISO_DATE_KEY] = pd.to_datetime(
-                data[_LABFRONT_ISO_DATE_KEY], unit="ms", utc=True
+            data[pylabfront.constants._ISODATE_COL] = pd.to_datetime(
+                data[pylabfront.constants._ISODATE_COL], unit="ms", utc=True
             )
-            data[_LABFRONT_ISO_DATE_KEY] = data[_LABFRONT_ISO_DATE_KEY].dt.tz_localize(
-                None
-            )
+            data[pylabfront.constants._ISODATE_COL] = data[
+                pylabfront.constants._ISODATE_COL
+            ].dt.tz_localize(None)
         else:
             # Convert unix time stamp
-            data[_LABFRONT_ISO_DATE_KEY] = pd.to_datetime(
-                data[_LABFRONT_UNIXTIMESTAMP_MS_KEY], unit="ms", utc=True
+            data[pylabfront.constants._ISODATE_COL] = pd.to_datetime(
+                data[pylabfront.constants._UNIXTIMESTAMP_IN_MS_COL], unit="ms", utc=True
             )
-            data[_LABFRONT_ISO_DATE_KEY] = data.groupby(
-                _LABFRONT_GARMIN_DEVICE_TIMEZONEOFFSET_MS_KEY, group_keys=False
-            )[_LABFRONT_ISO_DATE_KEY].apply(
+            data[pylabfront.constants._ISODATE_COL] = data.groupby(
+                pylabfront.constants._GARMIN_DEVICE_TIMEZONEOFFSET_IN_MS_COL,
+                group_keys=False,
+            )[pylabfront.constants._ISODATE_COL].apply(
                 lambda x: x.dt.tz_convert(x.name).dt.tz_localize(tz=None)
             )
 
         # Get data only from given start and end dates
         if (start_date is None) and (not end_date is None):
-            return data[(data[_LABFRONT_ISO_DATE_KEY] <= end_date)].reset_index(
-                drop=True
-            )
+            return data[
+                (data[pylabfront.constants._ISODATE_COL] <= end_date)
+            ].reset_index(drop=True)
         elif (not start_date is None) and (end_date is None):
-            return data[(data[_LABFRONT_ISO_DATE_KEY] >= start_date)].reset_index(
-                drop=True
-            )
+            return data[
+                (data[pylabfront.constants._ISODATE_COL] >= start_date)
+            ].reset_index(drop=True)
         elif (not start_date is None) and (not end_date is None):
             return data[
-                (data[_LABFRONT_ISO_DATE_KEY] >= start_date)
-                & (data[_LABFRONT_ISO_DATE_KEY] <= end_date)
+                (data[pylabfront.constants._ISODATE_COL] >= start_date)
+                & (data[pylabfront.constants._ISODATE_COL] <= end_date)
             ].reset_index(drop=True)
         else:
             return data.reset_index(drop=True)
-
-    def get_questionnaire_questions(self, questionnaire_name: str) -> dict:
-        """Retrieve questions and answers for a given questionnaire.
-
-        This function returns all the questions and answers for a given
-        questionnaire. The return value is a dictionary, which has questions
-        numbers (1_1, 1_2, 2_1, ...) as keys and question information as
-        values.::
-
-            {
-                '1_1': {
-                    'type': 'radio',
-                    'description': 'SLEEP QUALITY: Compared to your usual wake-up, how would you rate quality of sleep?',
-                    'options': ['Much better than usual', 'Better than usual', 'As usual', 'Worse than usual', 'Much worse than usual']
-                },
-                '1_2': {
-                    'type': 'radio',
-                    'description': 'ENERGY: Compared to your usual wake-up, how would you rate your energy?',
-                    'options': ['Much better than usual', 'Better than usual', 'As usual', 'Worse than usual', 'Much worse than usual']
-                }
-            }
-
-        Parameters
-        ----------
-        questionnaire_name : str
-            Name of the questionnaire for which questions must be retrieved
-
-        Returns
-        -------
-        dict
-            Dictionary with question number as keys and question info as values
-
-        Raises
-        ------
-        ValueError
-            if questionnaire name does not exist
-        """
-        no_user_id = True
-        full_task_id = self.get_task_full_id(questionnaire_name)
-        for user_id in self.data_dictionary.keys():
-            if _LABFRONT_QUESTIONNAIRE_STRING in self.data_dictionary[user_id].keys():
-                if (
-                    full_task_id
-                    in self.data_dictionary[user_id][
-                        _LABFRONT_QUESTIONNAIRE_STRING
-                    ].keys()
-                ):
-                    no_user_id = False
-                    participant_id = user_id
-                    break
-        if no_user_id:
-            raise ValueError(
-                f"Could not find questions for questionnaire {questionnaire_name}"
-            )
-
-        files = self.get_files_from_timerange(
-            participant_id,
-            _LABFRONT_QUESTIONNAIRE_STRING,
-            start_date=None,
-            end_date=None,
-            is_questionnaire=True,
-            is_todo=False,
-            task_name=questionnaire_name,
-        )
-
-        if len(files) == 0:
-            return {}
-
-        path_to_folder = (
-            self.data_path
-            / participant_id
-            / _LABFRONT_QUESTIONNAIRE_STRING
-            / full_task_id
-        )
-
-        questionnaire_info_file = path_to_folder / files[0]
-        header_length = self.get_header_length(questionnaire_info_file)
-        key_length = self.get_key_length(questionnaire_info_file)
-
-        questions_df = pd.read_csv(
-            questionnaire_info_file, skiprows=header_length + 2, nrows=key_length - 2
-        )
-
-        questions_dict = {}
-        # For each row, we need to get the question and all the options
-        option_cols = []
-        for col in questions_df.columns:
-            regex_match = re.search(_LABFRONT_QUESTIONNAIRE_QUESTION_NAME_REGEX, col)
-            if regex_match:
-                option_cols.append(col)
-        for idx, row in questions_df.iterrows():
-            question_id = f"{row[_LABFRONT_QUESTIONNAIRE_SECTION_INDEX_COL]}_{row[_LABFRONT_QUESTIONNAIRE_QUESTION_INDEX_COL]}"
-            questions_dict[question_id] = {
-                "type": row[_LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_COL],
-                "description": row[_LABFRONT_QUESTIONNAIRE_QUESTION_DESCRIPTION_COL],
-            }
-            if (
-                row[_LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_COL]
-                == _LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_TEXT_VAL
-            ):
-                continue
-            question_options = []
-            for col in option_cols:
-                if not pd.isna(row[col]):
-                    question_options.append(row[col])
-            questions_dict[question_id]["options"] = question_options
-        return questions_dict
-
-    def process_questionnaire(self, questionnaire, verbose=False):
-        questionnaire_df = pd.DataFrame()
-        questionnaire_questions = self.get_questionnaire_questions(questionnaire)
-        questions = [
-            questionnaire_questions[k]["description"]
-            for k in questionnaire_questions.keys()
-        ]
-
-        for participant in self.full_ids:
-            try:
-                questionnaire_data = self.load_questionnaire(
-                    participant, questionnaire_name=questionnaire
-                )
-            except KeyError:
-                if verbose:
-                    print(
-                        f"Could not load {questionnaire} from {participant} as the questionnaire is not available."
-                    )
-                continue
-            if len(questionnaire_data) > 0:
-                questionnaire_data.loc[:, "userId"] = participant
-                for question_key in questionnaire_questions.keys():
-                    if (
-                        questionnaire_questions[question_key]["type"]
-                        == _LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_RADIO_VAL
-                    ):
-                        options_dict = {
-                            (k + 1): v
-                            for k, v in enumerate(
-                                questionnaire_questions[question_key]["options"]
-                            )
-                        }
-                        questionnaire_data[question_key] = questionnaire_data[
-                            question_key
-                        ].map(options_dict)
-                        questionnaire_data.loc[
-                            :,
-                            f'{question_key}-{questionnaire_questions[question_key]["description"]}',
-                        ] = questionnaire_data[question_key]
-                    elif (
-                        questionnaire_questions[question_key]["type"]
-                        == _LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_TEXT_VAL
-                    ):
-                        questionnaire_data.loc[
-                            :,
-                            f'{question_key}-{questionnaire_questions[question_key]["description"]}',
-                        ] = questionnaire_data[question_key]
-
-                    elif (
-                        questionnaire_questions[question_key]["type"]
-                        == _LABFRONT_QUESTIONNAIRE_QUESTION_TYPE_MULTI_SELECT_VAL
-                    ):
-                        # We may have multiple options here, separated by a comma
-                        # We create new columns based on question name - option name and set the values to default False
-                        options_list = questionnaire_questions[question_key]["options"]
-                        for option in range(len(options_list)):
-                            questionnaire_data.loc[
-                                :,
-                                f'{question_key}-{questionnaire_questions[question_key]["description"]}-{options_list[int(option)]}',
-                            ] = False
-                        # If we have the option, then set the corresponding column value to True
-                        for idx, row in questionnaire_data.iterrows():
-                            for option in range(len(options_list)):
-                                if isinstance(row[question_key], str):
-                                    if str(option + 1) in row[question_key]:
-                                        questionnaire_data.loc[
-                                            idx,
-                                            f'{question_key}-{questionnaire_questions[question_key]["description"]}-{options_list[int(option)]}',
-                                        ] = True
-                                elif row[question_key] == option + 1:
-                                    questionnaire_data.loc[
-                                        idx,
-                                        f'{question_key}-{questionnaire_questions[question_key]["description"]}-{options_list[int(option)]}',
-                                    ] = True
-                    questionnaire_data = questionnaire_data.drop([question_key], axis=1)
-                questionnaire_df = pd.concat(
-                    [questionnaire_df, questionnaire_data], ignore_index=True
-                )
-        return questionnaire_df
 
     def get_header_length(self, file_path: Union[str, Path]) -> int:
         """Get header length of Labfront csv file.
@@ -1164,7 +899,7 @@ class LabfrontLoader:
         """
         metrics = set()
 
-        participant_ids = utils.get_user_ids(self, user_id)
+        participant_ids = pylabfront.utils.get_user_ids(self, user_id)
 
         for participant_id in participant_ids:
             participant_path = self.data_path / participant_id
@@ -1194,6 +929,120 @@ class LabfrontLoader:
 
         return self.tasks_dict[task_id.lower()]
 
+    def get_questionnaire_questions(self, questionnaire_name: str) -> dict:
+        """Retrieve questions and answers for a given questionnaire.
+
+        This function returns all the questions and answers for a given
+        questionnaire. The return value is a dictionary, which has questions
+        numbers (1_1, 1_2, 2_1, ...) as keys and question information as
+        values.::
+
+            {
+                '1_1': {
+                    'type': 'radio',
+                    'description': 'SLEEP QUALITY: Compared to your usual wake-up, how would you rate quality of sleep?',
+                    'options': ['Much better than usual', 'Better than usual', 'As usual', 'Worse than usual', 'Much worse than usual']
+                },
+                '1_2': {
+                    'type': 'radio',
+                    'description': 'ENERGY: Compared to your usual wake-up, how would you rate your energy?',
+                    'options': ['Much better than usual', 'Better than usual', 'As usual', 'Worse than usual', 'Much worse than usual']
+                }
+            }
+
+        Parameters
+        ----------
+        questionnaire_name : str
+            Name of the questionnaire for which questions must be retrieved
+
+        Returns
+        -------
+        dict
+            Dictionary with question number as keys and question info as values
+
+        Raises
+        ------
+        ValueError
+            if questionnaire name does not exist
+        """
+        no_user_id = True
+        full_task_id = self.get_task_full_id(questionnaire_name)
+        for user_id in self.data_dictionary.keys():
+            if (
+                pylabfront.constants._QUESTIONNAIRE_FOLDER
+                in self.data_dictionary[user_id].keys()
+            ):
+                if (
+                    full_task_id
+                    in self.data_dictionary[user_id][
+                        pylabfront.constants._QUESTIONNAIRE_FOLDER
+                    ].keys()
+                ):
+                    no_user_id = False
+                    participant_id = user_id
+                    break
+        if no_user_id:
+            raise ValueError(
+                f"Could not find questions for questionnaire {questionnaire_name}"
+            )
+
+        files = self.get_files_from_timerange(
+            participant_id,
+            pylabfront.constants._QUESTIONNAIRE_FOLDER,
+            start_date=None,
+            end_date=None,
+            is_questionnaire=True,
+            is_todo=False,
+            task_name=questionnaire_name,
+        )
+
+        if len(files) == 0:
+            return {}
+
+        path_to_folder = (
+            self.data_path
+            / participant_id
+            / pylabfront.constants._QUESTIONNAIRE_FOLDER
+            / full_task_id
+        )
+
+        questionnaire_info_file = path_to_folder / files[0]
+        header_length = self.get_header_length(questionnaire_info_file)
+        key_length = self.get_key_length(questionnaire_info_file)
+
+        questions_df = pd.read_csv(
+            questionnaire_info_file, skiprows=header_length + 2, nrows=key_length - 2
+        )
+
+        questions_dict = {}
+        # For each row, we need to get the question and all the options
+        option_cols = []
+        for col in questions_df.columns:
+            regex_match = re.search(
+                pylabfront.constants._QUESTIONNAIRE_QUESTION_NAME_REGEX, col
+            )
+            if regex_match:
+                option_cols.append(col)
+        for idx, row in questions_df.iterrows():
+            question_id = f"{row[pylabfront.constants._QUESTIONNAIRE_SECTION_INDEX_COL]}_{row[pylabfront.constants._QUESTIONNAIRE_QUESTION_INDEX_COL]}"
+            questions_dict[question_id] = {
+                "type": row[pylabfront.constants._QUESTIONNAIRE_QUESTION_TYPE_COL],
+                "description": row[
+                    pylabfront.constants._QUESTIONNAIRE_QUESTION_DESCRIPTION_COL
+                ],
+            }
+            if (
+                row[pylabfront.constants._QUESTIONNAIRE_QUESTION_TYPE_COL]
+                == pylabfront.constants._QUESTIONNAIRE_QUESTION_TYPE_TEXT_VALUE
+            ):
+                continue
+            question_options = []
+            for col in option_cols:
+                if not pd.isna(row[col]):
+                    question_options.append(row[col])
+            questions_dict[question_id]["options"] = question_options
+        return questions_dict
+
     def load_garmin_connect_heart_rate(
         self,
         user_id: str,
@@ -1221,7 +1070,7 @@ class LabfrontLoader:
         """
         data = self.get_data_from_datetime(
             user_id,
-            _LABFRONT_GARMIN_CONNECT_HEART_RATE_STRING,
+            pylabfront.constants._GARMIN_CONNECT_HEART_RATE_FOLDER,
             start_date,
             end_date,
         )
@@ -1254,14 +1103,14 @@ class LabfrontLoader:
         # We need to load both sleep and daily pulse ox
         daily_data = self.get_data_from_datetime(
             user_id,
-            _LABFRONT_GARMIN_CONNECT_DAILY_PULSE_OX_STRING,
+            pylabfront.constants._GARMIN_CONNECT_DAILY_PULSE_OX_FOLDER,
             start_date,
             end_date,
         ).reset_index(drop=True)
         # Add sleep label to sleep pulse ox
         sleep_data = self.get_data_from_datetime(
             user_id,
-            _LABFRONT_GARMIN_CONNECT_SLEEP_PULSE_OX_STRING,
+            pylabfront.constants._GARMIN_CONNECT_SLEEP_PULSE_OX_FOLDER,
             start_date,
             end_date,
         ).reset_index(drop=True)
@@ -1274,12 +1123,12 @@ class LabfrontLoader:
                 [
                     x
                     for x in sleep_data.columns
-                    if (not x in ([_LABFRONT_ISO_DATE_KEY, "sleep"]))
+                    if (not x in ([pylabfront.constants._ISODATE_COL, "sleep"]))
                 ],
                 axis=1,
             )
             merged_data = daily_data.merge(
-                sleep_data, on=_LABFRONT_ISO_DATE_KEY, how="left"
+                sleep_data, on=pylabfront.constants._ISODATE_COL, how="left"
             )
             merged_data.loc[merged_data.sleep != 1, "sleep"] = 0
             return merged_data
@@ -1319,7 +1168,7 @@ class LabfrontLoader:
         # We need to load both sleep and daily respiration
         daily_data = self.get_data_from_datetime(
             user_id,
-            _LABFRONT_GARMIN_CONNECT_DAILY_RESPIRATION_STRING,
+            pylabfront.constants._GARMIN_CONNECT_DAILY_RESPIRATION_FOLDER,
             start_date,
             end_date,
         ).reset_index(drop=True)
@@ -1327,7 +1176,7 @@ class LabfrontLoader:
         # Get sleep data
         sleep_data = self.get_data_from_datetime(
             user_id,
-            _LABFRONT_GARMIN_CONNECT_SLEEP_RESPIRATION_STRING,
+            pylabfront.constants._GARMIN_CONNECT_SLEEP_RESPIRATION_FOLDER,
             start_date,
             end_date,
         ).reset_index(drop=True)
@@ -1343,8 +1192,8 @@ class LabfrontLoader:
             sleep_summary = sleep_summary.loc[
                 :,
                 [
-                    _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SUMMARY_COL,
-                    _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL,
+                    pylabfront.constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL,
+                    pylabfront.constants._SLEEP_SUMMARY_CALENDAR_DATE_COL,
                 ],
             ]
 
@@ -1352,7 +1201,7 @@ class LabfrontLoader:
             sleep_data = pd.merge(
                 left=sleep_data,
                 right=sleep_summary,
-                on=_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SUMMARY_COL,
+                on=pylabfront.constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL,
                 how="outer",
             )
 
@@ -1365,9 +1214,9 @@ class LabfrontLoader:
                         not x
                         in (
                             [
-                                _LABFRONT_ISO_DATE_KEY,
-                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_SUMMARY_COL,
-                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL,
+                                pylabfront.constants._ISODATE_COL,
+                                pylabfront.constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL,
+                                pylabfront.constants._SLEEP_SUMMARY_CALENDAR_DATE_COL,
                                 "sleep",
                             ]
                         )
@@ -1378,7 +1227,7 @@ class LabfrontLoader:
             # Merge dataframes
             # We need to merge the dataframes because the daily_data already contain sleep_data
             merged_data = daily_data.merge(
-                sleep_data, on=_LABFRONT_ISO_DATE_KEY, how="left"
+                sleep_data, on=pylabfront.constants._ISODATE_COL, how="left"
             )
             merged_data.loc[merged_data.sleep != 1, "sleep"] = 0
             return merged_data
@@ -1413,7 +1262,7 @@ class LabfrontLoader:
         """
         data = self.get_data_from_datetime(
             user_id,
-            _LABFRONT_GARMIN_CONNECT_SLEEP_STAGE_STRING,
+            pylabfront.constants._GARMIN_CONNECT_SLEEP_STAGE_FOLDER,
             start_date,
             end_date,
         )
@@ -1467,16 +1316,16 @@ class LabfrontLoader:
 
         data = self.get_data_from_datetime(
             user_id,
-            _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_STRING,
+            pylabfront.constants._GARMIN_CONNECT_SLEEP_SUMMARY_FOLDER,
             new_start_date,
             new_end_date,
         )
 
         if len(data) > 0:
             data[
-                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL
+                pylabfront.constants._SLEEP_SUMMARY_CALENDAR_DATE_COL
             ] = pd.to_datetime(
-                data[_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL],
+                data[pylabfront.constants._SLEEP_SUMMARY_CALENDAR_DATE_COL],
                 format="%Y-%m-%d",
             ).dt.date
 
@@ -1493,14 +1342,14 @@ class LabfrontLoader:
                     data.sort_values(
                         by=(
                             [
-                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL,
+                                pylabfront.constants._SLEEP_SUMMARY_CALENDAR_DATE_COL,
                                 "validationMap",
-                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_IN_MS_COL,
+                                pylabfront.constants._SLEEP_SUMMARY_DURATION_IN_MS_COL,
                             ]
                         ),
                         ascending=True,
                     )
-                    .groupby(_LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL)
+                    .groupby(pylabfront.constants._SLEEP_SUMMARY_CALENDAR_DATE_COL)
                     .tail(1)
                 )
                 data = data.drop(["validationMap"], axis=1)
@@ -1513,33 +1362,25 @@ class LabfrontLoader:
                 if (start_date is None) and (not (end_date is None)):
                     return data[
                         (
-                            data[
-                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL
-                            ]
+                            data[pylabfront.constants._SLEEP_SUMMARY_CALENDAR_DATE_COL]
                             <= end_date
                         )
                     ]
                 elif (not (start_date is None)) and (end_date is None):
                     return data[
                         (
-                            data[
-                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL
-                            ]
+                            data[pylabfront.constants._SLEEP_SUMMARY_CALENDAR_DATE_COL]
                             >= start_date
                         )
                     ]
                 else:
                     return data[
                         (
-                            data[
-                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL
-                            ]
+                            data[pylabfront.constants._SLEEP_SUMMARY_CALENDAR_DATE_COL]
                             >= start_date
                         )
                         & (
-                            data[
-                                _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DATE_COL
-                            ]
+                            data[pylabfront.constants._SLEEP_SUMMARY_CALENDAR_DATE_COL]
                             <= end_date
                         )
                     ]
@@ -1572,7 +1413,10 @@ class LabfrontLoader:
             Dataframe containing stress data.
         """
         data = self.get_data_from_datetime(
-            user_id, _LABFRONT_GARMIN_CONNECT_STRESS_STRING, start_date, end_date
+            user_id,
+            pylabfront.constants._GARMIN_CONNECT_STRESS_FOLDER,
+            start_date,
+            end_date,
         )
         return data
 
@@ -1603,7 +1447,7 @@ class LabfrontLoader:
         """
         data = self.get_data_from_datetime(
             user_id,
-            _LABFRONT_GARMIN_DEVICE_HEART_RATE_STRING,
+            pylabfront.constants._GARMIN_DEVICE_HEART_RATE_FOLDER,
             start_date,
             end_date,
         )
@@ -1636,7 +1480,7 @@ class LabfrontLoader:
         """
         data = self.get_data_from_datetime(
             user_id,
-            _LABFRONT_GARMIN_DEVICE_PULSE_OX_STRING,
+            pylabfront.constants._GARMIN_DEVICE_PULSE_OX_FOLDER,
             start_date,
             end_date,
         )
@@ -1669,7 +1513,7 @@ class LabfrontLoader:
         """
         data = self.get_data_from_datetime(
             user_id,
-            _LABFRONT_GARMIN_DEVICE_RESPIRATION_STRING,
+            pylabfront.constants._GARMIN_DEVICE_RESPIRATION_FOLDER,
             start_date,
             end_date,
         )
@@ -1701,7 +1545,10 @@ class LabfrontLoader:
             Dataframe containing steps data.
         """
         data = self.get_data_from_datetime(
-            user_id, _LABFRONT_GARMIN_DEVICE_STEP_STRING, start_date, end_date
+            user_id,
+            pylabfront.constants._GARMIN_DEVICE_STEP_FOLDER,
+            start_date,
+            end_date,
         )
         return data
 
@@ -1731,7 +1578,10 @@ class LabfrontLoader:
             Dataframe containing BBI data.
         """
         data = self.get_data_from_datetime(
-            user_id, _LABFRONT_GARMIN_DEVICE_STRESS_STRING, start_date, end_date
+            user_id,
+            pylabfront.constants._GARMIN_DEVICE_STRESS_FOLDER,
+            start_date,
+            end_date,
         )
         return data
 
@@ -1761,7 +1611,10 @@ class LabfrontLoader:
             Dataframe containing BBI data.
         """
         data = self.get_data_from_datetime(
-            user_id, _LABFRONT_GARMIN_DEVICE_BBI_STRING, start_date, end_date
+            user_id,
+            pylabfront.constants._GARMIN_DEVICE_BBI_FOLDER,
+            start_date,
+            end_date,
         )
         return data
 
@@ -1792,7 +1645,7 @@ class LabfrontLoader:
         """
         data = self.get_data_from_datetime(
             user_id,
-            _LABFRONT_GARMIN_CONNECT_BODY_COMPOSITION_STRING,
+            pylabfront.constants._GARMIN_CONNECT_BODY_COMPOSITION_FOLDER,
             start_date,
             end_date,
         )
@@ -1827,7 +1680,7 @@ class LabfrontLoader:
         new_end_date = end_date + datetime.timedelta(days=1)
         data = self.get_data_from_datetime(
             user_id,
-            _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STRING,
+            pylabfront.constants._GARMIN_CONNECT_DAILY_SUMMARY_FOLDER,
             new_start_date,
             new_end_date,
         )
@@ -1839,19 +1692,19 @@ class LabfrontLoader:
         )
         if len(data) > 0:
             data[
-                _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL
+                pylabfront.constants._DAILY_SUMMARY_CALENDAR_DATE_COL
             ] = pd.to_datetime(
-                data[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL],
+                data[pylabfront.constants._DAILY_SUMMARY_CALENDAR_DATE_COL],
                 format="%Y-%m-%d",
             )
 
             data = data[
                 (
-                    data[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL]
+                    data[pylabfront.constants._DAILY_SUMMARY_CALENDAR_DATE_COL]
                     >= start_date
                 )
                 & (
-                    data[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATE_COL]
+                    data[pylabfront.constants._DAILY_SUMMARY_CALENDAR_DATE_COL]
                     <= end_date
                 )
             ]
@@ -1884,7 +1737,10 @@ class LabfrontLoader:
             Dataframe containing Garmin Connect epoch data.
         """
         data = self.get_data_from_datetime(
-            user_id, _LABFRONT_GARMIN_CONNECT_EPOCH_STRING, start_date, end_date
+            user_id,
+            pylabfront.constants._GARMIN_CONNECT_EPOCH_FOLDER,
+            start_date,
+            end_date,
         )
         return data
 
@@ -1921,7 +1777,7 @@ class LabfrontLoader:
         """
         data = self.get_data_from_datetime(
             user_id,
-            _LABFRONT_TODO_STRING,
+            pylabfront.constants._TODO_FOLDER,
             start_date,
             end_date,
             is_todo=True,
@@ -1962,9 +1818,9 @@ class LabfrontLoader:
         """
         data = self.get_data_from_datetime(
             user_id,
-            _LABFRONT_QUESTIONNAIRE_STRING,
-            start_date,
-            end_date,
+            metric=pylabfront.constants._QUESTIONNAIRE_FOLDER,
+            start_date=start_date,
+            end_date=end_date,
             is_questionnaire=True,
             task_name=questionnaire_name,
         )
@@ -1973,24 +1829,42 @@ class LabfrontLoader:
     def load_hypnogram(
         self,
         user_id: str,
-        calendar_day: Union[str, datetime.date, datetime.datetime],
+        start_date: Union[str, datetime.date, datetime.datetime],
+        end_date: Union[str, datetime.date, datetime.datetime, None],
         resolution: int = 1,
+        map_hypnogram: bool = True,
     ) -> pd.DataFrame:
         """Load hypnogram for given user for a given day.
 
+        This function allows to load sleep hypnograms starting from sleep data
+        with a given resolution in minutes. The function returns a
+        dictionary, with each key being a :class:`datetime.date`, and each value
+        a :class:`numpy.array` that contains the hypnogram values.
+        The hypnogram can be kept with standard Garmin values for sleep stages,
+        or these values can be mapped to number according to the following
+        convention:
+
+            - unmeasurable -> -1
+            - awake -> 0
+            - light -> 1
+            - deep -> 3
+            - rem -> 4
+
         Parameters
         ----------
-        participant_id : str
+        user_id : str
             Unique identifier of the user.
-        calendar_day : str or datetime.date or datetime.date
-            Calendar day for which hypnogram has to be provided.
+        start_date : str or datetime.date or datetime.date or None
+            Start date for hypnogram loading.
+        end_date : str or datetime.date or datetime.date or None
+            End date for hypnogram loading.
         resolution : int, optional
             Desired resolution (in minutes) requested for the hypnogram, by default 1
 
         Returns
         -------
-        pd.DataFrame
-            Hypnogram data.
+        dict
+            Dictionary with hypnogram values, one per each day.
 
         Raises
         ------
@@ -1998,120 +1872,132 @@ class LabfrontLoader:
             If date is passed as str and cannot be parsed.
         """
 
-        if isinstance(calendar_day, str):
-            try:
-                calendar_day = dateutil.parser.parse(calendar_day)
-            except:
-                raise ValueError(
-                    f"Could not parse {calendar_day} into a valid calendar day"
-                )
-        elif type(calendar_day) == datetime.datetime:
-            calendar_day = calendar_day.date()
-        # Get start and end days from calendar date
-        start_date = calendar_day - datetime.timedelta(days=1)
-        end_date = calendar_day + datetime.timedelta(days=1)
         # Load sleep summary and sleep stages data
-        sleep_summary = self.load_garmin_connect_sleep_summary(
+        sleep_summaries = self.load_garmin_connect_sleep_summary(
             user_id=user_id, start_date=start_date, end_date=end_date
         )
 
-        sleep_summary_row = (
-            sleep_summary[sleep_summary.calendarDate == calendar_day]
-            .reset_index(drop=True)
-            .iloc[0]
-        )
-        sleep_summary_id = sleep_summary_row["sleepSummaryId"]
+        if len(sleep_summaries) == 0:
+            return {}
 
-        sleep_start_time = datetime.datetime.utcfromtimestamp(
-            (
-                sleep_summary_row[_LABFRONT_UNIXTIMESTAMP_MS_KEY]
-                + sleep_summary_row[_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY]
-            )
-            / 1000
-        )
+        sleep_start_time = sleep_summaries.iloc[0][pylabfront.constants._ISODATE_COL]
 
-        sleep_end_time = datetime.datetime.utcfromtimestamp(
+        sleep_end_time = pd.to_datetime(
             (
-                sleep_summary_row[_LABFRONT_UNIXTIMESTAMP_MS_KEY]
-                + sleep_summary_row[_LABFRONT_GARMIN_CONNECT_TIMEZONEOFFSET_MS_KEY]
-                + sleep_summary_row[
-                    _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_DURATION_IN_MS_COL
+                sleep_summaries.iloc[-1][pylabfront.constants._UNIXTIMESTAMP_IN_MS_COL]
+                + sleep_summaries.iloc[-1][
+                    pylabfront.constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL
                 ]
-                + sleep_summary_row[
-                    _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL
+                + sleep_summaries.iloc[-1][
+                    pylabfront.constants._SLEEP_SUMMARY_DURATION_IN_MS_COL
                 ]
-            )
-            / 1000
-        )
+                + sleep_summaries.iloc[-1][
+                    pylabfront.constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL
+                ]
+            ),
+            unit="ms",
+            utc=True,
+        ).tz_localize(None)
+        sleep_start_time = sleep_start_time.to_pydatetime()
+        sleep_end_time = sleep_end_time.to_pydatetime()
+
         sleep_stages = self.load_garmin_connect_sleep_stage(
             user_id=user_id,
             start_date=sleep_start_time,
             end_date=sleep_end_time,
         )
-        sleep_stages = sleep_stages[
-            sleep_stages["sleepSummaryId"] == sleep_summary_id
-        ].reset_index(drop=True)
 
-        intervals = int(
-            divmod((sleep_end_time - sleep_start_time).total_seconds(), 60)[0]
+        # Keep only sleep stages with correct sleep summaries
+        sleep_stages = (
+            sleep_stages[
+                sleep_stages[
+                    pylabfront.constants._SLEEP_STAGE_SLEEP_SUMMARY_ID_COL
+                ].isin(
+                    sleep_summaries[
+                        pylabfront.constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL
+                    ].unique()
+                )
+            ]
+            .sort_values(by=[pylabfront.constants._UNIXTIMESTAMP_IN_MS_COL])
+            .reset_index(drop=True)
         )
-        time_delta_intervals = [
-            sleep_start_time + i * datetime.timedelta(minutes=resolution)
-            for i in range(intervals)
-        ]
 
-        hypnogram = pd.DataFrame(data={_LABFRONT_ISO_DATE_KEY: time_delta_intervals})
+        # set index on sleep summaries
+        sleep_summaries = sleep_summaries.set_index(
+            pylabfront.constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL
+        )
+        hypnograms = {}
+        for sleep_summary_id, sleep_summary in sleep_summaries.iterrows():
+            calendar_day = sleep_summary[
+                pylabfront.constants._SLEEP_SUMMARY_CALENDAR_DATE_COL
+            ]
+            sleep_start_time = sleep_summary[pylabfront.constants._ISODATE_COL]
+            sleep_end_time = pd.to_datetime(
+                (
+                    sleep_summary[pylabfront.constants._UNIXTIMESTAMP_IN_MS_COL]
+                    + sleep_summary[
+                        pylabfront.constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL
+                    ]
+                    + sleep_summary[
+                        pylabfront.constants._SLEEP_SUMMARY_DURATION_IN_MS_COL
+                    ]
+                    + sleep_summary[
+                        pylabfront.constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL
+                    ]
+                ),
+                unit="ms",
+                utc=True,
+            ).tz_localize(None)
 
-        hypnogram = hypnogram.merge(
-            sleep_stages.loc[
-                :,
-                [
-                    _LABFRONT_ISO_DATE_KEY,
-                    _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_STAGE_COL,
+            intervals = int(
+                divmod((sleep_end_time - sleep_start_time).total_seconds(), 60)[0]
+            )
+            time_delta_intervals = [
+                sleep_start_time + i * datetime.timedelta(minutes=1)
+                for i in range(intervals)
+            ]
+
+            daily_sleep_stages = sleep_stages.loc[
+                sleep_stages[pylabfront.constants._SLEEP_STAGE_SLEEP_SUMMARY_ID_COL]
+                == sleep_summary_id
+            ]
+
+            hypnogram = pd.DataFrame(
+                data={pylabfront.constants._ISODATE_COL: time_delta_intervals}
+            )
+
+            hypnogram = hypnogram.merge(
+                daily_sleep_stages.loc[
+                    :,
+                    [
+                        pylabfront.constants._ISODATE_COL,
+                        pylabfront.constants._SLEEP_STAGE_SLEEP_TYPE_COL,
+                    ],
                 ],
-            ],
-            how="left",
-            on=_LABFRONT_ISO_DATE_KEY,
-        )
+                how="left",
+                on=pylabfront.constants._ISODATE_COL,
+            )
 
-        hypnogram[
-            _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_STAGE_COL
-        ] = hypnogram.loc[
-            :, _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_STAGE_COL
-        ].fillna(
-            method="ffill"
-        )
+            hypnogram[pylabfront.constants._SLEEP_STAGE_SLEEP_TYPE_COL] = hypnogram.loc[
+                :, pylabfront.constants._SLEEP_STAGE_SLEEP_TYPE_COL
+            ].ffill()
+            if map_hypnogram:
+                hypnogram[pylabfront.constants._SLEEP_STAGE_SLEEP_TYPE_COL] = hypnogram[
+                    pylabfront.constants._SLEEP_STAGE_SLEEP_TYPE_COL
+                ].map(
+                    {
+                        pylabfront.constants._SLEEP_STAGE_REM_STAGE_VALUE: pylabfront.constants._SLEEP_STAGE_REM_STAGE_MAPPED_VALUE,
+                        pylabfront.constants._SLEEP_STAGE_AWAKE_STAGE_VALUE: pylabfront.constants._SLEEP_STAGE_AWAKE_STAGE_MAPPED_VALUE,
+                        pylabfront.constants._SLEEP_STAGE_DEEP_STAGE_VALUE: pylabfront.constants._SLEEP_STAGE_DEEP_STAGE_MAPPED_VALUE,
+                        pylabfront.constants._SLEEP_STAGE_LIGHT_STAGE_VALUE: pylabfront.constants._SLEEP_STAGE_LIGHT_STAGE_MAPPED_VALUE,
+                        pylabfront.constants._SLEEP_STAGE_UNMEASURABLE_STAGE_VALUE: pylabfront.constants._SLEEP_STAGE_UNMEASURABLE_STAGE_MAPPED_VALUE,
+                    }
+                )
+            hypnograms[calendar_day] = {}
+            hypnograms[calendar_day]["start_time"] = sleep_start_time.to_pydatetime()
+            hypnograms[calendar_day]["end_time"] = sleep_end_time.to_pydatetime()
+            hypnograms[calendar_day]["values"] = hypnogram[
+                pylabfront.constants._SLEEP_STAGE_SLEEP_TYPE_COL
+            ].values
 
-        hypnogram["stage"] = hypnogram[
-            _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_SLEEP_STAGE_COL
-        ].apply(self._convert_sleep_stages)
-
-        return hypnogram
-
-    def _convert_sleep_stages(self, x: str):
-        """Convert Garmin sleep stages from Garmin-specific to yasa values.
-
-        The implemented convention is as follows:
-            - REM: Yasa state 4
-            - awake: Yasa state 0
-            - deep: Yasa state 3
-            - others: Yasa state 1
-
-        Parameters
-        ----------
-        x : str
-            Garmin sleep stage.
-
-        Returns
-        -------
-        int
-            Yasa sleep stage.
-        """
-        if x == "rem":
-            return 4
-        elif x == "awake":
-            return 0
-        elif x == "deep":
-            return 3
-        else:
-            return 1
+        return hypnograms
