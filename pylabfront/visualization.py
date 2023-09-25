@@ -566,7 +566,13 @@ def get_sleep_summary_graph(
     time_period = pd.Series(time_period).dt.date
 
     # define color-coding based on garmin connect visuals
-    color_dict = {1: "royalblue", 3: "darkblue", 4: "darkmagenta", 0: "hotpink"}
+    color_dict = {
+        1: "royalblue",
+        3: "darkblue",
+        4: "darkmagenta",
+        0: "hotpink",
+        -1: "gray",
+    }
 
     # get relevant scores
     scores_series = sleep.get_sleep_score(
@@ -671,7 +677,13 @@ def get_sleep_summary_graph(
             for i in range(len(stage_duration_array)):
                 # only Deep and REM sleep get full alpha, light and awake are in transparence
                 appropriate_alpha = (
-                    ALPHA if (colors[i] == "royalblue" or colors[i] == "hotpink") else 1
+                    ALPHA
+                    if (
+                        colors[i] == "royalblue"
+                        or colors[i] == "hotpink"
+                        or colors[i] == "gray"
+                    )
+                    else 1
                 )
                 ax.barh(
                     j * POSITION,
@@ -693,7 +705,8 @@ def get_sleep_summary_graph(
                 color=appropriate_color,
                 fontsize=15,
             )
-        except:  # skip missing dates
+        except Exception as e:  # skip missing dates
+            print(e)
             continue
 
     # Set limits to be an hour lower than lowest difference
@@ -704,7 +717,6 @@ def get_sleep_summary_graph(
             sleep_summaries["endSecondsDiff"].max() + 3600,
         ]
     )
-    print(sleep_summaries)
 
     # graph and legend params
     ax.spines["top"].set_visible(False)
