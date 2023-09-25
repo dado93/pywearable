@@ -508,6 +508,7 @@ def get_sleep_summary_graph(
     legend_labels=["Deep", "Light", "REM", "Awake"],
     colorbar_title="Sleep Score",
     colorbar_labels=["poor", "fair", "good", "excellent"],
+    figsize=(15,30)
 ):
     # define params for graph
     ALPHA = alpha
@@ -555,7 +556,7 @@ def get_sleep_summary_graph(
             else:
                 return "firebrick"
 
-    fig, ax = plt.subplots(figsize=(15, 30))
+    fig, ax = plt.subplots(figsize=figsize)
 
     # for every day in the period of interest, we plot the hypnogram
     for j, night in enumerate(time_period):
