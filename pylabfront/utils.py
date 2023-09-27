@@ -41,14 +41,15 @@ def check_date(
     """
     # Check dates and times
     if isinstance(date, str):
-        date = dateutil.parser.parse(date)
+        return dateutil.parser.parse(date)
     elif type(date) == datetime.date:
-        date = datetime.datetime.combine(date, datetime.time())
+        return datetime.datetime.combine(date, datetime.time())
     elif date is None:
-        date = None
+        return None
+    elif type(date) == datetime.datetime:
+        return date
     else:
         raise ValueError(f"{type(date)} is not valid.")
-    return date
 
 
 def get_user_ids(labfront_loader, user_id: Union[str, list]):
