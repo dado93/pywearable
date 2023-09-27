@@ -1784,7 +1784,7 @@ def get_cpd(
         if chronotype_sleep_duration < 0:  # takes care of sleep-time prior to midnight
             chronotype_sleep_duration += 24
         try:
-            sleep_durations = get_total_sleep_time(loader, start_date, end_date, user)[
+            sleep_durations = get_total_sleep_time(loader, user, start_date, end_date)[
                 user
             ]
         except:
@@ -1798,9 +1798,7 @@ def get_cpd(
             for calendar_date, daily_duration in list(sleep_durations.items())[
                 -days_to_consider:
             ]:
-                daily_duration = daily_duration / (
-                    1000 * 60 * 60
-                )  # conversion in hours
+                daily_duration = daily_duration / 60  # conversion in hours
 
                 mistiming_component = chronotype_sleep_duration - daily_duration
 
@@ -1860,7 +1858,7 @@ def get_sleep_metric_std(
     if metric is None:
         raise KeyError("Must specify a valid sleep metric")
     elif metric == "duration":  # in hours
-        metric_data = get_sleep_period_time(loader, start_date, end_date, user)[user]
+        metric_data = get_sleep_period_time(loader, user, start_date, end_date)[user]
         metric_data = [duration / (1000 * 60 * 60) for duration in metric_data.values()]
     elif metric == "midpoint":  # in hours
         midpoints = list(
