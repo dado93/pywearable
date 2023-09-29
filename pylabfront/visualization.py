@@ -24,7 +24,7 @@ import pylabfront.utils as utils
 date_form = DateFormatter("%m-%d")
 
 
-def get_steps_graph_and_stats(
+def get_steps_line_graph_and_stats(
     loader : pylabfront.loader.LabfrontLoader,
     user_id : str,
     start_date : Union[datetime.datetime, datetime.date, str, None] = None,
@@ -45,38 +45,39 @@ def get_steps_graph_and_stats(
     for a time period between ``start_date`` and ``end_date``, showing his/her number of steps
     every day, his/her goal for that day and whether the goal was reached.
     Furthermore activity statistics are computed and returned.
+
     Parameters
     ----------
-    loader : pylabfront.loader.LabfrontLoader
+    loader : :class:`pylabfront.loader.LabfrontLoader`
         An instance of a data loader
-    user_id : str
+    user_id : :class:`str` 
         The id of the user of interest
-    start_date : Union[datetime.datetime, datetime.date, str, None], optional
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         Start date for data retrieval, by default None.
-    end_date : Union[datetime.datetime, datetime.date, str, None], optional
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None.
-    verbose : bool, optional
+    verbose : :class:`bool`, optional
         Whether to print out activity statistics, by default False
-    save_to : Union[str, None], optional
+    save_to : :class:`str` or None, optional
         Path where to save the plot, by default None
-    show : bool, optional
+    show : :class:`bool`, optional
         Whether to show the plot, by default True
-    steps_line_label : str, optional
+    steps_line_label : :class:`str`, optional
         Label of the steps line plot, by default "steps"
-    goal_line_label : str, optional
+    goal_line_label : :class:`str`, optional
         Label of the dashed goals line plot, by default "daily goal"
-    ylabel : str, optional
+    ylabel : :class:`str`, optional
         Label of the y-axis, by default "Steps"
-    plot_title : Union[str,None], optional
+    plot_title : :class:`str` or None, optional
         Title of the plot, by default "Daily steps"
-    figsize : tuple, optional
+    figsize : :class:`tuple`, optional
         Size of the figure, by default (10,6)
-    fontsize : int, optional
-        Fontsize of the graph, by default 15
+    fontsize : :class:`int`, optional
+        Font size of the graph, by default 15
 
     Returns
     -------
-    dict
+    :class:`dict`
         dictionary of daily activity statistics 
         (Mean daily steps, Mean daily distance, Percentage goal completion)
     """
@@ -144,7 +145,7 @@ def get_steps_graph_and_stats(
     return stats_dict
 
 
-def get_cardiac_graph_and_stats(
+def get_cardiac_line_graph_and_stats(
     loader : pylabfront.loader.LabfrontLoader,
     user_id : str ,
     start_date : Union[datetime.datetime, datetime.date, str, None] = None,
@@ -156,41 +157,49 @@ def get_cardiac_graph_and_stats(
     maximum_hr_label : str = "maximum heart rate",
     ylabel : str = "Heart rate [beats/min]",
     title : Union[str, None] = None,
+    figsize : tuple = (10, 6),
     fontsize : int = 15
 ) -> dict :
-    """_summary_
+    """Generate graph of cardiac activity
+
+    This function generate (and possibly save) a graph of cardiac data of `user_id`
+    for a period of interest between `start_date` and `end_date`.
+    Cardiac statistics are computed and returned. 
 
     Parameters
     ----------
-    loader : pylabfront.loader.LabfrontLoader
-        _description_
-    user_id : str
-        _description_
-    start_date : Union[datetime.datetime, datetime.date, str, None], optional
-        _description_, by default None
-    end_date : Union[datetime.datetime, datetime.date, str, None], optional
-        _description_, by default None
-    verbose : bool, optional
-        _description_, by default False
-    save_to : Union[str, None], optional
-        _description_, by default None
-    show : bool, optional
-        _description_, by default True
-    resting_hr_label : str, optional
-        _description_, by default "resting heart rate"
-    maximum_hr_label : str, optional
-        _description_, by default "maximum heart rate"
-    ylabel : str, optional
-        _description_, by default "Heart rate [beats/min]"
-    title : Union[str, None], optional
-        _description_, by default None
-    fontsize : int, optional
-        _description_, by default 15
+    loader : :class:`pylabfront.loader.LabfrontLoader`
+        An instance of a data loader.
+    user_id : :class:`str`
+        The id of the user of interest
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None
+    verbose : :class:`bool`, optional
+        Whether to print out information about cardiac statistics, by default False
+    save_to : :class:`str` or None, optional
+        Path where to save the plot, by default None
+    show : :class:`bool`, optional
+        Whether to show the plot, by default True
+    resting_hr_label : :class:`str`, optional
+        Label for the resting HR line plot, by default "resting heart rate"
+    maximum_hr_label : :class:`str`, optional
+        Label for the maximum HR line plot, by default "maximum heart rate"
+    ylabel : :class:`str`, optional
+        Label for the y-axis, by default "Heart rate [beats/min]"
+    title : :class:`str` or None, optional
+        Title of the plot, by default None
+    figsize : :class:`tuple`, optional
+        Size of the figure, by default (10,6)
+    fontsize : :class:`int`, optional
+        Font size of the plot, by default 15
 
     Returns
     -------
-    dict
-        _description_
+    :class:`dict`
+        dictionary of cardiac statistics for the period of interest
+        (Average resting heart rate, Maximum heart rate overall)
     """
     user_id = loader.get_full_id(user_id)
     # get stats
@@ -235,7 +244,7 @@ def get_cardiac_graph_and_stats(
 
     # plotting
     with plt.style.context("ggplot"):
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=figsize)
         ax.xaxis.set_major_formatter(date_form)
         ax.plot(
             dates,
@@ -280,23 +289,62 @@ def get_cardiac_graph_and_stats(
 
 
 def get_rest_spo2_graph(
-    loader,
-    start_date,
-    end_date,
-    user,
-    save_to=None,
-    show=True,
-    zones_labels=["Normal", "Low", "Concerning", "Critical"],
-    zones_colors=["g", "yellow", "orange", "tomato"],
-    zones_alpha=0.25,
-    title=r"Rest SpO$_2$",
-    ylabel=r"SpO$_2$",
+    loader : pylabfront.loader.LabfrontLoader,
+    user_id : str,
+    start_date : Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date : Union[datetime.datetime, datetime.date, str, None] = None,
+    save_to : Union[str, None] = None,
+    show : bool = True,
+    zones_labels : list = ["Normal", "Low", "Concerning", "Critical"],
+    zones_colors: list = ["g", "yellow", "orange", "tomato"],
+    zones_alpha : float = 0.25,
+    title : str = r"Rest SpO$_2$",
+    ylabel : str = r"SpO$_2$",
+    figsize : tuple = (14, 6),
+    fontsize : int = 18
 ):
+    """Generate spO2 night graph
+
+    This function creates (and possibly save if `save_to` = True), 
+    a graph showing all night data of SpO2 for `user_id`, 
+    in the period of interest starting from `start_date` and ending at `end_date`
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.LabfrontLoader`
+        An instance of a data loader.
+    user_id : :class:`str`
+        _The id of the user
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None], optional
+        End date for data retrieval, by default None
+    save_to : :class:`str` or None, optional
+        Path where to save the plot, by default None
+    show : :class:`bool`, optional
+        Whether to show the plot, by default True
+    zones_labels : :class:`list`, optional
+        labels of the risk ranges, by default ["Normal", "Low", "Concerning", "Critical"]
+    zones_colors : :class:`list`, optional
+        Colors of the risk ranges, by default ["g", "yellow", "orange", "tomato"]
+    zones_alpha : :class:`float`, optional
+        Alphas for the risk ranges, by default 0.25
+    title : :class:`str`, optional
+        Title of the plot, by default r"Rest SpO$"
+    ylabel : :class:`str`, optional
+        Label of the y-axis, by default r"SpO$"
+    figsize : :class:`tuple`, optional
+        Size of the figure, by default (14, 6)
+    fontsize : :class:`int`, optional
+        Font size for the plot, by default 18
+    """
+    user_id = loader.get_full_id(user_id)
+
     timedelta = datetime.timedelta(
         hours=12
     )  # this assumes that at the last day a person wakes up before midday...
     spo2_df = loader.load_garmin_connect_pulse_ox(
-        user, start_date, end_date + timedelta
+        user_id, start_date, end_date + timedelta
     )
     sleep_spo2_df = spo2_df[spo2_df.sleep == 1].loc[:, ["isoDate", "spo2"]]
     unique_dates = pd.to_datetime(sleep_spo2_df.isoDate.dt.date.unique())
@@ -306,7 +354,7 @@ def get_rest_spo2_graph(
         lambda x: utils.find_nearest_timestamp(x, unique_dates)
     )
 
-    fig, ax = plt.subplots(figsize=(14, 6))
+    fig, ax = plt.subplots(figsize=figsize)
     # nights are plotted individually
     for date in unique_dates:
         relevant_data = sleep_spo2_df[sleep_spo2_df.date == date]
@@ -355,15 +403,15 @@ def get_rest_spo2_graph(
     )
 
     # graph params
-    ax.set_ylabel(ylabel, fontsize=18)
-    ax.set_title(title, fontsize=20)
+    ax.set_ylabel(ylabel, fontsize=fontsize)
+    ax.set_title(title, fontsize=fontsize+2)
 
     ax.xaxis.grid(True, color="#CCCCCC")
     ax.xaxis.set_major_formatter(date_form)
-    plt.xticks(rotation=60, fontsize=16)
-    plt.yticks(fontsize=16)
+    plt.xticks(rotation=60, fontsize=fontsize-2)
+    plt.yticks(fontsize=fontsize-2)
     plt.ylim([min(50, min(sleep_spo2_df.spo2)), 100])
-    plt.legend(loc="best", fontsize=16)
+    plt.legend(loc="best", fontsize=fontsize-2)
     plt.xlim([min_date, max_date])
     plt.tight_layout()
     if save_to:
@@ -374,25 +422,52 @@ def get_rest_spo2_graph(
         plt.close()
 
 
-def get_stress_graph_and_stats(
-    loader,
-    start_date,
-    end_date,
-    user,
-    verbose=False,
-    save_to=None,
-    show=True,
-    title="Average daily stress",
-):
+def get_stress_grid_and_stats(
+    loader: pylabfront.loader.LabfrontLoader,
+    user_id: str,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    verbose : bool = False,
+    save_to : Union[str, None] = None,
+    show : bool = True,
+    title : str = "Average daily stress",
+) -> dict:
+    """Generate a github-like plot of daily stress scores
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.LabfrontLoader`
+        An instance of a data loader
+    user_id : :class:`str`
+        The id of the user
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None
+    verbose : :class:`bool`, optional
+        Whether to print out average daily stress score, by default False
+    save_to : :class:`str` or None, optional
+        Path where to save the plot, by default None
+    show : :class:`bool`, optional
+        Whether to show the plot, by default True
+    title : :class:`str`, optional
+        Title of the plot, by default "Average daily stress"
+
+    Returns
+    -------
+    :class:`int`
+        Average stress score for the period of interest
+    """
+    user_id = loader.get_full_id(user_id)
+    
     # get stats
     dates, metrics = zip(
-        *stress.get_daily_stress_statistics(loader, start_date, end_date, user)[
-            user
+        *stress.get_daily_stress_statistics(loader, start_date, end_date, user_id)[
+            user_id
         ].items()
     )
     daily_avg_stress, daily_max_stress = list(zip(*metrics))
     avg_stress = round(np.mean(daily_avg_stress))
-    stats_dict = {"Average stress score": avg_stress}
 
     # Plot yearly stress
     # We need to create a DataFrame with dates going from one year before to the latest datetime
@@ -436,41 +511,82 @@ def get_stress_graph_and_stats(
     if verbose:
         print(f"Average daily stress: {avg_stress}")
 
-    return stats_dict
+    return avg_stress
 
 
-def get_respiration_graph_and_stats(
-    loader,
-    start_date,
-    end_date,
-    user,
-    verbose=False,
-    save_to=None,
-    show=True,
-    rest_line_label="Sleep Avg",
-    awake_line_label="Awake Avg",
-    title="Mean daily breaths per minute",
-    xlabel="Date",
-    ylabel="Breaths per minute",
-):
+def get_respiration_line_graph_and_stats(
+    loader: pylabfront.loader.LabfrontLoader,
+    user_id: str,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    verbose : bool = False,
+    save_to : Union[str, None] = None,
+    show : bool = True,
+    figsize : tuple = (10,6),
+    rest_line_label : str = "Sleep Avg",
+    awake_line_label : str ="Awake Avg",
+    title : Union[str, None] = None,
+    xlabel : str = "Date",
+    ylabel : str ="Breaths per minute",
+    fontsize : int = 15
+) -> dict:
+    """Generate a line-plot of daily and night average daily respiration rates 
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.LabfrontLoader`
+        An instance of a data loader
+    user_id : :class:`str`
+        The id of the user
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None
+    verbose : :class:`bool`, optional
+        Whether to print out respiration stats, by default False
+    save_to : class`str` or None, optional
+        Path where to save the plot, by default None
+    show : :class:`bool`, optional
+        Whether to show the plot, by default True
+    figsize: :class:`tuple`, optional
+        Size of the figure, by default (10,6)
+    rest_line_label : :class:`str`, optional
+        Label of the line relative to night respiration data, by default "Sleep Avg"
+    awake_line_label : :class:`str`, optional
+        Label of the line relative to daily respiration data, by default "Awake Avg"
+    title : :class:`str` or None, optional
+        Title of the plot, by default None
+    xlabel : :class:`str`, optional
+        Label of the x-axis, by default "Date"
+    ylabel : :class:`str`, optional
+        Label of the y-axis, by default "Breaths per minute"
+    fontsize : :class:`int`, optional
+        Fontsize for the plot, by default 15
+
+    Returns
+    -------
+    :class:`dict`
+        Dictionary reporting average breaths per minute during the day and the night
+    """
+    user_id = loader.get_full_id(user_id)
     # get series, note that we're inclusive wrt the whole last day
     rest_dates, rest_resp = zip(
         *respiration.get_rest_breaths_per_minute(
             loader,
+            user_id,
             start_date,
             end_date + datetime.timedelta(hours=23, minutes=59),
-            user,
             remove_zero=True,
-        )[user].items()
+        )[user_id].items()
     )
     waking_dates, waking_resp = zip(
         *respiration.get_waking_breaths_per_minute(
             loader,
+            user_id,
             start_date,
             end_date + datetime.timedelta(hours=23, minutes=59),
-            user,
             remove_zero=True,
-        )[user].items()
+        )[user_id].items()
     )
     combined_dates = sorted(
         list(set(rest_dates + waking_dates))
@@ -486,20 +602,22 @@ def get_respiration_graph_and_stats(
     # plotting
     dates_format = [date.strftime("%d-%m") for date in combined_dates]
     with plt.style.context("ggplot"):
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=figsize)
         ax.plot(rest_dates, rest_resp, marker="o", label=rest_line_label)
         ax.plot(waking_dates, waking_resp, marker="o", label=awake_line_label)
-        ax.legend(loc="best", fontsize=15)
+        ax.legend(loc="best", fontsize=fontsize-1)
         # ax.set_title(title,fontsize=15)
-        ax.set_ylabel(ylabel, fontsize=15)
-        ax.set_xlabel(xlabel, fontsize=16)
+        ax.set_ylabel(ylabel, fontsize=fontsize)
+        ax.set_xlabel(xlabel, fontsize=fontsize)
         plt.ylim(
             [min(8, min(rest_resp + waking_resp)), max(rest_resp + waking_resp) + 2.5]
         )
-        plt.xticks(combined_dates[::2], dates_format[::2], rotation=45, fontsize=15)
-        plt.yticks(fontsize=15)
+        plt.xticks(combined_dates[::2], dates_format[::2], rotation=45, fontsize=fontsize)
+        plt.yticks(fontsize=fontsize)
         if save_to:
             plt.savefig(save_to, bbox_inches="tight")
+        if title:
+            plt.title(fontsize=fontsize+2)
     if show:
         plt.show()
     else:
@@ -512,19 +630,48 @@ def get_respiration_graph_and_stats(
     return stats_dict
 
 
-def get_sleep_heatmap_and_stats(
-    loader,
-    start_date,
-    end_date,
-    user,
-    verbose=False,
-    save_to=None,
-    show=True,
-    title="Sleep performance",
-):
+def get_sleep_grid_and_stats(
+    loader: pylabfront.loader.LabfrontLoader,
+    user_id: str,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    verbose : bool =False,
+    save_to : Union[str, None] = None,
+    show : bool = True,
+    title : str = "Sleep performance",
+) -> dict:
+    """
+    Generate a github-like grid plot of the sleep scores over that years for `user_id`
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.LabfrontLoader`
+        An instance of a data loader
+    user_id : :class:`str`
+        The id of the user
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None
+    verbose : :class:`bool`, optional
+        Whether to print out sleep stats, by default False
+    save_to : :class:`str` or None, optional
+        Path where to save the grid plot, by default None
+    show : :class:`str`, optional
+        _Whether to show the plot, by default True
+    title : :class:`str`, optional
+        Title of the plot, by default "Sleep performance"
+
+    Returns
+    -------
+    :class:`dict`
+        Dictionary of sleep stats (averages of sleep stages durations, awakenings, and sleep score)
+    """
+    user_id = loader.get_full_id(user_id)
+
     # We need to create a dataframe with dates going from one year before to the latest datetime
     dates, scores = zip(
-        *sleep.get_sleep_score(loader, start_date, end_date, user)[user].items()
+        *sleep.get_sleep_score(loader, user_id, start_date, end_date)[user_id].items()
     )
     # Get start and end days from calendar date
     start_date = dates[-1] - datetime.timedelta(days=364)
@@ -557,31 +704,31 @@ def get_sleep_heatmap_and_stats(
         plt.show()
 
     # stats
-    avg_deep = sleep.get_deep_sleep_duration(
-        loader, start_date, end_date, user, average=True
-    )[user]["values"]
-    avg_light = sleep.get_light_sleep_duration(
-        loader, start_date, end_date, user, average=True
-    )[user]["values"]
-    avg_rem = sleep.get_rem_sleep_duration(
-        loader, start_date, end_date, user, average=True
-    )[user]["values"]
-    avg_awake = sleep.get_awake_sleep_duration(
-        loader, start_date, end_date, user, average=True
-    )[user]["values"]
+    avg_deep = sleep.get_n3_duration(
+        loader, user_id, start_date, end_date, average=True
+    )[user_id]["N3"]
+    avg_light = sleep.get_n1_duration(
+        loader, user_id, start_date, end_date, average=True
+    )[user_id]["N1"]
+    avg_rem = sleep.get_rem_duration(
+        loader, user_id, start_date, end_date, average=True
+    )[user_id]["REM"]
+    avg_awake = sleep.get_awake_duration(
+        loader, user_id, start_date, end_date, average=True
+    )[user_id]["AWAKE"]
     avg_awakenings = sleep.get_awakenings(
-        loader, start_date, end_date, user, average=True
-    )[user]["value"]
-    avg_score = sleep.get_sleep_score(loader, start_date, end_date, user, average=True)[
-        user
-    ]["values"]
+        loader, user_id, start_date, end_date, average=True
+    )[user_id]["AWAKENINGS"]
+    avg_score = sleep.get_sleep_score(
+        loader, user_id, start_date, end_date, average=True
+    )[user_id]["SCORE"]
 
     stats_dict = {
-        "Average light sleep": f"{int((avg_light / (1000*60*60))% 24)} hr {int((avg_light / (1000*60))%60)}",
-        "Average deep sleep": f"{int((avg_deep / (1000*60*60))% 24)} hr {int((avg_deep / (1000*60))% 60)}",
-        "Average REM sleep": f"{int((avg_rem / (1000*60*60))% 24)} hr {int((avg_rem / (1000*60))% 60)}",
-        "Average awake time": f"{int((avg_awake / (1000*60*60))% 24)} hr {int((avg_awake / (1000*60))% 60)}",
-        "Average sleep disruptions": round(avg_awakenings, 1),
+        "Average light sleep": f"{avg_light}",
+        "Average deep sleep": f"{avg_deep}",
+        "Average REM sleep": f"{avg_rem}",
+        "Average awake time": f"{avg_awake}",
+        "Average awakenings": round(avg_awakenings, 1),
         "Average sleep score": round(avg_score),
     }
 
@@ -599,7 +746,7 @@ def get_sleep_summary_graph(
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     save_to: str = None,
     show: bool = True,
-    alpha: Union[int, float] = 0.25,
+    alpha: float = 0.25,
     title: str = "Sleep stages and score",
     xlabel: str = "Sleep time [hours]",
     ylabel: str = "Date",
@@ -615,6 +762,54 @@ def get_sleep_summary_graph(
     chronotype_sleep_end : Union[str, None] = None,
     show_chronotype : bool = False
 ):
+    """
+    Generates a graph of all hypnograms of main sleeps of `user_id` for the period of interest
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.LabfrontLoader`
+        An instance of a data loader
+    user_id : :class:`str`
+        The id of the user
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None
+    save_to : :class:`str`, optional
+        Path where to save the plot, by default None
+    show : class:`bool`, optional
+        Whether to show the plot, by default True
+    alpha : :class`float`, optional
+        Alpha for elements in transparency in the plot, by default 0.25
+    title : :class:`str`, optional
+        Title of the plot, by default "Sleep stages and score"
+    xlabel : :class:`str`, optional
+        label of the x-axis, by default "Sleep time [hours]"
+    ylabel : :class:`str`, optional
+        label of the y-axis, by default "Date"
+    legend_title : :class:`str`, optional
+        title of the sleep stages legend, by default "Sleep stages"
+    legend_labels : :class:`str`, optional
+        labels for the sleep stages legend, by default ["Deep", "Light", "REM", "Awake"]
+    colorbar_title : :class:`str`, optional
+        title of the colorbar, by default "Sleep Score"
+    colorbar_labels : :class:`str`, optional
+        labels of the colorbar, by default ["poor", "fair", "good", "excellent"]
+    figsize : :class:`tuple`, optional
+        size of the figure, by default (15,30)
+    bottom_offset : :class:`int`, optional
+        distance of the scores from the bottom of the hypnograms, by default 500
+    vertical_offset : :class:`float`, optional
+        vertical offset of the scores at the bottom of the hypnograms, by default -0.
+    sleep_metric : :class:`str` or None, optional
+        metric used for circadian variability ("midpoint" or "duration"), by default None
+    chronotype_sleep_start : :class:`str` or None, optional
+        usual sleeping time for `user_id` in format HH:MM, by default None
+    chronotype_sleep_end : :class:`str` or None, optional
+        usual waking time for `user_id` in format HH:MM, by default None
+    show_chronotype : :class:`bool`, optional
+        whether to show chronotype dashed vertical lines over the hypnograms, by default False
+    """
     
     if sleep_metric is not None:
         assertion_msg = "Must specify chronotype when plotting circadian measures"
@@ -994,15 +1189,15 @@ def get_sleep_summary_graph(
 
 
 def get_errorbar_graph(
-    quest_df,
-    questionnaire_dict,
-    variable_of_interest,
-    answer_of_interest,
-    title="",
-    ylabel="",
-    answer_categories=None,
-    save_to=None,
-    show=True,
+    quest_df: pd.DataFrame,
+    questionnaire_dict : dict,
+    variable_of_interest : str,
+    answer_of_interest : str,
+    title : str = "",
+    ylabel : str = "",
+    answer_categories : Union[list, None] = None,
+    save_to : Union[str, None] = None,
+    show : bool = True,
 ):
     """Plots an errorbar graph with respect to the ``variable_of_interest`` for a specific question in a questionnaire
 
@@ -1010,21 +1205,21 @@ def get_errorbar_graph(
 
     Parameters
     ----------
-    quest_df : pd.DataFrame
-        DataFrame obtained from the pylabfront.loader.LabfrontLoader.process_questionnaire method for the questionnaire of interest,
+    quest_df : :class:`pandas.DataFrame`
+        DataFrame obtained from the pylabfront.questionnaire.process_questionnaire function for the questionnaire of interest,
         filtered by user of interest, and possibly processed in some other way to obtain additional column(s) of interest,
         used as ``variable_of_interest``.
-    questionnaire_dict : dict
+    questionnaire_dict : :class:`dict`
         Dictionary obtained from the pylabfront.loader.LabfrontLoader.get_questionnare_questions method for the questionnaire of interest
-    variable_of_interest : string
+    variable_of_interest : :class:`str`
         name of the column of ``quest_df`` against which to calculate stats
-    answer_of_interest : string
+    answer_of_interest : :class:`str`
         number of the answer in the questionaire in the format reported by Labfront
-    title : string, optional
+    title : :class:`str`, optional
         title of the plot. Defaults to empty string.
-    ylabel : string, optional
+    ylabel : :class:`str`, optional
         label for the y-axis in the plot. Defaults to empty string.
-    answer_categories : list, optional
+    answer_categories : :class:`list`, optional
         list of the answers, in the order desired for visaulization, by default None
         if this is left as default, the order is defined by the order proposed in the Labfront questionnaire
     """
@@ -1088,7 +1283,8 @@ def get_errorbar_graph(
     plt.yticks(fontsize=15)
 
     if save_to:
-        plt.savefig(save_to, bbox_inches="tight")
+        plt.savefig(save_to, 
+                    bbox_inches="tight")
 
     if show:
         plt.show()
@@ -1096,14 +1292,17 @@ def get_errorbar_graph(
         plt.close()
 
 
-def plot_bbi_distribution(bbi, bin_length=20):
-    """Plots distribution of bbi data
+def plot_bbi_distribution(
+    bbi : np.array, 
+    bin_length : int = 20):
+    """
+    Plots distribution of BBI data
 
     Parameters
     ----------
-    bbi : numpy.ndarray
-        array of bbi data
-    bin_length : int, optional
+    bbi : :class:`numpy.ndarray`
+        Array of Beat-to-beat intraval (BBI) data
+    bin_length : :class:`int`, optional
         length of bins in the histogram, by default 20
     """
 
@@ -1115,20 +1314,20 @@ def plot_comparison_radar_chart():
 
 
 def compare_against_group(
-    user_data,
-    comparison_data,
-    show=True,
-    save_to=None,
-    bins=10,
-    title="",
-    ylabel="% users",
-    xlabel="",
-    fontsize=16,
-    shaded_regions=False,
-    regions_cutoffs=None,
-    regions_colors=None,
-    alpha=0.25,
-    xlim=None,
+    user_data : Union[int, float],
+    comparison_data : list,
+    show : bool = True,
+    save_to : Union[str, None] = None,
+    bins : int = 10,
+    title : str = "", 
+    ylabel : str = "% users",
+    xlabel : str = "",
+    fontsize : int = 16,
+    shaded_regions : bool = False,
+    regions_cutoffs : Union[list, None] = None,
+    regions_colors : Union[list, None] = None,
+    alpha : float = 0.25,
+    xlim : Union[list, None] = None,
 ):
     """Plots a histogram of the distribution of a desired metric, specifying where an user stands within the distribution
 
@@ -1137,43 +1336,44 @@ def compare_against_group(
 
     Parameters
     ----------
-    user_data : float
+    user_data : :class:`float` or :class:`int`
         The value of the user of interest for the metric of interest
-    comparison_data : list
+    comparison_data : :class:`list`
         List of values for the metric of interest for the comparison group (including the user of interest)
-    show : bool, optional
-        Whether to show the plot
-    save_to : str, optional
-        the path where to save the plot, by default None
-    bins : int, optional
+    show : :class:`bool`, optional
+        Whether to show the plot, by default True
+    save_to : :class:`str` or None, optional
+        Path where to save the plot, by default None
+    bins : :class:`int`, optional
         Number of bins for the comparison histogram, by default 10
-    title : str, optional
+    title : :class:`str`, optional
         Title of the plot, by default ""
-    ylabel : str, optional
-        Y-label of the plot, by default "% users"
-    xlabel : str, optional
-        X-label of the plot, by default ""
-    fontsize : int, optional
-        Fontsize for the plot, by default 16
-    shaded_regions : bool, optional
+    ylabel : :class:`str`, optional
+        Label of the y-axis, by default "% users"
+    xlabel : :class:`str`, optional
+        Label of the x-axis, by default ""
+    fontsize : :class:`int`, optional
+        Font size for the plot, by default 16
+    shaded_regions : :class:`bool`, optional
         Whether to enable in the plot the use of colored regions, by default False
-    regions_cutoffs : list, optional
+    regions_cutoffs : :class:`list`, optional
         Values of the cuttoff points for the shaded regions, by default None
-    regions_colors : list, optional
+    regions_colors : :class:`list`, optional
         Colors of the shaded regions, len(regions_colors) is expected to be len(regions_cutoffs)-1, by default None
-    alpha : float, optional
+    alpha : :class:`float`, optional
         Alpha of the shaded regions, by default 0.25
-    xlim : list, optional
-        List of two extreme x-values for the plot, by dafault None
+    xlim : :class:`list`, optional
+        List of the leftmost and rightmost x-values for the plot, by dafault None
 
     Returns
     -------
-    float
+    :class:`float`
         Percentile standing of the user among the comparison group considered
     """
 
-    # note that the following is not strict percentile (this is good to say you were above x% of the others..)
-    # should we instead show that??
+    # note that the following is not strict percentile 
+    # this is good to say you were above x% of the others..
+    # should we instead show the strict percentile??
     percentile_standing = np.round(
         np.sum(np.array(comparison_data) <= user_data) / len(comparison_data) * 100, 0
     )
@@ -1216,7 +1416,7 @@ def compare_against_group(
 
 def plot_trend_analysis(
     df : pd.DataFrame,
-    ax : plt.axes =None,
+    ax : Union[plt.axes, None] =None,
     save_to : Union[str, None] =None,
     show : bool = True,
     xlabel : str = "",
@@ -1230,37 +1430,37 @@ def plot_trend_analysis(
     show_legend : bool = False,
     normal_range : tuple = None
 ):
-    """Plots a trend analysis graph, given data processed using `utils.trend_analysis`
+    """Plots a trend analysis graph including short-term, mid-term, and long-term metrics
 
     Parameters
     ----------
-    df : pd.DataFrame
-        DataFrame of the processed metric data returned by `utils.trend_analysis` function
-    ax : None or matplotlib.axes object, optional
+    df : :class:`pandas.DataFrame`
+        DataFrame of the processed metric data returned by the `pylabfront.utils.trend_analysis` function
+    ax : None or class:`matplotlib.axes`, optional
         Axes where to build the figure, by default None
-    save_to : str, optional
-        the path where to save the plot, by default None
-    show : bool, optional
-        Whether to show the plot
-    xlabel : str, optional
-        X-label of the plot, by default ""
-    ylabel : str, optional
-        Y-label of the plot, by default ""
-    title : str, optional
+    save_to : :class:`str`, optional
+        path where to save the plot, by default None
+    show : :class:`bool`, optional
+        whether to show the plot
+    xlabel : :class:`str`, optional
+        label of the x-axis, by default ""
+    ylabel : :class:`str`, optional
+        label of the y-axis, by default ""
+    title : :class:`str`, optional
         title of the plot, by default ""
-    fontsize : int, optional
-        fontisize to be used for the labels and the title, by default 16
-    alpha : float, optional
+    fontsize : :class:`int`, optional
+        fonti size for the plot, by default 16
+    alpha : :class:`float`, optional
         Alpha of the shaded regions, by default 0.3
-    xticks_frequency : int, optional
+    xticks_frequency : :class:`int`, optional
         frequency of visualization of x-axis ticks, by default 3
-    xticksrotaton : int, optional
-        the rotation of ticks on the x-axis, by default 45
-    figsize : tuple, optional
+    xticksrotaton : :class:`int`, optional
+        rotation of ticks on the x-axis, by default 45
+    figsize : :class:`tuple`, optional
         size of the figure, by default (10,6)
-    show_legend : bool, optional
+    show_legend : :class:`bool`, optional
         whether to show the legend of the plot, by default False
-    normal_range : tuple, optional
+    normal_range : :class:`tuple`, optional
         start and end of a fixed range (based on norm values) instead of a trend NR, by default None
     """
     df = df.dropna(how="all") # restrict viz to period with available data

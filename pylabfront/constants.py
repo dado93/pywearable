@@ -82,6 +82,9 @@ _QUESTIONNAIRE_SECTION_INDEX_COL = "sectionIndex"
 _QUESTIONNAIRE_QUESTION_INDEX_COL = "questionIndex"
 _TASK_SCHEDULE_COL = "taskScheduleRepeat"
 
+# Respiration colummns #
+_RESPIRATION_COL = "breathsPerMinute"
+
 #################################################
 #           CSV FILES - COLUMN VALUES          #
 #################################################

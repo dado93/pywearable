@@ -1460,9 +1460,9 @@ def get_sleep_score(
 
 def get_sleep_timestamps(
     loader: loader.LabfrontLoader,
+    user_id="all",
     start_date=None,
     end_date=None,
-    user_id="all",
     average=False,
 ):
     """Get the timestamps of the beginning and the end of sleep occurrences.
@@ -1474,12 +1474,12 @@ def get_sleep_timestamps(
     ----------
     loader : :class:`pylabfront.loader.Loader`
         Initialized instance of a data loader.
+    user_id : :class:`str`, optional
+        ID of the user for which sleep timestamps are computed, by default "all".
     start_date : class:`datetime.datetime`, optional
         Start date of the period of interest, by default None.
     end_date : class:`datetime.datetime`, optional
         End date of the period of interest, by default None.
-    user_id : :class:`str`, optional
-        ID of the user for which sleep timestamps are computed, by default "all".
     average : :class:`bool`, optional
         Whether to calculate the average sleep and awake time of the user (in hours), by default False.
 
@@ -1589,7 +1589,11 @@ def get_sleep_midpoints(
 
 
 def get_awakenings(
-    loader: loader.LabfrontLoader, start_date, end_date, user_id="all", average=False
+    loader: loader.LabfrontLoader, 
+    user_id="all",
+    start_date = None, 
+    end_date = None, 
+    average=False
 ):
     """Get the number of awakenings
 
@@ -1633,24 +1637,26 @@ def get_awakenings(
             nights_available = df[constants._SLEEP_SUMMARY_CALENDAR_DATE_COL]
             for night in nights_available:
                 hypnogram = loader.load_hypnogram(
-                    user, night
-                )  # TODO do we need hyonogram? Can't we use sleep stages?
+                    user, night, night
+                )[night]["values"]
+
+                # TODO do we need hyonogram? Can't we use sleep stages?
+                
                 # check if there a difference in stage between successive observations (first one defaults to no change)
-                hypnogram["stages_diff"] = np.concatenate(
+                stages_diff = np.concatenate(
                     [
                         [0],
-                        hypnogram.iloc[1:, :].stage.values
-                        - hypnogram.iloc[:-1, :].stage.values,
+                        hypnogram[1:]
+                        - hypnogram[:-1]
                     ]
                 )
                 # if there has been a negative change and the current stage is awake, then count it as awakening
-                hypnogram["awakening"] = np.logical_and(
-                    hypnogram.stage == 0, hypnogram.stages_diff < 0
-                )
-                num_awakenings = hypnogram.awakening.sum()
+                num_awakenings = np.logical_and(
+                    hypnogram == 0, stages_diff < 0
+                ).sum()
                 data_dict[user][night] = num_awakenings
             if average:
-                average_dict[user]["value"] = np.nanmean(list(data_dict[user].values()))
+                average_dict[user]["AWAKENINGS"] = np.nanmean(list(data_dict[user].values()))
                 average_dict[user]["days"] = [
                     datetime.datetime.strftime(night, "%Y-%m-%d")
                     for night in nights_available
@@ -1677,7 +1683,7 @@ def get_cpd(
 ):
     """Computes composite phase deviation (CPD)
 
-    Returns a measure of sleep regularity, either in terms of stabmidpoints = ility of rest midpoints
+    Returns a measure of sleep regularity, either in terms of stability of rest midpoints
     if `sleep_metric` is 'midpoint', or in terms of duration is `sleep_metric` is 'duration'.
     The measure is computed for the period between `start_date` and `end_date`
     but only keeping in consideration the most recent `days_to_consider`.
