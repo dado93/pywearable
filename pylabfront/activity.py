@@ -3,31 +3,27 @@ This module contains all the functions related to the analysis
 of Labfront activity data.
 """
 
-import pylabfront.utils as utils
-import pandas as pd
+import datetime
+from typing import Union
+
 import numpy as np
+import pandas as pd
 
-from datetime import timedelta
+import pylabfront.utils as utils
 
-_LABFRONT_ISO_DATE_KEY = "isoDate"
-_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL = "calendarDate"
-_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STEPS_COL = "steps"
-_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STEPS_GOAL_COL = "stepsGoal"
-_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_DISTANCE_COL = "distanceInMeters"
-_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_MODERATE_INTENSITY_COL = (
-    "moderateIntensityDurationInMs"
-)
-_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_VIGOROUS_INTENSITY_COL = (
-    "vigorousIntensityDurationInMs"
-)
-_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL = "intensity"
-_LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL = "activeTimeInMs"
+from . import constants, loader
 
-_MS_TO_HOURS_CONVERSION = 1000 * 60 * 60
 _MS_TO_MINUTES_CONVERSION = 1000 * 60
+_ACTIVITY_TIME_IN_MINUTES = "activeTimeInMinutes"
 
 
-def get_activity_by_period(loader, activity, start_date, end_date, user_id="all"):
+def get_activity_series(
+    labfront_loader: loader.LabfrontLoader,
+    activity: str,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: Union[str, list] = "all",
+) -> dict:
     """Get a general activity time series.
 
     This function returns the activity required as a time series
@@ -35,8 +31,14 @@ def get_activity_by_period(loader, activity, start_date, end_date, user_id="all"
 
     Parameters
     ----------
-    loader : :class:`pylabfront.loader`
-        Initialized instance of :class:`pylabfront.loader`, required in order to properly load data.
+    loader : :class:`pylabfront.loader.LabfrontLoader`
+        Initialized instance of :class:`pylabfront.loader.LabfrontLoader`, required in order to properly load data.
+    activity: str
+        Activity to be retrieved. Possible values are:
+
+            - ACTIVE
+            - HIGHLY_ACTIVE
+            - SEDENTARY
     start_date : :class:`datetime.datetime`, optional
         Start date from which should be extracted, by default None.
         If None is used, then the ``start_date`` will be the first day with available data
@@ -57,35 +59,64 @@ def get_activity_by_period(loader, activity, start_date, end_date, user_id="all"
     """
     activity_dict = {}
 
-    user_ids = utils.get_user_ids(loader, user_id)
-
+    user_ids = utils.get_user_ids(labfront_loader, user_id)
+    start_date = utils.check_date(start_date)
+    end_date = utils.check_date(end_date)
+    if end_date is None:
+        end_date = datetime.datetime.now()
     for id in user_ids:
         try:
-            df = loader.load_garmin_connect_epoch(
-                id, start_date, end_date - timedelta(minutes=15)
+            df = labfront_loader.load_garmin_connect_epoch(
+                id,
+                start_date,
+                end_date - datetime.timedelta(minutes=15),  # TODO Do we need to do it?
             )
             activity_dict[id] = pd.Series(
-                df[df[_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL] == activity][
-                    _LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL
+                df[df[constants._EPOCH_INTENSITY_COL] == activity][
+                    constants._EPOCH_ACTIVE_TIME_MS_COL
                 ].values,
-                index=df[df.intensity == activity].isoDate,
+                index=df[df[constants._EPOCH_INTENSITY_COL] == activity][
+                    constants._ISODATE_COL
+                ],
             )
-        except:
+        except Exception as e:
             activity_dict[id] = None
 
     return activity_dict
 
 
-def get_active(loader, start_date, end_date, user_id="all"):
-    """Get activity time series.
+def get_active_activity_series(
+    labfront_loader: loader.LabfrontLoader,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: Union[str, list] = "all",
+) -> dict:
+    """Get active activity time series.
 
-    This function returns the amount of activity as a time series
-    for the users and period of interest.
+    This function returns the amount of active activity as a time series
+    for the users and period of interest. The values are returned as
+    :class:`dict`, with a :class:`pd.Series` for each user.
+
+    Example return values::
+
+        {'DAV_f457c562': isoDate
+            2023-09-10 08:15:00    262000
+            2023-09-10 08:30:00    293000
+            2023-09-10 08:45:00    422000
+            2023-09-10 09:15:00    358000
+            2023-09-10 13:45:00    471000
+                                    ...
+            2023-09-13 12:15:00     15000
+            2023-09-13 12:30:00    250000
+            2023-09-13 12:45:00     15000
+            2023-09-13 13:00:00    135000
+            2023-09-13 13:15:00    290000
+            Length: 81, dtype: int64}
 
     Parameters
     ----------
-    loader : :class:`pylabfront.loader`
-        Initialized instance of :class:`pylabfront.loader`, required in order to properly load data.
+    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+        Initialized instance of :class:`pylabfront.loader.LabfrontLoader`, required in order to properly load data.
     start_date : :class:`datetime.datetime`, optional
         Start date from which should be extracted, by default None.
         If None is used, then the ``start_date`` will be the first day with available data
@@ -100,47 +131,67 @@ def get_active(loader, start_date, end_date, user_id="all"):
     Returns
     -------
     :class:`dict`
-        The returned dictionary contains the activity time series for the given ``user_id``.
+        The returned dictionary contains the active activity time series for the given ``user_id``.
         The primary key of the dictionary is the id of the user of interest.
         Each value is a time series of the desired activity level between start_date and end_date.
     """
-    return get_activity_by_period(loader, "ACTIVE", start_date, end_date, user_id)
-
-
-def get_highly_active(loader, start_date, end_date, user_id="all"):
-    """Get intensive activity time series.
-
-    This function returns the amount of activity as a time series
-    for the users and period of interest.
-
-    Parameters
-    ----------
-    loader : :class:`pylabfront.loader`
-        Initialized instance of :class:`pylabfront.loader`, required in order to properly load data.
-    start_date : :class:`datetime.datetime`, optional
-        Start date from which should be extracted, by default None.
-        If None is used, then the ``start_date`` will be the first day with available data
-        for the given ``user_id``.
-    end_date : :class:`datetime.datetime`, optional
-        End date up to which data should be extracted, by default None.
-        If None is used, then the ``end_date`` will be the last day with available data
-        for the given ``user_ids``.
-    user_id : :class:`str`, optional
-        IDs of the users for which data have to extracted, by default "all"
-
-    Returns
-    -------
-    :class:`dict`
-        The returned dictionary contains the time series for intensive activity for the given ``user_id``.
-        The primary key of the dictionary is the id of the user of interest.
-        Each value is a time series of the desired activity level between start_date and end_date.
-    """
-    return get_activity_by_period(
-        loader, "HIGHLY_ACTIVE", start_date, end_date, user_id
+    return get_activity_series(
+        labfront_loader,
+        constants._EPOCH_ACTIVITY_ACTIVE_VALUE,
+        start_date,
+        end_date,
+        user_id,
     )
 
 
-def get_sedentary(loader, start_date, end_date, user_id="all"):
+def get_highly_active_activity_series(
+    labfront_loader: loader.LabfrontLoader,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: Union[str, list] = "all",
+) -> dict:
+    """Get highly active activity time series.
+
+    This function returns the amount of highly active activity as a time series
+    for the users and period of interest.
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.LabfrontLoader`
+        Initialized instance of :class:`pylabfront.loader.LabfrontLoader`, required in order to properly load data.
+    start_date : :class:`datetime.datetime`, optional
+        Start date from which should be extracted, by default None.
+        If None is used, then the ``start_date`` will be the first day with available data
+        for the given ``user_id``.
+    end_date : :class:`datetime.datetime`, optional
+        End date up to which data should be extracted, by default None.
+        If None is used, then the ``end_date`` will be the last day with available data
+        for the given ``user_ids``.
+    user_id : :class:`str`, optional
+        IDs of the users for which data have to extracted, by default "all"
+
+    Returns
+    -------
+    :class:`dict`
+        The returned dictionary contains the time series for highly active activity for the given ``user_id``.
+        The primary key of the dictionary is the id of the user of interest.
+        Each value is a time series of the desired activity level between start_date and end_date.
+    """
+    return get_activity_series(
+        labfront_loader,
+        constants._EPOCH_ACTIVITY_HIGHLY_ACTIVE_VALUE,
+        start_date,
+        end_date,
+        user_id,
+    )
+
+
+def get_sedentary_activity_series(
+    labfront_loader: loader.LabfrontLoader,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: Union[str, list] = "all",
+) -> dict:
     """Get sedentary activity time series.
 
     This function returns the amount of sedentary activity as a time series
@@ -148,8 +199,8 @@ def get_sedentary(loader, start_date, end_date, user_id="all"):
 
     Parameters
     ----------
-    loader : :class:`pylabfront.loader`
-        Initialized instance of :class:`pylabfront.loader`, required in order to properly load data.
+    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+        Initialized instance of :class:`pylabfront.loader.LabfrontLoader`, required in order to properly load data.
     start_date : :class:`datetime.datetime`, optional
         Start date from which should be extracted, by default None.
         If None is used, then the ``start_date`` will be the first day with available data
@@ -168,14 +219,44 @@ def get_sedentary(loader, start_date, end_date, user_id="all"):
         The primary key of the dictionary is the id of the user of interest.
         Each value is a time series of the desired activity level between start_date and end_date.
     """
-    return get_activity_by_period(loader, "SEDENTARY", start_date, end_date, user_id)
+    return get_activity_series(
+        labfront_loader,
+        constants._EPOCH_ACTIVITY_SEDENTARY_VALUE,
+        start_date,
+        end_date,
+        user_id,
+    )
 
 
-def get_steps(loader, start_date, end_date, user_id="all"):
+def get_steps_series(
+    labfront_loader: loader.LabfrontLoader,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: Union[str, list] = "all",
+) -> dict:
     """Get steps time series.
 
     This function returns the amount of steps as a time series
     with a granularity of 15 minutes for the users and period of interest.
+    The dictionary has the ``user_id`` has key, and a :class:`pd.Series`
+    as value, with the timestamp as index and the number of steps as
+    values.
+
+    Example dictionary::
+
+        {'DAV_f457c562': isoDate
+            2023-09-10 05:45:00      0
+            2023-09-10 06:00:00      0
+            2023-09-10 06:15:00      0
+            2023-09-10 06:30:00      0
+            2023-09-10 06:45:00      0
+                                ...
+            2023-09-13 12:15:00      9
+            2023-09-13 12:30:00    328
+            2023-09-13 12:45:00     10
+            2023-09-13 13:00:00    149
+            2023-09-13 13:15:00    409
+            Name: steps, Length: 304, dtype: int64}
 
     Parameters
     ----------
@@ -202,15 +283,18 @@ def get_steps(loader, start_date, end_date, user_id="all"):
 
     steps_dict = {}
 
-    user_ids = utils.get_user_ids(loader, user_id)
-
+    user_ids = utils.get_user_ids(labfront_loader, user_id)
+    start_date = utils.check_date(start_date)
+    end_date = utils.check_date(end_date)
+    if end_date is None:
+        end_date = datetime.datetime.now()
     for id in user_ids:
         try:
-            df = loader.load_garmin_connect_epoch(
-                id, start_date, end_date - timedelta(minutes=15)
+            df = labfront_loader.load_garmin_connect_epoch(
+                id, start_date, end_date - datetime.timedelta(minutes=15)
             )
-            steps_dict[id] = df.groupby(_LABFRONT_ISO_DATE_KEY)[
-                _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STEPS_COL
+            steps_dict[id] = df.groupby(constants._ISODATE_COL)[
+                constants._DAILY_SUMMARY_STEPS_COL
             ].sum()
         except:
             steps_dict[id] = None
@@ -218,7 +302,12 @@ def get_steps(loader, start_date, end_date, user_id="all"):
     return steps_dict
 
 
-def get_distance(loader, start_date, end_date, user_id="all"):
+def get_distance_series(
+    labfront_loader: loader.LabfrontLoader,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: Union[str, list] = "all",
+) -> dict:
     """Get distance time series.
 
     This function returns the distance travelled by foot in meters as a time series
@@ -248,15 +337,18 @@ def get_distance(loader, start_date, end_date, user_id="all"):
     """
     distance_dict = {}
 
-    user_ids = utils.get_user_ids(loader, user_id)
-
+    user_ids = utils.get_user_ids(labfront_loader, user_id)
+    start_date = utils.check_date(start_date)
+    end_date = utils.check_date(end_date)
+    if end_date is None:
+        end_date = datetime.datetime.now()
     for id in user_ids:
         try:
-            df = loader.load_garmin_connect_epoch(
-                id, start_date, end_date - timedelta(minutes=15)
+            df = labfront_loader.load_garmin_connect_epoch(
+                id, start_date, end_date - datetime.timedelta(minutes=15)
             )
-            distance_dict[id] = df.groupby(_LABFRONT_ISO_DATE_KEY)[
-                _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_DISTANCE_COL
+            distance_dict[id] = df.groupby(constants._ISODATE_COL)[
+                constants._DAILY_SUMMARY_DISTANCE_COL
             ].sum()
         except:
             distance_dict[id] = None
@@ -264,9 +356,13 @@ def get_distance(loader, start_date, end_date, user_id="all"):
     return distance_dict
 
 
-def get_steps_per_day(
-    loader, start_date=None, end_date=None, user_id="all", average=False
-):
+def get_daily_steps(
+    labfront_loader: loader.LabfrontLoader,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: Union[str, list] = "all",
+    average: bool = False,
+) -> dict:
     """Get steps for each day.
 
     This function returns the total daily steps for the given participant(s)
@@ -274,8 +370,8 @@ def get_steps_per_day(
 
     Parameters
     ----------
-        loader : :class:`pylabfront.loader`
-            Initialized instance of :class:`pylabfront.loader`, required in order to properly load data.
+        loader : :class:`pylabfront.loader.LabfrontLoader`
+            Initialized instance of :class:`pylabfront.loader.LabfrontLoader`, required in order to properly load data.
         start_date :  :class:`datetime.datetime`, optional
             Start date from which should be extracted, by default None.
             If None is used, then the `start_date` will be the first day with available data
@@ -300,29 +396,30 @@ def get_steps_per_day(
 
     data_dict = {}
 
-    user_ids = utils.get_user_ids(loader, user_id)
-
+    user_ids = utils.get_user_ids(labfront_loader, user_id)
+    start_date = utils.check_date(start_date)
+    end_date = utils.check_date(end_date)
     for id in user_ids:
-        participant_daily_summary = loader.load_garmin_connect_daily_summary(
+        participant_daily_summary = labfront_loader.load_garmin_connect_daily_summary(
             id, start_date, end_date
         )
         if len(participant_daily_summary) > 0:
             participant_daily_summary = participant_daily_summary.groupby(
-                _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL
+                constants._DAILY_SUMMARY_CALENDAR_DATE_COL
             ).tail(1)
             if average:
                 data_dict[id] = int(
                     participant_daily_summary[
-                        _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STEPS_COL
+                        constants._DAILY_SUMMARY_STEPS_COL
                     ].values.mean()
                 )
             else:
                 data_dict[id] = pd.Series(
                     participant_daily_summary[
-                        _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STEPS_COL
+                        constants._DAILY_SUMMARY_STEPS_COL
                     ].values,
                     index=participant_daily_summary[
-                        _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL
+                        constants._DAILY_SUMMARY_CALENDAR_DATE_COL
                     ].dt.date,
                 ).to_dict()
         else:
@@ -331,56 +428,74 @@ def get_steps_per_day(
     return data_dict
 
 
-def get_distance_per_day(
-    loader, start_date=None, end_date=None, user_id="all", average=False
-):
-    """Get distance covered for each day.
+def get_daily_distance(
+    labfront_loader: loader.LabfrontLoader,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: Union[str, list] = "all",
+    average: bool = False,
+) -> dict:
+    """Get distance in meters for each day.
 
-    This function returns the amount of meters covered for the given participant(s)
-    for each given day from ``start_date`` to ``end_date``
+    This function returns the amount of meters covered by the given
+    user(s) for each given day from `start_date` to `end_date`.
 
-    Args:
-        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_dt (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
-        end_dt (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
-        user_id (list, optional): List of participants of interest. Defaults to "all".
-        average (bool, optional): Indication whether to calculate the average. Defaults to False.
+    Parameters
+    ----------
+    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+        Instance of :class:`pylabfront.loader.LabfrontLoader`, required for data loading.
+    start_date : datetime.datetime or datetime.date or str or None, optional
+        Start date for data loading, by default None
+    end_date : datetime.datetime or datetime.date or str or None, optional
+        End date for data loading, by default None
+    user_id : str or list, optional
+        User(s) of interest, by default "all"
+    average : bool, optional
+        Whether to average the distance in meters across all days, by default False
 
-    Returns:
-        dict: Dictionary of daily meters covered by participants of interest
+    Returns
+    -------
+    dict
+        Dictionary of daily distance (in meters) for each user of interest
     """
     data_dict = {}
 
-    user_ids = utils.get_user_ids(loader, user_id)
-
+    user_ids = utils.get_user_ids(labfront_loader, user_id)
+    start_date = utils.check_date(start_date)
+    end_date = utils.check_date(end_date)
+    if end_date is None:
+        end_date = datetime.datetime.now()
     for id in user_ids:
-        participant_epochs = loader.load_garmin_connect_epoch(
-            id, start_date, end_date + timedelta(hours=23, minutes=45)
+        participant_epochs = labfront_loader.load_garmin_connect_epoch(
+            id,
+            start_date,
+            end_date
+            + datetime.timedelta(hours=23, minutes=45),  # TODO check if correct
         )
         if len(participant_epochs) > 0:
             participant_epochs[
-                _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL
-            ] = participant_epochs[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.date())
+                constants._DAILY_SUMMARY_CALENDAR_DATE_COL
+            ] = participant_epochs[constants._ISODATE_COL].apply(lambda x: x.date())
             participant_daily_summary = (
-                participant_epochs.groupby(
-                    _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL
-                )[_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_DISTANCE_COL]
+                participant_epochs.groupby(constants._DAILY_SUMMARY_CALENDAR_DATE_COL)[
+                    constants._DAILY_SUMMARY_DISTANCE_COL
+                ]
                 .sum()
                 .reset_index()
             )
             if average:
                 data_dict[id] = int(
                     participant_daily_summary[
-                        _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_DISTANCE_COL
+                        constants._DAILY_SUMMARY_DISTANCE_COL
                     ].values.mean()
                 )
             else:
                 data_dict[id] = pd.Series(
                     participant_daily_summary[
-                        _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_DISTANCE_COL
+                        constants._DAILY_SUMMARY_DISTANCE_COL
                     ].values,
                     index=participant_daily_summary[
-                        _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL
+                        constants._DAILY_SUMMARY_CALENDAR_DATE_COL
                     ],
                 ).to_dict()
         else:
@@ -389,19 +504,24 @@ def get_distance_per_day(
     return data_dict
 
 
-def get_steps_goal_per_day(loader, start_date=None, end_date=None, user_id="all"):
-    """Get daily steps goal
+def get_daily_steps_goal(
+    labfront_loader: loader.LabfrontLoader,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: Union[str, list] = "all",
+) -> dict:
+    """Get daily steps goal.
 
-    This function returns the steps goal for every day within the period of interest
+    This function returns the steps goal for every day within the period of interest.
 
     Parameters
     ----------
-    loader : :class:`pylabfront.loader.Loader`
+    loader : :class:`pylabfront.loader.LabfrontLoader`
         Initialized instance of data loader.
-    start_date : :class:`datetime.datetime`, optional
-        Start date from which daily steps goal is retrieved, by default None.
-    end_date : :class:`datetime.datetime`, optional
-        End date to which daily steps goal is retrieved, by default None.
+    start_date : datetime.datetime or datetime.date or str or None, optional
+        Start date for data loading, by default None
+    end_date : datetime.datetime or datetime.date or str or None, optional
+        End date for data loading, by default None
     user_id : :class:`str`, optional
         ID of the user for which daily steps goal is retrieved, by default "all".
 
@@ -413,22 +533,23 @@ def get_steps_goal_per_day(loader, start_date=None, end_date=None, user_id="all"
     """
     data_dict = {}
 
-    user_ids = utils.get_user_ids(loader, user_id)
-
+    user_ids = utils.get_user_ids(labfront_loader, user_id)
+    start_date = utils.check_date(start_date)
+    end_date = utils.check_date(end_date)
     for id in user_ids:
-        participant_daily_summary = loader.load_garmin_connect_daily_summary(
+        participant_daily_summary = labfront_loader.load_garmin_connect_daily_summary(
             id, start_date, end_date
         )
         if len(participant_daily_summary) > 0:
             participant_daily_summary = participant_daily_summary.groupby(
-                _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL
+                constants._DAILY_SUMMARY_CALENDAR_DATE_COL
             ).tail(1)
             data_dict[id] = pd.Series(
                 participant_daily_summary[
-                    _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_STEPS_GOAL_COL
+                    constants._DAILY_SUMMARY_STEPS_GOAL_COL
                 ].values,
                 index=participant_daily_summary[
-                    _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL
+                    constants._DAILY_SUMMARY_CALENDAR_DATE_COL
                 ].dt.date,
             ).to_dict()
         else:
@@ -438,13 +559,13 @@ def get_steps_goal_per_day(loader, start_date=None, end_date=None, user_id="all"
 
 
 def get_daily_intensity_minutes(
-    loader,
-    start_date=None,
-    end_date=None,
-    user_id="all",
-    merge_together=False,
-    average=False,
-):
+    labfront_loader: loader.LabfrontLoader,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: Union[str, list] = "all",
+    merge_together: bool = False,
+    average: bool = False,
+) -> dict:
     """Gets daily intensity data for the users and period of interest
 
     Parameters
@@ -456,11 +577,11 @@ def get_daily_intensity_minutes(
     end_date : :class:`datetime.datetime`, optional
         End date to which daily steps goal is retrieved, by default None.
     user_id : :class:`str`, optional
-        ID of the user for which daily steps goal is retrieved, by default "all".
+        User(s) for which daily steps goal is retrieved, by default "all".
     merge_together : bool, optional
-        whether to merge together moderate(mi) and vigorous intensities(vi) as (mi+2*vi), by default False
+        Whether to merge together moderate(mi) and vigorous intensities(vi) as (mi+2*vi), by default False
     average : bool, optional
-        whether to compute the average over the entire period or get daily data, by default False
+        Whether to compute the average over the entire period or get daily data, by default False
 
     Returns
     -------
@@ -470,26 +591,29 @@ def get_daily_intensity_minutes(
     """
     data_dict = {}
 
-    user_id = utils.get_user_ids(loader, user_id)
-
+    user_id = utils.get_user_ids(labfront_loader, user_id)
+    start_date = utils.check_date(start_date)
+    end_date = utils.check_date(end_date)
+    if end_date is None:
+        end_date = datetime.datetime.now()
     for user in user_id:
-        participant_daily_summaries = loader.load_garmin_connect_daily_summary(
-            user, start_date, end_date + timedelta(hours=23, minutes=45)
+        participant_daily_summaries = labfront_loader.load_garmin_connect_daily_summary(
+            user, start_date, end_date + datetime.timedelta(hours=23, minutes=45)
         )
         if len(participant_daily_summaries) > 0:
             participant_daily_summaries = participant_daily_summaries.groupby(
-                _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL
+                constants._DAILY_SUMMARY_CALENDAR_DATE_COL
             ).tail(1)
             moderate_intensities = (
                 participant_daily_summaries[
-                    _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_MODERATE_INTENSITY_COL
+                    constants._DAILY_SUMMARY_MODERATE_INTENSITY_COL
                 ]
                 .div(1000 * 60)
                 .values
             )
             vigorous_intensities = (
                 participant_daily_summaries[
-                    _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_VIGOROUS_INTENSITY_COL
+                    constants._DAILY_SUMMARY_VIGOROUS_INTENSITY_COL
                 ]
                 .div(1000 * 60)
                 .values
@@ -502,7 +626,7 @@ def get_daily_intensity_minutes(
                 data_dict[user] = pd.Series(
                     daily_intensities,
                     index=participant_daily_summaries[
-                        _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL
+                        constants._DAILY_SUMMARY_CALENDAR_DATE_COL
                     ].dt.date,
                 ).to_dict()
             else:
@@ -516,7 +640,7 @@ def get_daily_intensity_minutes(
                     data_dict[user] = pd.Series(
                         merged_intensities,
                         index=participant_daily_summaries[
-                            _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DAY_COL
+                            constants._DAILY_SUMMARY_CALENDAR_DATE_COL
                         ].dt.date,
                     ).to_dict()
         else:
@@ -525,70 +649,101 @@ def get_daily_intensity_minutes(
     return data_dict
 
 
-def get_avg_daily_activities(
-    loader, start_date=None, end_date=None, user_id="all", return_as_ratio=False
-):
-    """Create a dictionary reporting for every participant of interest
-    the mean amount of daily time spent per activity level during the period indicated
+def get_average_daily_activity_minutes(
+    labfront_loader: loader.LabfrontLoader,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: Union[str, list] = "all",
+    return_as_ratio: bool = False,
+) -> dict:
+    """Get average daily activity levels (in minutes).
 
-    Args:
-        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
-        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
-        user_id (list, optional): List of participants of interest. Defaults to "all".
-        raturn_as_ratio (bool, optional): Indication of whather the values returned should be in ratio form. Defaults to False.
+    This function computes the daily average activity levels in minutes for the
+    user(s) and the period of interest.
 
-    Returns:
-        dict: Dictionary of participants activities duration in minutes (or ratio).
-        If there was no data for a participant for the period of interest, the value is None.
+    Example code ::
+
+
+        pylabfront.activity.get_average_daily_activity_minutes(
+            labfront_loader,
+            start_date,
+            end_date,
+            user_id,
+            return_as_ratio=True,
+        )
+        >>{'DAV_f457c562': intensity
+            ACTIVE            6.5
+            HIGHLY_ACTIVE     2.0
+            SEDENTARY        91.5
+            dtype: float64}
+
+    Parameters
+    ----------
+    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+        Instance of :class:`pylabfront.loader.LabfrontLoader` for data loading.
+    start_date : datetime.datetime or datetime.date or str or None, optional
+        Start date for data retrieval, by default None
+    end_date : datetime.datetime or datetime.date or str or None, optional
+        End date for data retrieval, by default None
+    user_id : str or list, optional
+        User(s) of interest, by default "all"
+    return_as_ratio : bool, optional
+        Return values as ratio for each activity level, by default False
+
+    Returns
+    -------
+    dict
+        Dictionary with average daily activities.
     """
 
     activities_dict = {}
 
-    user_ids = utils.get_user_ids(loader, user_id)
-
+    user_ids = utils.get_user_ids(labfront_loader, user_id)
+    start_date = utils.check_date(start_date)
+    end_date = utils.check_date(end_date)
+    if end_date is None:
+        end_date = datetime.datetime.now()
     for id in user_ids:
         try:
             # get data for the period desired
-            df = loader.load_garmin_connect_epoch(
-                id, start_date, end_date - timedelta(minutes=15)
+            df = labfront_loader.load_garmin_connect_epoch(
+                id, start_date, end_date - datetime.timedelta(minutes=15)
             )
             if len(df) == 0:
                 raise Exception
-            df["date"] = df[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.date())
+            df["date"] = df[constants._ISODATE_COL].apply(lambda x: x.date())
             # group per date and type of activity
             df = (
-                df.groupby(["date", _LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL])[
-                    _LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL
+                df.groupby(["date", constants._EPOCH_INTENSITY_COL])[
+                    constants._EPOCH_ACTIVE_TIME_MS_COL
                 ]
                 .sum()
                 .reset_index()
             )
+            df = df.rename(
+                columns={constants._EPOCH_ACTIVE_TIME_MS_COL: _ACTIVITY_TIME_IN_MINUTES}
+            )
             if return_as_ratio:
                 time_collected_per_day = (
-                    df.groupby(["date"])[
-                        _LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL
-                    ]
-                    .sum()
-                    .reset_index()
+                    df.groupby(["date"])[_ACTIVITY_TIME_IN_MINUTES].sum().reset_index()
                 )
                 # pivot the data so to be in dimensions that allow for division with pandas funcs
                 activity_durations_per_day = df.pivot(
                     index="date",
-                    columns=_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL,
-                    values=_LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL,
+                    columns=constants._EPOCH_INTENSITY_COL,
+                    values=_ACTIVITY_TIME_IN_MINUTES,
                 ).reset_index()
                 ratio_df = (
                     activity_durations_per_day.iloc[:, 1:].div(
-                        time_collected_per_day.activeTimeInMs, axis=0
+                        time_collected_per_day[_ACTIVITY_TIME_IN_MINUTES], axis=0
                     )
                     * 100
                 ).fillna(0)
                 activities_dict[id] = ratio_df.mean().round(1)
             else:
                 activities_dict[id] = round(
-                    df.groupby([_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL])[
-                        _LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL
+                    df.groupby([constants._EPOCH_INTENSITY_COL])[
+                        _ACTIVITY_TIME_IN_MINUTES
                     ].mean()
                     / _MS_TO_MINUTES_CONVERSION,
                     1,
@@ -599,89 +754,143 @@ def get_avg_daily_activities(
     return activities_dict
 
 
-def get_avg_daily_sedentary(
-    loader, start_date=None, end_date=None, user_id="all", return_as_ratio=False
-):
-    """Create a dictionary reporting for every participant of interest
-    the amount of time spent sedentary during the period indicated
+def get_average_daily_sedentary_minutes(
+    labfront_loader: loader.LabfrontLoader,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: Union[str, list] = "all",
+    return_as_ratio: bool = False,
+) -> dict:
+    """Get average daily sedentary minutes.
 
-    Args:
-        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
-        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
-        user_id (list): List of participants of interest. Defaults to "all".
-        return_as_ratio (bool): Indication of whather the values returned should be in ratio form. Defaults to False.
+    This function computes the average daily sedentary
+    minutes across the timeframe of interest for the
+    given user(s). The return value is a :class:`dict` with
+    the id of the user(s) as keys, and the daily average
+    sedentary minutes as value.
 
-    Returns:
-        dict: Dictionary of participants' sedentary activity during the day in minutes (or ratio).
-        If there was no data or sedentary time for a participant, the value is None.
+    Parameters
+    ----------
+    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+        Initialized instance of :class:`pylabfront.loader.LabfrontLoader` required for data loading.
+    start_date : datetime.datetime or datetime.date or str or None, optional
+        Start date for data retrieval, by default None
+    end_date : datetime.datetime or datetime.date or str or None, optional
+        End date for data retrieval, by default None
+    user_id : str or list, optional
+        User(s) of interest, by default "all"
+    return_as_ratio : bool, optional
+        Return values as ratio with respect to all activities, by default False
+
+    Returns
+    -------
+    dict
+        Dictionary with user id as key, and sedentary minutes as value.
     """
-    activities_dict = get_avg_daily_activities(
-        loader, start_date, end_date, user_id, return_as_ratio
+
+    activities_dict = get_average_daily_activity_minutes(
+        labfront_loader, start_date, end_date, user_id, return_as_ratio
     )
     sedentary_dict = {}
 
     for participant_id in activities_dict.keys():
         participant_activities = activities_dict[participant_id]
         try:
-            sedentary_dict[participant_id] = participant_activities.get("SEDENTARY", 0)
+            sedentary_dict[participant_id] = participant_activities.get(
+                constants._EPOCH_ACTIVITY_SEDENTARY_VALUE, 0
+            )
         except:
             sedentary_dict[participant_id] = None
 
     return sedentary_dict
 
 
-def get_avg_daily_active(
-    loader, start_date=None, end_date=None, user_id="all", return_as_ratio=False
-):
-    """Create a dictionary reporting for every participant of interest
-    the amount of time spent active during the period indicated
+def get_average_daily_active_minutes(
+    labfront_loader: loader.LabfrontLoader,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: Union[str, list] = "all",
+    return_as_ratio: bool = False,
+) -> dict:
+    """Get average daily active minutes.
 
-    Args:
-        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
-        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
-        user_id (list): List of participants of interest. Defaults to "all".
-        return_as_ratio (bool): Indication of whather the values returned should be in ratio form. Defaults to False.
+    This function computes the average daily active
+    minutes across the timeframe of interest for the
+    given user(s). The return value is a :class:`dict` with
+    the id of the user(s) as keys, and the daily average
+    active minutes as value.
 
-    Returns:
-        dict: Dictionary of active time per participant in minutes (or ratio).
-        If there was no data or active time for a participant, the value is None.
+    Parameters
+    ----------
+    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+        Initialized instance of :class:`pylabfront.loader.LabfrontLoader` required for data loading.
+    start_date : datetime.datetime or datetime.date or str or None, optional
+        Start date for data retrieval, by default None
+    end_date : datetime.datetime or datetime.date or str or None, optional
+        End date for data retrieval, by default None
+    user_id : str or list, optional
+        User(s) of interest, by default "all"
+    return_as_ratio : bool, optional
+        Return values as ratio with respect to all activities, by default False
+
+    Returns
+    -------
+    dict
+        Dictionary with user id as key, and active minutes as value.
     """
-    activities_dict = get_avg_daily_activities(
-        loader, start_date, end_date, user_id, return_as_ratio
+
+    activities_dict = get_average_daily_activity_minutes(
+        labfront_loader, start_date, end_date, user_id, return_as_ratio
     )
     active_dict = {}
 
     for participant_id in activities_dict.keys():
         participant_activities = activities_dict[participant_id]
         try:
-            active_dict[participant_id] = participant_activities.get("ACTIVE", 0)
+            active_dict[participant_id] = participant_activities.get(
+                constants._EPOCH_ACTIVITY_ACTIVE_VALUE, 0
+            )
         except:
             active_dict[participant_id] = None
 
     return active_dict
 
 
-def get_avg_daily_highly_active(
-    loader, start_date=None, end_date=None, user_id="all", return_as_ratio=False
-):
-    """Create a dictionary reporting for every participant of interest
-    the amount of time spent highly active during the period indicated
+def get_average_daily_highly_active_minutes(
+    labfront_loader: loader.LabfrontLoader,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: Union[str, list] = "all",
+    return_as_ratio: bool = False,
+) -> dict:
+    """Get average daily highly active minutes.
 
-    Args:
-        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
-        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
-        user_id (list): List of participants of interest. Defaults to "all".
-        return_as_ratio (bool): Indication of whather the values returned should be in ratio form. Defaults to False.
+    This function computes the average daily highly active
+    minutes across the timeframe of interest for the
+    given user(s). The return value is a :class:`dict` with
+    the id of the user(s) as keys, and the daily average
+    highly active minutes as value.
 
-    Returns:
-        dict: Dictionary of active time per participant in minutes (or ratio).
-        If there was no data or highly active time for a participant, the value is None.
+    Parameters
+    ----------
+    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+        Initialized instance of :class:`pylabfront.loader.LabfrontLoader` required for data loading.
+    start_date : datetime.datetime or datetime.date or str or None, optional
+        Start date for data retrieval, by default None
+    end_date : datetime.datetime or datetime.date or str or None, optional
+        End date for data retrieval, by default None
+    user_id : str or list, optional
+        User(s) of interest, by default "all"
+    return_as_ratio : bool, optional
+        Return values as ratio with respect to all activities, by default False
+
+    Returns
+    -------
+    dict
+        Dictionary with user id as key, and highly active minutes as value.
     """
-    activities_dict = get_avg_daily_activities(
-        loader, start_date, end_date, user_id, return_as_ratio
+    activities_dict = get_average_daily_activity_minutes(
+        labfront_loader, start_date, end_date, user_id, return_as_ratio
     )
     highly_active_dict = {}
 
@@ -689,7 +898,7 @@ def get_avg_daily_highly_active(
         participant_activities = activities_dict[participant_id]
         try:
             highly_active_dict[participant_id] = participant_activities.get(
-                "HIGHLY_ACTIVE", 0
+                constants._EPOCH_ACTIVITY_HIGHLY_ACTIVE_VALUE, 0
             )
         except:
             highly_active_dict[participant_id] = None
@@ -697,59 +906,74 @@ def get_avg_daily_highly_active(
     return highly_active_dict
 
 
-def get_avg_weekly_activities(
-    loader, start_date=None, end_date=None, user_id="all", return_as_ratio=False
-):
-    """Creates a dictionary reporting for every participant of interest
-    a DataFrame detailing the mean amount of time spent for activity level for
-    every day of the week (0 to 6, 0 being Monday and 6 Sunday)
+def get_average_weekly_activities(
+    labfront_loader: loader.LabfrontLoader,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: Union[str, list] = "all",
+    return_as_ratio: bool = False,
+) -> dict:
+    """Get average weekly activities for every day of the week.
 
-    Args:
-        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
-        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
-        user_id (list): List of participants of interest. Defaults to "all".
-        return_as_ratio (bool): Whather to return the amount of time as ratio or minutes. Defaults to False.
+    This function retrives weekly activities minutes for
+    every day of the week (0 to 6, 0 being Monday and 6 Sunday).
+    The return value is a :class:`dict` with the user id as key,
+    and a :class:`pd.DataFrame` as value, with weekday as index,
+    and a column for each intensity value.
 
-    Returns:
-        dict: Dictionary of the weekly activities of the participants (as a DataFrame).
-        If no activity was registered in the period of interest for a participant,
-        values are None instead.
+    Parameters
+    ----------
+    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+        Instance of :class:`pylabfront.loader.LabfrontLoader`.
+    start_date : datetime.datetime or datetime.date or str or None, optional
+        Start date for data retrieval, by default None
+    end_date : datetime.datetime or datetime.date or str or None, optional
+        End date for data retrieval, by default None
+    user_id : str or list, optional
+        User(s) of interest, by default "all"
+    return_as_ratio : bool, optional
+        Return values as ratio with respect to all activities, by default False
+
+    Returns
+    -------
+    dict
+        Dictionary with user id as key, and a :class:`pd.DataFrame` as value.
     """
 
     weekday_activities_dict = {}
 
-    user_ids = utils.get_user_ids(loader, user_id)
-
+    user_ids = utils.get_user_ids(labfront_loader, user_id)
+    start_date = utils.check_date(start_date)
+    end_date = utils.check_date(end_date)
+    if end_date is None:
+        end_date = datetime.datetime.now()
     for id in user_ids:
         try:
             # get data for that period
-            df = loader.load_garmin_connect_epoch(
-                id, start_date, end_date - timedelta(minutes=15)
+            df = labfront_loader.load_garmin_connect_epoch(
+                id, start_date, end_date - datetime.timedelta(minutes=15)
             )
             if len(df) == 0:
                 raise Exception
             # create columns to tell for each entry which day it is, both calendar date and weekday
-            df["date"] = df[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.date())
-            df["weekday"] = df[_LABFRONT_ISO_DATE_KEY].apply(lambda x: x.weekday())
+            df["date"] = df[constants._ISODATE_COL].apply(lambda x: x.date())
+            df["weekday"] = df[constants._ISODATE_COL].apply(lambda x: x.weekday())
             # calculate for every calendar date the total amount time for each activity
             df = (
-                df.groupby(
-                    ["date", _LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL, "weekday"]
-                )[_LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL]
+                df.groupby(["date", constants._EPOCH_INTENSITY_COL, "weekday"])[
+                    constants._EPOCH_ACTIVE_TIME_MS_COL
+                ]
                 .sum()
                 .reset_index()
             )
             if return_as_ratio:
                 activity_df = df.pivot(
                     index=["date", "weekday"],
-                    columns=_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL,
-                    values=_LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL,
+                    columns=constants._EPOCH_INTENSITY_COL,
+                    values=constants._EPOCH_ACTIVE_TIME_MS_COL,
                 ).reset_index()
                 time_collected_df = (
-                    df.groupby(["date"])[
-                        _LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL
-                    ]
+                    df.groupby(["date"])[constants._EPOCH_ACTIVE_TIME_MS_COL]
                     .sum()
                     .reset_index()
                 )
@@ -757,9 +981,7 @@ def get_avg_weekly_activities(
                     [
                         activity_df.iloc[:, 2:]
                         .div(
-                            time_collected_df[
-                                _LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL
-                            ],
+                            time_collected_df[constants._EPOCH_ACTIVE_TIME_MS_COL],
                             axis=0,
                         )
                         .fillna(0),
@@ -773,9 +995,9 @@ def get_avg_weekly_activities(
             else:
                 # calculate for every weekday the mean amount of time for each activity
                 df = (
-                    df.groupby(
-                        [_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL, "weekday"]
-                    )[_LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL]
+                    df.groupby([constants._EPOCH_INTENSITY_COL, "weekday"])[
+                        constants._EPOCH_ACTIVE_TIME_MS_COL
+                    ]
                     .mean()
                     .reset_index()
                 )
@@ -783,8 +1005,8 @@ def get_avg_weekly_activities(
                 df = (
                     df.pivot(
                         index="weekday",
-                        columns=_LABFRONT_GARMIN_CONNECT_EPOCH_INTENSITY_COL,
-                        values=_LABFRONT_GARMIN_CONNECT_EPOCH_ACTIVE_TIME_MS_COL,
+                        columns=constants._EPOCH_INTENSITY_COL,
+                        values=constants._EPOCH_ACTIVE_TIME_MS_COL,
                     )
                     / _MS_TO_MINUTES_CONVERSION
                 )
@@ -795,207 +1017,307 @@ def get_avg_weekly_activities(
     return weekday_activities_dict
 
 
-def get_avg_weekday_sedentary(
-    loader, start_date=None, end_date=None, user_id="all", return_as_ratio=False
-):
-    """Get the daily average amount of time (in minutes) spent sedentary
-    by participants of interest in a given time frame, for working days (Mon-Fri)
+def get_average_weekday_sedentary_minutes(
+    labfront_loader: loader.LabfrontLoader,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: Union[str, list] = "all",
+    return_as_ratio: bool = False,
+) -> dict:
+    """Get the weekly average sedentary minutes for weekdays.
 
-    Args:
-        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
-        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
-        user_id (list): List of participants of interest. Defaults to "all".
-        return_as_ratio (bool): Whether to return the amount of time as ratio or minutes. Defaults to False.
+    This function gets daily average sedentary minutes for each user(s)
+    in a given time frame, for weekdays (Monday-Friday).
 
-    Returns:
-        dict: Dictionary reporting for every participant of interest the
-        average daily amount of minutes spent sedentary.
+    Parameters
+    ----------
+    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+        Instance of :class:`pylabfront.loader.LabfrontLoader`.
+    start_date : datetime.datetime or datetime.date or str or None, optional
+        Start date for data retrieval, by default None
+    end_date : datetime.datetime or datetime.date or str or None, optional
+        End date for data retrieval, by default None
+    user_id : str or list, optional
+        User(s) of interest, by default "all"
+    return_as_ratio : bool, optional
+        Return values as ratio with respect to all activities, by default False
+
+    Returns
+    -------
+    dict
+        Dictionary reporting for every user(s) the
+        average weekly amount of minutes spent sedentary.
     """
 
     avg_sedentary_dict = {}
 
-    for k, v in get_avg_weekly_activities(
-        loader, start_date, end_date, user_id, return_as_ratio
+    for k, v in get_average_weekly_activities(
+        labfront_loader, start_date, end_date, user_id, return_as_ratio
     ).items():
         if v is None:
             avg_sedentary_dict[k] = None
         else:
             df = v.reset_index()
             avg_sedentary_dict[k] = round(
-                df.loc[df.weekday.isin(range(0, 5))].SEDENTARY.mean(), 1
+                df.loc[df.weekday.isin(range(0, 5))][
+                    constants._EPOCH_ACTIVITY_SEDENTARY_VALUE
+                ].mean(),
+                1,
             )
 
     return avg_sedentary_dict
 
 
-def get_avg_weekday_active(
-    loader, start_date=None, end_date=None, user_id="all", return_as_ratio=False
-):
-    """Get the daily average amount of time (in minutes) spent active
-    by participants of interest in a given time frame, for working days (Mon-Fri)
+def get_average_weekday_active_minutes(
+    labfront_loader: loader.LabfrontLoader,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: Union[str, list] = "all",
+    return_as_ratio: bool = False,
+) -> dict:
+    """Get the weekly average active minutes for weekdays.
 
-    Args:
-        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
-        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
-        user_id (list): List of participants of interest. Defaults to "all".
-        return_as_ratio (bool): Whather to return the amount of time as ratio or minutes. Defaults to False.
+    This function gets weekly average active minutes for each user(s)
+    in a given time frame, for weekdays (Monday-Friday).
 
-    Returns:
-        dict: Dictionary reporting for every participant of interest the
-        average daily amount of minutes spent active.
+    Parameters
+    ----------
+    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+        Instance of :class:`pylabfront.loader.LabfrontLoader`.
+    start_date : datetime.datetime or datetime.date or str or None, optional
+        Start date for data retrieval, by default None
+    end_date : datetime.datetime or datetime.date or str or None, optional
+        End date for data retrieval, by default None
+    user_id : str or list, optional
+        User(s) of interest, by default "all"
+    return_as_ratio : bool, optional
+        Return values as ratio with respect to all activities, by default False
+
+    Returns
+    -------
+    dict
+        Dictionary reporting for every user(s) the
+        average weekly amount of minutes spent active.
     """
 
     avg_active_dict = {}
 
-    for k, v in get_avg_weekly_activities(
-        loader, start_date, end_date, user_id, return_as_ratio
+    for k, v in get_average_weekly_activities(
+        labfront_loader, start_date, end_date, user_id, return_as_ratio
     ).items():
         if v is None:
             avg_active_dict[k] = None
         else:
             df = v.reset_index()
             avg_active_dict[k] = round(
-                df.loc[df.weekday.isin(range(0, 5))].ACTIVE.mean(), 1
+                df.loc[df.weekday.isin(range(0, 5))][
+                    constants._EPOCH_ACTIVITY_ACTIVE_VALUE
+                ].mean(),
+                1,
             )
 
     return avg_active_dict
 
 
-def get_avg_weekday_highly_active(
-    loader, start_date=None, end_date=None, user_id="all", return_as_ratio=False
-):
-    """Get the daily average amount of time (in minutes) spent highly active
-    by participants of interest in a given time frame, for working days (Mon-Fri)
+def get_average_weekday_highly_active_minutes(
+    labfront_loader: loader.LabfrontLoader,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: Union[str, list] = "all",
+    return_as_ratio: bool = False,
+) -> dict:
+    """Get the weekly average highly active minutes for weekdays.
 
-    Args:
-        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
-        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
-        user_id (list): List of participants of interest. Defaults to "all".
-        return_as_ratio (bool): Whather to return the amount of time as ratio or minutes. Defaults to False.
+    This function gets weekly average highly active minutes for each user(s)
+    in a given time frame, for weekdays (Monday-Friday).
 
-    Returns:
-        dict: Dictionary reporting for every participant of interest the
-        average daily amount of minutes spent highly active.
+    Parameters
+    ----------
+    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+        Instance of :class:`pylabfront.loader.LabfrontLoader`.
+    start_date : datetime.datetime or datetime.date or str or None, optional
+        Start date for data retrieval, by default None
+    end_date : datetime.datetime or datetime.date or str or None, optional
+        End date for data retrieval, by default None
+    user_id : str or list, optional
+        User(s) of interest, by default "all"
+    return_as_ratio : bool, optional
+        Return values as ratio with respect to all activities, by default False
+
+    Returns
+    -------
+    dict
+        Dictionary reporting for every user(s) the
+        average weekly amount of minutes spent highly active.
     """
 
     avg_highly_active_dict = {}
 
-    for k, v in get_avg_weekly_activities(
-        loader, start_date, end_date, user_id, return_as_ratio
+    for k, v in get_average_weekly_activities(
+        labfront_loader, start_date, end_date, user_id, return_as_ratio
     ).items():
         if v is None:
             avg_highly_active_dict[k] = None
         else:
             df = v.reset_index()
             avg_highly_active_dict[k] = round(
-                df.loc[df.weekday.isin(range(0, 5))].HIGHLY_ACTIVE.mean(), 1
+                df.loc[df.weekday.isin(range(0, 5))][
+                    constants._EPOCH_ACTIVITY_HIGHLY_ACTIVE_VALUE
+                ].mean(),
+                1,
             )
 
     return avg_highly_active_dict
 
-    return avg_highly_active_dict
 
+def get_average_weekend_sedentary_minutes(
+    labfront_loader: loader.LabfrontLoader,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: Union[str, list] = "all",
+    return_as_ratio: bool = False,
+) -> dict:
+    """Get the weekly average sedentary minutes in weekends.
 
-def get_avg_weekend_sedentary(
-    loader, start_date=None, end_date=None, user_id="all", return_as_ratio=False
-):
-    """Get the daily average amount of time (in minutes) spent sedentary
-    by participants of interest in a given time frame, during weekends (Sat/Sun)
+    This function gets weekly average sedentary minutes for each user(s)
+    in a given time frame, for weekends (Saturday-Sunday).
 
-    Args:
-        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
-        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
-        user_id (list): List of participants of interest. Defaults to "all".
-        return_as_ratio (bool): Whather to return the amount of time as ratio or minutes. Defaults to False.
+    Parameters
+    ----------
+    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+        Instance of :class:`pylabfront.loader.LabfrontLoader`.
+    start_date : datetime.datetime or datetime.date or str or None, optional
+        Start date for data retrieval, by default None
+    end_date : datetime.datetime or datetime.date or str or None, optional
+        End date for data retrieval, by default None
+    user_id : str or list, optional
+        User(s) of interest, by default "all"
+    return_as_ratio : bool, optional
+        Return values as ratio with respect to all activities, by default False
 
-    Returns:
-        dict: Dictionary reporting for every participant of interest the
-        average daily amount of minutes spent sedentary, during weekends.
+    Returns
+    -------
+    dict
+        Dictionary reporting for every user(s) the
+        average weekly amount of minutes spent sedentary.
     """
 
     avg_sedentary_dict = {}
 
-    for k, v in get_avg_weekly_activities(
-        loader, start_date, end_date, user_id, return_as_ratio
+    for k, v in get_average_weekly_activities(
+        labfront_loader, start_date, end_date, user_id, return_as_ratio
     ).items():
         if v is None:
             avg_sedentary_dict[k] = None
         else:
             df = v.reset_index()
             avg_sedentary_dict[k] = round(
-                df.loc[~df.weekday.isin(range(0, 5))].SEDENTARY.mean(), 1
+                df.loc[~df.weekday.isin(range(0, 5))][
+                    constants._EPOCH_ACTIVITY_SEDENTARY_VALUE
+                ].mean(),
+                1,
             )
 
     return avg_sedentary_dict
 
 
-def get_avg_weekend_active(
-    loader, start_date=None, end_date=None, user_id="all", return_as_ratio=False
-):
-    """Get the daily average amount of time (in minutes) spent active
-    by participants of interest in a given time frame, for weekends (Sat/Sun)
+def get_average_weekend_active_minutes(
+    labfront_loader: loader.LabfrontLoader,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: Union[str, list] = "all",
+    return_as_ratio: bool = False,
+) -> dict:
+    """Get the weekly average active minutes in weekends.
 
-    Args:
-        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
-        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
-        user_id (list): List of participants of interest. Defaults to "all".
-        return_as_ratio (bool): Whather to return the amount of time as ratio or minutes. Defaults to False.
+    This function gets weekly average active minutes for each user(s)
+    in a given time frame, for weekends (Saturday-Sunday).
 
-    Returns:
-        dict: Dictionary reporting for every participant of interest the
-        average daily amount of minutes spent active, during weekends.
+    Parameters
+    ----------
+    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+        Instance of :class:`pylabfront.loader.LabfrontLoader`.
+    start_date : datetime.datetime or datetime.date or str or None, optional
+        Start date for data retrieval, by default None
+    end_date : datetime.datetime or datetime.date or str or None, optional
+        End date for data retrieval, by default None
+    user_id : str or list, optional
+        User(s) of interest, by default "all"
+    return_as_ratio : bool, optional
+        Return values as ratio with respect to all activities, by default False
+
+    Returns
+    -------
+    dict
+        Dictionary reporting for every user(s) the
+        average weekly amount of minutes spent active.
     """
 
     avg_active_dict = {}
 
-    for k, v in get_avg_weekly_activities(
-        loader, start_date, end_date, user_id, return_as_ratio
+    for k, v in get_average_weekly_activities(
+        labfront_loader, start_date, end_date, user_id, return_as_ratio
     ).items():
         if v is None:
             avg_active_dict[k] = None
         else:
             df = v.reset_index()
             avg_active_dict[k] = round(
-                df.loc[~df.weekday.isin(range(0, 5))].ACTIVE.mean(), 1
+                df.loc[~df.weekday.isin(range(0, 5))][
+                    constants._EPOCH_ACTIVITY_ACTIVE_VALUE
+                ].mean(),
+                1,
             )
 
     return avg_active_dict
 
 
-def get_avg_weekend_highly_active(
-    loader, start_date=None, end_date=None, user_id="all", return_as_ratio=False
-):
-    """Get the daily average amount of time (in minutes) spent highly active
-    by participants of interest in a given time frame, for weekends (Sat/Sun)
+def get_average_weekend_highly_active_minutes(
+    labfront_loader: loader.LabfrontLoader,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: Union[str, list] = "all",
+    return_as_ratio: bool = False,
+) -> dict:
+    """Get the weekly average highly active minutes in weekends.
 
-    Args:
-        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
-        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
-        user_id (list): List of participants of interest. Defaults to "all".
-        return_as_ratio (bool): Whather to return the amount of time as ratio or minutes. Defaults to False.
+    This function gets weekly average highly active minutes for each user(s)
+    in a given time frame, for weekends (Saturday-Sunday).
 
-    Returns:
-        dict: Dictionary reporting for every participant of interest the
-        average daily amount of minutes spent highly active, during weekends.
+    Parameters
+    ----------
+    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+        Instance of :class:`pylabfront.loader.LabfrontLoader`.
+    start_date : datetime.datetime or datetime.date or str or None, optional
+        Start date for data retrieval, by default None
+    end_date : datetime.datetime or datetime.date or str or None, optional
+        End date for data retrieval, by default None
+    user_id : str or list, optional
+        User(s) of interest, by default "all"
+    return_as_ratio : bool, optional
+        Return values as ratio with respect to all activities, by default False
+
+    Returns
+    -------
+    dict
+        Dictionary reporting for every user(s) the
+        average weekly amount of minutes spent highly active.
     """
 
     avg_highly_active_dict = {}
 
-    for k, v in get_avg_weekly_activities(
-        loader, start_date, end_date, user_id, return_as_ratio
+    for k, v in get_average_weekly_activities(
+        labfront_loader, start_date, end_date, user_id, return_as_ratio
     ).items():
         if v is None:
             avg_highly_active_dict[k] = None
         else:
             df = v.reset_index()
             avg_highly_active_dict[k] = round(
-                df.loc[~df.weekday.isin(range(0, 5))].HIGHLY_ACTIVE.mean(), 1
+                df.loc[~df.weekday.isin(range(0, 5))][
+                    constants._EPOCH_ACTIVITY_HIGHLY_ACTIVE_VALUE
+                ].mean(),
+                1,
             )
 
     return avg_highly_active_dict

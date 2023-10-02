@@ -1,23 +1,25 @@
-import pylabfront.activity as activity
-import pylabfront.utils as utils
-import pylabfront.adherence as adherence
-import pylabfront.sleep as sleep
-import pylabfront.loader
-import pylabfront.stress as stress
-import pylabfront.respiration as respiration
-import pylabfront.cardiac as cardiac
-
 import datetime
-import pandas as pd
-import numpy as np
+from pathlib import Path
+from typing import Union
+
+import hrvanalysis
+import july
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import july
-import hrvanalysis
-
-from pathlib import Path
+import numpy as np
+import pandas as pd
 from matplotlib.dates import DateFormatter
-from matplotlib.ticker import PercentFormatter
+from matplotlib.ticker import FuncFormatter, MultipleLocator, PercentFormatter
+
+import pylabfront.activity as activity
+import pylabfront.adherence as adherence
+import pylabfront.cardiac as cardiac
+import pylabfront.constants
+import pylabfront.loader
+import pylabfront.respiration as respiration
+import pylabfront.sleep as sleep
+import pylabfront.stress as stress
+import pylabfront.utils as utils
 
 date_form = DateFormatter("%m-%d")
 
@@ -494,24 +496,66 @@ def get_sleep_heatmap_and_stats(
 
 
 def get_sleep_summary_graph(
-    loader,
-    start_date,
-    end_date,
-    user,
-    save_to=None,
-    show=True,
-    alpha=0.25,
-    title="Sleep stages and score",
-    xlabel="Sleep time [hours]",
-    ylabel="Date",
-    legend_title="Sleep stages",
-    legend_labels=["Deep", "Light", "REM", "Awake"],
-    colorbar_title="Sleep Score",
-    colorbar_labels=["poor", "fair", "good", "excellent"],
+    loader: pylabfront.loader.LabfrontLoader,
+    user_id: str,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    save_to: str = None,
+    show: bool = True,
+    alpha: Union[int, float] = 0.25,
+    title: str = "Sleep stages and score",
+    xlabel: str = "Sleep time [hours]",
+    ylabel: str = "Date",
+    legend_title: str = "Sleep stages",
+    legend_labels: str = ["Deep", "Light", "REM", "Awake"],
+    colorbar_title: str = "Sleep Score",
+    colorbar_labels: str = ["poor", "fair", "good", "excellent"],
 ):
-    # define params for graph
+    # Define parameters for plotting
     ALPHA = alpha
     POSITION = 1.3
+
+    # Get sleep summaries so that it is easier to get infor
+    sleep_summaries = loader.load_garmin_connect_sleep_summary(
+        user_id, start_date, end_date
+    )
+    if len(sleep_summaries) == 0:
+        return
+    sleep_min_time = datetime.time(15, 0)
+    # Check for start and end dates and convert them appropriately
+    start_date = utils.check_date(start_date)
+    end_date = utils.check_date(end_date)
+
+    sleep_summaries["isoDate-Min"] = pd.to_datetime(
+        sleep_summaries["calendarDate"].apply(
+            lambda x: datetime.datetime.combine(
+                x - datetime.timedelta(days=1), sleep_min_time
+            )
+        )
+    )
+
+    sleep_summaries["endIsoDate"] = pd.to_datetime(
+        (
+            sleep_summaries[pylabfront.constants._UNIXTIMESTAMP_IN_MS_COL]
+            + sleep_summaries[
+                pylabfront.constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL
+            ]
+            + sleep_summaries[pylabfront.constants._SLEEP_SUMMARY_DURATION_IN_MS_COL]
+            + sleep_summaries[
+                pylabfront.constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL
+            ]
+        ),
+        unit="ms",
+        utc=True,
+    ).dt.tz_localize(None)
+
+    sleep_summaries["secondsDiff"] = (
+        sleep_summaries["isoDate"] - sleep_summaries["isoDate-Min"]
+    ).dt.total_seconds()
+
+    sleep_summaries["endSecondsDiff"] = (
+        sleep_summaries["endIsoDate"] - sleep_summaries["isoDate-Min"]
+    ).dt.total_seconds()
 
     time_period = pd.date_range(
         start_date + datetime.timedelta(days=1),
@@ -522,22 +566,25 @@ def get_sleep_summary_graph(
     time_period = pd.Series(time_period).dt.date
 
     # define color-coding based on garmin connect visuals
-    color_dict = {1: "royalblue", 3: "darkblue", 4: "darkmagenta", 0: "hotpink"}
+    color_dict = {
+        1: "royalblue",
+        3: "darkblue",
+        4: "darkmagenta",
+        0: "hotpink",
+        -1: "gray",
+    }
 
     # get relevant scores
-    scores_series = sleep.get_sleep_score(loader, start_date, end_date, user)[user]
+    scores_series = sleep.get_sleep_score(
+        loader=loader, start_date=start_date, end_date=end_date, user_id=user_id
+    )[user_id]
     # get maximum amount of time spent in bed to know x-axis limit
-    max_bed_time = (
-        np.max(
-            [
-                tst
-                for tst in sleep.get_time_in_bed(loader, start_date, end_date, user)[
-                    user
-                ].values()
-                if tst is not None
-            ]
+    max_bed_time = np.max(
+        list(
+            sleep.get_time_in_bed(
+                loader=loader, start_date=start_date, end_date=end_date, user_id=user_id
+            )[user_id].values()
         )
-        / 60
     )
 
     # setup an internal fn to get appropriate sleep score colors:
@@ -555,20 +602,39 @@ def get_sleep_summary_graph(
             else:
                 return "firebrick"
 
-    fig, ax = plt.subplots(figsize=(15, 30))
+    hypnograms = loader.load_hypnogram(user_id, start_date, end_date, resolution=1)
+
+    fig, ax = plt.subplots(figsize=(18, 30))
 
     # for every day in the period of interest, we plot the hypnogram
     for j, night in enumerate(time_period):
         try:  # this takes care of days where data is missing, skipping days through the plot y-axis
             # get the hypnogram
-            hypnogram = loader.load_hypnogram(user, night)
+            hypnogram = hypnograms[night]
+            # create dataframe for hypnogram
+            hypnogram = pd.DataFrame(
+                {
+                    "stage": hypnogram["values"],
+                    "isoDate": [
+                        hypnogram["start_time"] + i * datetime.timedelta(minutes=1)
+                        for i in range(
+                            int(
+                                (
+                                    hypnogram["end_time"] - hypnogram["start_time"]
+                                ).total_seconds()
+                                / 60
+                            )
+                        )
+                    ],
+                }
+            )
             # determine when there're stage variations
             hypnogram["stages_diff"] = (
                 np.concatenate(
                     [
                         [0],
-                        hypnogram.iloc[1:, :].stage.values
-                        - hypnogram.iloc[:-1, :].stage.values,
+                        hypnogram.iloc[1:, :]["stage"].values
+                        - hypnogram.iloc[:-1, :]["stage"].values,
                     ]
                 )
                 != 0
@@ -580,6 +646,7 @@ def get_sleep_summary_graph(
                 ),
                 ["isoDate", "stage"],
             ]
+
             # create a row that indicate the duration of permanence in the stages
             # (in hours, they will be the height of the sections of the stacked barplot)
             stages_duration = []
@@ -589,30 +656,45 @@ def get_sleep_summary_graph(
                         pd.to_datetime(relevant_rows.iloc[i + 1].isoDate)
                         - pd.to_datetime(relevant_rows.iloc[i].isoDate)
                     ).seconds
-                    / (60 * 60)
                 )
             stages_duration.append(0)  # the last row is not starting a new stage
             relevant_rows["stage duration"] = stages_duration
             # get array of the heights for the sections of the stacked barplot
-            array = relevant_rows["stage duration"].values
+            stage_duration_array = relevant_rows["stage duration"].values
             colors = [color_dict[stage] for stage in relevant_rows.stage.values]
             # keep track on the position where to begin the bar section
-            bottom = 0
+
+            # keep track on the position where to begin the bar section
+            sleep_summary_row = sleep_summaries[
+                (sleep_summaries["calendarDate"] == night)
+            ]
+            # print(sleep_summary_row)
+            seconds_diff = sleep_summary_row["secondsDiff"]
+
+            bottom = seconds_diff
+
             # look through the stages
-            for i in range(len(array)):
+            for i in range(len(stage_duration_array)):
                 # only Deep and REM sleep get full alpha, light and awake are in transparence
                 appropriate_alpha = (
-                    ALPHA if (colors[i] == "royalblue" or colors[i] == "hotpink") else 1
+                    ALPHA
+                    if (
+                        colors[i] == "royalblue"
+                        or colors[i] == "hotpink"
+                        or colors[i] == "gray"
+                    )
+                    else 1
                 )
                 ax.barh(
                     j * POSITION,
-                    array[i],
+                    stage_duration_array[i],
                     left=bottom,
                     color=colors[i],
                     alpha=appropriate_alpha,
                 )
                 # Update the bottom coordinates for the next section
-                bottom += array[i]
+                bottom += stage_duration_array[i]
+
             # annotate on top of the daily bar with the daily sleep score, color-coded appropriately
             score = scores_series.get(night)
             appropriate_color = get_color(score)
@@ -623,10 +705,18 @@ def get_sleep_summary_graph(
                 color=appropriate_color,
                 fontsize=15,
             )
-        except:  # skip missing dates
+        except Exception as e:  # skip missing dates
+            print(e)
             continue
 
-    ax.set_xlim([0, max(10, max_bed_time + 0.5)])
+    # Set limits to be an hour lower than lowest difference
+    # and one hour more than longest and latest sleep
+    ax.set_xlim(
+        [
+            sleep_summaries["secondsDiff"].min() - 3600,
+            sleep_summaries["endSecondsDiff"].max() + 3600,
+        ]
+    )
 
     # graph and legend params
     ax.spines["top"].set_visible(False)
@@ -634,10 +724,20 @@ def get_sleep_summary_graph(
     ax.spines["left"].set_color("#DDDDDD")
     ax.spines["bottom"].set_visible(False)
     ax.tick_params(bottom=False, left=False)
-    # this is a tall graph, show also x-axis above?
-    # ax_t = ax.secondary_xaxis('top')
-    # ax_t.spines["top"].set_visible(False)
-    # ax_t.tick_params(top=False)
+
+    def format_func(x, pos):
+        hours = sleep_min_time.hour + int(x // 3600)
+        if hours >= 24:
+            hours -= 24
+        minutes = int((x % 3600) // 60)
+
+        return "{:02d}:{:02d}".format(hours, minutes)
+
+    formatter = FuncFormatter(format_func)
+
+    # ax.xaxis.set_major_formatter(formatter)
+    # this locates y-ticks at the hours
+    # ax.xaxis.set_major_locator(MultipleLocator(base=3600))
 
     # graph params
     ax.set_axisbelow(True)
@@ -722,6 +822,7 @@ def get_errorbar_graph(
     """Plots an errorbar graph with respect to the ``variable_of_interest`` for a specific question in a questionnaire
 
     For every category of answer given
+
     Parameters
     ----------
     quest_df : pd.DataFrame
@@ -848,6 +949,7 @@ def compare_against_group(
 
     This functions compare an user against a chosen population with respect to a specific metric.
     The metric should be evaluated for both the user and the comparison group prior to the calling of the function.
+
     Parameters
     ----------
     user_data : float

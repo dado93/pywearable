@@ -10,9 +10,9 @@ Welcome to pylabfront's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   getting_started
-   tutorials
-   api
+   _pages/getting_started
+   _pages/tutorials
+   _pages/api
 
 Indices and tables
 ==================

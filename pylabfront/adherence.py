@@ -4,27 +4,19 @@ of Labfront adherence.
 """
 
 
-import pylabfront.utils as utils
-import pandas as pd
 import datetime
+from typing import Union
 
-from pathlib import Path
+import pandas as pd
+
+from . import constants, loader, utils
 
 _LABFRONT_TASK_SCHEDULE_KEY = "taskScheduleRepeat"
 _LABFRONT_TODO_STRING = "todo"
-_LABFRONT_QUESTIONNAIRE_STRING = "questionnaire"
 _LABFRONT_GARMIN_CONNECT_CALENDAR_DAY_COL = "calendarDate"
 _MS_TO_HOURS_CONVERSION = 1000 * 60 * 60
 
-
-def get_questionnaire_dict(
-    loader,
-    start_date=None,
-    end_date=None,
-    user_id="all",
-    questionnaire_names="all",
-    safe_delta=6):
-    """
+"""
     Args:
         loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
         number_of_days (int): How many days the study lasted
@@ -36,34 +28,95 @@ def get_questionnaire_dict(
     Returns:
         dict: Dictionary with adherence data for the participants and questionnaires required.
     """
+
+
+def get_questionnaire_dict(
+    labfront_loader: loader.LabfrontLoader,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: str = "all",
+    questionnaire: str = "all",
+    safe_delta: int = 6,
+):
+    """Get total number of filled questionnaire in the given timeframe.
+
+    This function returns the total number of filled questionnaire
+    for the given user(s) in the selected timeframe. This adherence
+    is returned in dictionary format::
+
+        {
+            'WRSD-PMI-BO-01_4a520aea-12d9-4513-8a0c-3055d399b097': {
+                'questionario mattutino': {
+                    'n_filled': 28,
+                    'taskScheduleRepeat': True
+                }
+            },
+            'WRSD-PMI-BO-02_56453d1a-7101-4f6e-95c3-ba5caee88cad': {
+                'questionario mattutino': {
+                    'n_filled': 9,
+                    'taskScheduleRepeat': True
+                }
+            }
+        }
+
+
+    Parameters
+    ----------
+    loader : :class:`loader.LabfrontLoader`
+        Instance of :class:`loader.LabfrontLoader`.
+    start_date : datetime.datetime or datetime.date or str or None, optional
+        Start date for questionnaire adherence, by default None
+    end_date : datetime.datetime or datetime.date or str or None, optional
+        End date for questionnaire adherence, by default None
+    user_id : str, optional
+        User(s) for which adherence has to be computed, by default "all"
+    questionnaire : str, optional
+        Questionnaire of interest, by default "all"
+    safe_delta : int, optional
+        Amount of hours needed to consider valid two successive filled questionnaires, by default 6
+
+    Returns
+    -------
+    dict
+        Dictionary with user_id as key, then a nested dictionary
+        with questionnaire name as key, and number of filled
+        questionnaires (`n_filled`) and `taskScheduleRepeat`
+        as keys with their correspondent values.
+
+    Raises
+    ------
+    TypeError
+        If parameters are not of correct type.
+    """
+
     adherence_dict = {}
 
-    if user_id == "all":
-        user_id = loader.get_user_ids()
+    user_id = utils.get_user_ids(labfront_loader, user_id)
 
-    if questionnaire_names == "all":
-        questionnaire_names = loader.get_available_questionnaires()
+    if questionnaire == "all":
+        questionnaire = labfront_loader.get_available_questionnaires()
 
-    if not (
-        isinstance(user_id, list) and isinstance(questionnaire_names, list)
-    ):
+    if not (isinstance(user_id, list) and isinstance(questionnaire, list)):
         raise TypeError("user id and questionnaire_names have to be lists.")
 
-    inv_map = {v: k for k, v in loader.tasks_dict.items()}
+    inv_map = {v: k for k, v in labfront_loader.tasks_dict.items()}
 
     for user in user_id:
         adherence_dict[user] = {}
-        participant_questionnaires = loader.get_available_questionnaires(
+        participant_questionnaires = labfront_loader.get_available_questionnaires(
             [user]
         )
-        for questionnaire in questionnaire_names:
-            questionnaire_name = inv_map[questionnaire]
+        for quest in questionnaire:
+            questionnaire_name = inv_map[quest]
             adherence_dict[user][questionnaire_name] = {}
-            if questionnaire in participant_questionnaires:
-                questionnaire_df = loader.load_questionnaire(
-                    user, start_date, end_date, task_name=questionnaire_name
+            if quest in participant_questionnaires:
+                questionnaire_df = labfront_loader.load_questionnaire(
+                    user_id=user,
+                    start_date=start_date,
+                    end_date=end_date,
+                    questionnaire_name=questionnaire_name,
                 )
-                timestamps = questionnaire_df.unixTimestampInMs
+                timestamps = questionnaire_df[constants._UNIXTIMESTAMP_IN_MS_COL]
                 count = 0
                 for i in range(len(timestamps)):
                     if (
@@ -75,36 +128,36 @@ def get_questionnaire_dict(
                 adherence_dict[user][questionnaire_name]["n_filled"] = count
                 is_repeatable = utils.is_task_repeatable(
                     (
-                        loader.data_path
-                        / loader.get_full_id(user)
-                        / _LABFRONT_QUESTIONNAIRE_STRING
-                        / questionnaire
+                        labfront_loader.data_path
+                        / labfront_loader.get_full_id(user)
+                        / constants._QUESTIONNAIRE_FOLDER
+                        / quest
                     )
                 )
                 adherence_dict[user][questionnaire_name][
-                    _LABFRONT_TASK_SCHEDULE_KEY
+                    constants._TASK_SCHEDULE_COL
                 ] = is_repeatable
             else:
                 adherence_dict[user][questionnaire_name]["n_filled"] = 0
                 # need to understand if the questionnaire is repeatable
                 # we do this by iterating through all users
                 is_repeatable = None
-                for user in loader.get_user_ids():
+                for user in labfront_loader.get_user_ids():
                     try:
                         is_repeatable = utils.is_task_repeatable(
-                    (
-                        loader.data_path
-                        / loader.get_full_id(user)
-                        / _LABFRONT_QUESTIONNAIRE_STRING
-                        / questionnaire
-                    )
-                )
+                            (
+                                labfront_loader.data_path
+                                / labfront_loader.get_full_id(user)
+                                / constants._QUESTIONNAIRE_FOLDER
+                                / quest
+                            )
+                        )
                     except:
                         pass
                     else:
                         break
                 adherence_dict[user][questionnaire_name][
-                    _LABFRONT_TASK_SCHEDULE_KEY
+                    constants._TASK_SCHEDULE_COL
                 ] = is_repeatable
 
     return adherence_dict
@@ -118,7 +171,7 @@ def get_questionnaire_adherence(
     user_id="all",
     questionnaire_names="all",
     safe_delta=6,
-    return_percentage=True
+    return_percentage=True,
 ):
     """Returns adherence of the user(s) for the questionnaire(s).
 
@@ -267,9 +320,7 @@ def get_todo_dict(
                 ] = is_repeatable
             else:
                 adherence_dict[user][todo_name]["n_filled"] = 0
-                adherence_dict[user][todo_name][
-                    _LABFRONT_TASK_SCHEDULE_KEY
-                ] = None
+                adherence_dict[user][todo_name][_LABFRONT_TASK_SCHEDULE_KEY] = None
 
     return adherence_dict
 
