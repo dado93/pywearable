@@ -651,3 +651,66 @@ def get_daily_average_stress(loader, start_date=None, end_date=None, user_id="al
         
     return data_dict
     
+def get_waking_body_battery(labfront_loader, start_date=None, end_date=None, user_id="all"):
+
+    data_dict = {}
+
+    user_id = utils.get_user_ids(labfront_loader, user_id)
+
+    for user in user_id:
+        data_dict[user] = {}
+        sleep_timestamps = sleep.get_sleep_timestamps(
+            labfront_loader, start_date, end_date, user
+        )[user]
+        if not (sleep_timestamps is None):
+            for k, v in sleep_timestamps.items():
+                sleep_onset, awake_time = v[0], v[1]
+
+                df = labfront_loader.load_garmin_connect_stress(
+                    user, sleep_onset, awake_time
+                )
+                if len(df) == 0:
+                    continue
+
+                df = df[~df[_LABFRONT_BODY_BATTERY_KEY].isna()]
+                if len(df) == 0:
+                    continue
+                df = df.groupby(_LABFRONT_ISO_DATE_KEY)[_LABFRONT_BODY_BATTERY_KEY].mean().sort_index()
+
+                data_dict[user][k] = int(
+                    df.iloc[-1]
+                )
+
+    return data_dict
+
+def get_body_battery_starting_sleep(labfront_loader, start_date=None, end_date=None, user_id="all"):
+
+    data_dict = {}
+
+    user_id = utils.get_user_ids(labfront_loader, user_id)
+
+    for user in user_id:
+        data_dict[user] = {}
+        sleep_timestamps = sleep.get_sleep_timestamps(
+            labfront_loader, start_date, end_date, user
+        )[user]
+        if not (sleep_timestamps is None):
+            for k, v in sleep_timestamps.items():
+                sleep_onset, awake_time = v[0], v[1]
+
+                df = labfront_loader.load_garmin_connect_stress(
+                    user, sleep_onset, awake_time
+                )
+                if len(df) == 0:
+                    continue
+
+                df = df[~df[_LABFRONT_BODY_BATTERY_KEY].isna()]
+                if len(df) == 0:
+                    continue
+                df = df.groupby(_LABFRONT_ISO_DATE_KEY)[_LABFRONT_BODY_BATTERY_KEY].mean().sort_index()
+
+                data_dict[user][k] = int(
+                    df.iloc[0]
+                )
+
+    return data_dict

@@ -310,59 +310,7 @@ def get_avg_heart_rate(
         Dictionary with participant id as primary key, calendar days as secondary keys,
         and average heart rate as value.
     """
-    return get_cardiac_statistic(
-        loader, _LABFRONT_AVG_HR_COLUMN, start_date, end_date, user_id, average
-    )
-
-
-def filter_bbi(
-    bbi,
-    remove_outliers=True,
-    remove_ectopic=True,
-    verbose=False,
-    low_rri=300,
-    high_rri=2000,
-    ectopic_method="malik",
-    interpolation_method="linear",
-):
-    """Get filtered bbi data.
-
-    This function returns bbi data filtered out from outliers and/or ectopic beats.
-
-    Parameters
-    ----------
-    bbi : list
-        series of beat to beat interval
-    remove_outliers : bool, optional
-        determines if outliers below ``low_rri`` and above ``high_rri`` should be filtered out, by default True
-    remove_ectopic : bool, optional
-        determines if ectopic beats should be removed from the bbi series, by default True
-    verbose : bool, optional
-        whether the function should print out data about the amount of outliers/ectopic beats removed, by default False
-    low_rri : int, optional
-        lower threshold for outlier detection, by default 300
-    high_rri : int, optional
-        upper threshold for outlier detection, by default 2000
-    ectopic_method : str, optional
-        method used to determine and filter out ectopic beats, by default "malik"
-    interpolation_method : str, optional
-        method used to interpolate missing values after the removal of outliers/ectopic beats, by default "linear"
-    """
-    if remove_outliers:
-        bbi = hrvanalysis.remove_outliers(
-            bbi, low_rri=low_rri, high_rri=high_rri, verbose=verbose
-        )
-        bbi = hrvanalysis.interpolate_nan_values(
-            bbi, interpolation_method=interpolation_method
-        )
-    if remove_ectopic:
-        bbi = hrvanalysis.remove_ectopic_beats(
-            bbi, method=ectopic_method, verbose=verbose
-        )
-        bbi = hrvanalysis.interpolate_nan_values(
-            bbi, interpolation_method=interpolation_method
-        )
-    return bbi
+return get_cardiac_statistic(loader,_LABFRONT_AVG_HR_COLUMN,start_date,end_date,user_id,average)
 
 
 def get_hrv_time_domain(
@@ -404,9 +352,9 @@ def get_hrv_time_domain(
 
     for user in user_id:
         try:
-            bbi = loader.load_garmin_device_bbi(user, start_date, end_date).bbi
-            bbi = filter_bbi(bbi, **filtering_kwargs)
-            if pyhrv:  # pyhrv has more features but it's a lot slower
+            bbi = loader.load_garmin_device_bbi(user,start_date,end_date).bbi
+            bbi = utils.filter_bbi(bbi, **filtering_kwargs)
+            if pyhrv: # pyhrv has more features but it's a lot slower
                 td_features = pyhrv.time_domain.time_domain(bbi).as_dict()
             else:
                 td_features = hrvanalysis.get_time_domain_features(bbi)
@@ -466,8 +414,8 @@ def get_hrv_frequency_domain(
 
     for user in user_id:
         try:
-            bbi = loader.load_garmin_device_bbi(user, start_date, end_date).bbi
-            bbi = filter_bbi(bbi, **filtering_kwargs)
+            bbi = loader.load_garmin_device_bbi(user,start_date,end_date).bbi
+            bbi = utils.filter_bbi(bbi, **filtering_kwargs)
             if method == "ar":
                 fd_features = pyhrv.frequency_domain.ar_psd(
                     bbi, show=False, **method_kwargs
@@ -542,8 +490,8 @@ def get_hrv_nonlinear_domain(
 
     for user in user_id:
         try:
-            bbi = loader.load_garmin_device_bbi(user, start_date, end_date).bbi
-            bbi = filter_bbi(bbi, **filtering_kwargs)
+            bbi = loader.load_garmin_device_bbi(user,start_date,end_date).bbi
+            bbi = utils.filter_bbi(bbi, **filtering_kwargs)
             non_linear_features = {}
             non_linear_features |= pyhrv.nonlinear.poincare(
                 bbi, show=False, **poincare_kwargs
@@ -684,21 +632,15 @@ def get_night_rmssd(
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
                 bbi_df = loader.load_garmin_device_bbi(user, start_hour, end_hour)
                 bbi_df = bbi_df.set_index("isoDate")
+                
+                if method == "filter awake": # this filters out bbi relative to awake periods during sleep
+                    bbi_df = utils.filter_out_awake_bbi(loader,user,bbi_df,date)
 
-                if (
-                    method == "filter awake"
-                ):  # this filters out bbi relative to awake periods during sleep
-                    bbi_df = _filter_out_awake_bbi(loader, user, bbi_df, date)
-
-                counts = bbi_df.resample("5min").bbi.count()
-                means = bbi_df.resample("5min").bbi.mean()
-                coverage_filter = (counts > (300 / (means / 1000) * coverage)).values
-                ST_analysis = bbi_df.resample("5min").bbi.apply(
-                    lambda x: pyhrv.time_domain.rmssd(x)[0] if x.count() > 5 else 0
-                )
-                ST_analysis = ST_analysis.iloc[
-                    coverage_filter & (ST_analysis != 0).values
-                ]
+                counts = bbi_df.resample('5min').bbi.count() 
+                means = bbi_df.resample('5min').bbi.mean() 
+                coverage_filter = (counts > (300/(means/1000)*coverage)).values
+                ST_analysis = bbi_df.resample('5min').bbi.apply(lambda x: pyhrv.time_domain.rmssd(x)[0] if x.count() > 5 else 0)
+                ST_analysis = ST_analysis.iloc[coverage_filter & (ST_analysis != 0).values]
                 rmssd_values_daily = ST_analysis.values
                 daily_mean = rmssd_values_daily.mean()
                 daily_means[date] = round(daily_mean, 1)
@@ -755,16 +697,12 @@ def get_night_sdnn(
                 bbi_df = loader.load_garmin_device_bbi(user, start_hour, end_hour)
                 bbi_df = bbi_df.set_index("isoDate")
                 if method == "filter awake":
-                    bbi_df = _filter_out_awake_bbi(loader, user, bbi_df, date)
-                counts = bbi_df.resample("5min").bbi.count()
-                means = bbi_df.resample("5min").bbi.mean()
-                coverage_filter = (counts > (300 / (means / 1000) * coverage)).values
-                ST_analysis = bbi_df.resample("5min").bbi.apply(
-                    lambda x: pyhrv.time_domain.sdnn(x)[0] if x.count() > 5 else 0
-                )
-                ST_analysis = ST_analysis.iloc[
-                    coverage_filter & (ST_analysis != 0).values
-                ]
+                    bbi_df = utils.filter_out_awake_bbi(loader,user,bbi_df,date)
+                counts = bbi_df.resample('5min').bbi.count() 
+                means = bbi_df.resample('5min').bbi.mean() 
+                coverage_filter = (counts > (300/(means/1000)*coverage)).values
+                ST_analysis = bbi_df.resample('5min').bbi.apply(lambda x: pyhrv.time_domain.sdnn(x)[0] if x.count() > 5 else 0)
+                ST_analysis = ST_analysis.iloc[coverage_filter & (ST_analysis != 0).values]
                 sdnn_values_daily = ST_analysis.values
                 daily_mean = sdnn_values_daily.mean()
                 daily_means[date] = round(daily_mean, 1)
@@ -821,20 +759,14 @@ def get_night_lf(
                 bbi_df = loader.load_garmin_device_bbi(user, start_hour, end_hour)
                 bbi_df = bbi_df.set_index("isoDate")
                 if method == "filter awake":
-                    bbi_df = _filter_out_awake_bbi(loader, user, bbi_df, date)
-                counts = bbi_df.resample("5min").bbi.count()
-                means = bbi_df.resample("5min").bbi.mean()
-                coverage_filter = (counts > (300 / (means / 1000) * coverage)).values
-                ST_analysis = bbi_df.resample("5min").bbi.apply(
-                    lambda x: pyhrv.frequency_domain.welch_psd(
-                        nni=x, show=False, mode="dev"
-                    )[0]["fft_abs"][1]
-                    if x.count() > 5
-                    else 0
-                )
-                ST_analysis = ST_analysis.iloc[
-                    coverage_filter & (ST_analysis != 0).values
-                ]
+                    bbi_df = utils.filter_out_awake_bbi(loader,user,bbi_df,date)
+                counts = bbi_df.resample('5min').bbi.count() 
+                means = bbi_df.resample('5min').bbi.mean() 
+                coverage_filter = (counts > (300/(means/1000)*coverage)).values
+                ST_analysis = bbi_df.resample('5min').bbi.apply(lambda x: pyhrv.frequency_domain.welch_psd(nni=x,
+                                                                                                           show=False,
+                                                                                                           mode="dev")[0]["fft_abs"][1] if x.count() > 5 else 0)
+                ST_analysis = ST_analysis.iloc[coverage_filter & (ST_analysis != 0).values]
                 lf_values_daily = ST_analysis.dropna().values
                 if len(lf_values_daily) >= minimal_periods:
                     daily_mean = lf_values_daily.mean()
@@ -892,20 +824,14 @@ def get_night_hf(
                 bbi_df = loader.load_garmin_device_bbi(user, start_hour, end_hour)
                 bbi_df = bbi_df.set_index("isoDate")
                 if method == "filter awake":
-                    bbi_df = _filter_out_awake_bbi(loader, user, bbi_df, date)
-                counts = bbi_df.resample("5min").bbi.count()
-                means = bbi_df.resample("5min").bbi.mean()
-                coverage_filter = (counts > (300 / (means / 1000) * coverage)).values
-                ST_analysis = bbi_df.resample("5min").bbi.apply(
-                    lambda x: pyhrv.frequency_domain.welch_psd(
-                        nni=x, show=False, mode="dev"
-                    )[0]["fft_abs"][2]
-                    if x.count() > 5
-                    else 0
-                )
-                ST_analysis = ST_analysis.iloc[
-                    coverage_filter & (ST_analysis != 0).values
-                ]
+                    bbi_df = utils.filter_out_awake_bbi(loader,user,bbi_df,date)
+                counts = bbi_df.resample('5min').bbi.count() 
+                means = bbi_df.resample('5min').bbi.mean() 
+                coverage_filter = (counts > (300/(means/1000)*coverage)).values
+                ST_analysis = bbi_df.resample('5min').bbi.apply(lambda x: pyhrv.frequency_domain.welch_psd(nni=x,
+                                                                                                           show=False,
+                                                                                                           mode="dev")[0]["fft_abs"][2] if x.count() > 5 else 0)
+                ST_analysis = ST_analysis.iloc[coverage_filter & (ST_analysis != 0).values]
                 hf_values_daily = ST_analysis.dropna().values
                 if len(hf_values_daily) >= minimal_periods:
                     daily_mean = hf_values_daily.mean()
@@ -970,56 +896,4 @@ def get_night_lfhf(
             data_dict[user] = None
 
     return data_dict
-
-
-def _filter_out_awake_bbi(loader, user, bbi_df, date):
-    """Filters out night bbi data relative to periods where the user was awake
-
-    Parameters
-    ----------
-    loader : :class:`pylabfront.loader.Loader`
-        Initialized instance of data loader.
-    user : class:`str`
-        ID of the user for which bbi data has to be filtered.
-    bbi_df : class:`pandas.DataFrame`
-        DataFrame of bbi data
-    date : class:`pandas.Timestamp`
-        Timestamp of the date relative to the night in consideration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    DataFrame in the same format of `bbi_df`, including only bbi data of periods when the participant is asleep.
-    """
-    hypnogram = loader.load_hypnogram(user, date)
-    hypnogram["stages_diff"] = np.concatenate(
-        [
-            [0],
-            hypnogram.iloc[1:, :].stage.values - hypnogram.iloc[:-1, :].stage.values,
-        ]
-    )
-    # if there has been a negative change and the current stage is awake, then count it as awakening start
-    hypnogram["awakening_start"] = np.logical_and(
-        hypnogram.stage == 0, hypnogram.stages_diff < 0
-    )
-    # if there has been a positive change and the previous stage was awake, then count it as awakening end
-    hypnogram["awakening_end"] = np.concatenate(
-        [
-            [0],
-            np.logical_and(
-                (hypnogram.iloc[:-1, :].stage == 0).values,
-                (hypnogram.iloc[1:, :].stages_diff > 0).values,
-            ),
-        ]
-    )
-    relevant_rows = hypnogram.loc[
-        np.logical_or(hypnogram.awakening_start == 1, hypnogram.awakening_end == 1)
-    ][:20]
-    awakening_starts = relevant_rows.isoDate.iloc[::2].values
-    awakening_ends = relevant_rows.isoDate.iloc[1::2].values
-    for awakening_start, awakening_end in zip(awakening_starts, awakening_ends):
-        bbi_df = bbi_df.loc[
-            (bbi_df.index < awakening_start) | (bbi_df.index > awakening_end)
-        ]
-
-    return bbi_df
+  
