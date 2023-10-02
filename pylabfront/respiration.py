@@ -128,7 +128,7 @@ def get_rest_breaths_per_minute(
     ----------
         loader: :class:`pylabfront.loader.LabfrontLoader`
             Instance of `LabfrontLoader`.
-        start_date: class:`datetime.datetime`, optional
+        start_date: :class:`datetime.datetime`, optional
             Start date from which breaths per minute must be computed, by default None.
         end_date: :class:`datetime.datetime`, optional
             End date to which breaths per minute must be computed, by default to None.

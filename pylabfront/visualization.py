@@ -1,6 +1,12 @@
+"""
+Vz module-
+"""
+
+
 import datetime
 from pathlib import Path
 from typing import Union
+
 
 import hrvanalysis
 import july
@@ -12,7 +18,6 @@ from matplotlib.dates import DateFormatter
 from matplotlib.ticker import FuncFormatter, MultipleLocator, PercentFormatter
 
 import pylabfront.activity as activity
-import pylabfront.adherence as adherence
 import pylabfront.cardiac as cardiac
 import pylabfront.constants
 import pylabfront.loader
