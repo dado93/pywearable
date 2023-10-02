@@ -8,35 +8,35 @@ import pylabfront.loader
 
 
 @pytest.fixture
-def loader():
+def loader(scope="session"):
     return pylabfront.loader.LabfrontLoader(Path("sample_data"))
 
 
-def test_get_user_ids(loader: pylabfront.loader.LabfrontLoader):
+def test_get_user_ids(loader):
     user_ids = loader.get_user_ids()
     assert type(user_ids) == list
     assert user_ids == ["user-01"]
 
 
-def test_get_full_ids(loader: pylabfront.loader.LabfrontLoader):
+def test_get_full_ids(loader):
     full_ids = loader.get_full_ids()
     assert type(full_ids) == list
     assert full_ids == ["user-01_6732ab82-077a-4bfd-8f89-246aba683253"]
 
 
-def test_get_full_id(loader: pylabfront.loader.LabfrontLoader):
+def test_get_full_id(loader):
     full_id = loader.get_full_id("user-01")
     assert type(full_id) == str
     assert full_id == "user-01_6732ab82-077a-4bfd-8f89-246aba683253"
 
 
-def test_get_user_id(loader: pylabfront.loader.LabfrontLoader):
+def test_get_user_id(loader):
     user_id = loader.get_user_id("user-01_6732ab82-077a-4bfd-8f89-246aba683253")
     assert type(user_id) == str
     assert user_id == "user-01"
 
 
-def test_get(loader: pylabfront.loader.LabfrontLoader):
+def test_get_labfront_ids(loader: pylabfront.loader.LabfrontLoader):
     labfront_id = loader.get_labfront_ids()
     assert type(labfront_id) == list
     assert labfront_id == ["6732ab82-077a-4bfd-8f89-246aba683253"]

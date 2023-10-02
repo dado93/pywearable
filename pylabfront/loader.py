@@ -1183,9 +1183,7 @@ class LabfrontLoader:
 
         # Add calendar date from sleep summary
         sleep_summary = self.load_garmin_connect_sleep_summary(
-            user_id,
-            start_date,
-            end_date,
+            user_id, start_date, end_date, same_day_filter=True
         ).reset_index(drop=True)
 
         if len(sleep_summary) > 0:
@@ -1198,6 +1196,15 @@ class LabfrontLoader:
             ]
 
         if len(sleep_data) > 0:
+            sleep_data = sleep_data[
+                sleep_data[
+                    pylabfront.constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL
+                ].isin(
+                    sleep_summary[
+                        pylabfront.constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL
+                    ].unique()
+                )
+            ].reset_index(drop=True)
             sleep_data = pd.merge(
                 left=sleep_data,
                 right=sleep_summary,
