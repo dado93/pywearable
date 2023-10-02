@@ -3,11 +3,14 @@ This module contains all the functions related to analysis
 of Labfront respiration data.
 """
 import datetime
-import numpy as np
-import pandas as pd
 from typing import Union
 
+import numpy as np
+import pandas as pd
+
+import pylabfront.constants
 import pylabfront.utils as utils
+
 from . import loader
 
 _RESPIRATION_DAY = "DAY"
@@ -72,7 +75,10 @@ def get_breaths_per_minute(
             )
             if remove_zero:
                 respiratory_data = respiratory_data[
-                    respiratory_data[loader._LABFRONT_RESPIRATION_COLUMN] > 0
+                    respiratory_data[
+                        pylabfront.constants._RESPIRATION_BREATHS_PER_MINUTE_COL
+                    ]
+                    > 0
                 ]
             if day_or_night == _RESPIRATION_DAY:
                 respiratory_data = respiratory_data[respiratory_data.sleep == 0]
@@ -80,16 +86,25 @@ def get_breaths_per_minute(
                 respiratory_data = respiratory_data[respiratory_data.sleep == 1]
 
             if len(respiratory_data) > 0:
-                respiratory_data["Date"] = respiratory_data[
-                    labfront_loader.date_column
-                ].dt.date
-                data_dict[user] = (
-                    respiratory_data.groupby("Date")[
-                        loader._LABFRONT_RESPIRATION_COLUMN
-                    ]
-                    .mean()
-                    .to_dict()
-                )
+                if day_or_night == _RESPIRATION_DAY:
+                    respiratory_data["Date"] = respiratory_data[
+                        labfront_loader.date_column
+                    ].dt.date
+                    data_dict[user] = (
+                        respiratory_data.groupby("Date")[
+                            pylabfront.constants._RESPIRATION_BREATHS_PER_MINUTE_COL
+                        ]
+                        .mean()
+                        .to_dict()
+                    )
+                else:
+                    data_dict[user] = (
+                        respiratory_data.groupby(
+                            pylabfront.constants._RESPIRATION_CALENDAR_DATE_COL
+                        )[pylabfront.constants._RESPIRATION_BREATHS_PER_MINUTE_COL]
+                        .mean()
+                        .to_dict()
+                    )
                 if average:
                     respiration_data_df = pd.DataFrame.from_dict(
                         data_dict[user], orient="index"
