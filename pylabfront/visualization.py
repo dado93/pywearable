@@ -1,12 +1,11 @@
 """
-Vz module-
+This module contains all the functions related to the visualization of data
 """
 
 
 import datetime
 from pathlib import Path
 from typing import Union
-
 
 import hrvanalysis
 import july
@@ -210,19 +209,19 @@ def get_cardiac_line_graph_and_stats(
     # get stats
     avg_resting_hr = round(
         cardiac.get_rest_heart_rate(loader, 
+                                    user_id,
                                     start_date, 
                                     end_date, 
-                                    [user_id], 
                                     average=True)[user_id][
             "values"
         ]
     )
     max_hr_recorded = np.nanmax(
         list(
-            cardiac.get_max_heart_rate(loader, 
+            cardiac.get_max_heart_rate(loader,
+                                       user_id,
                                        start_date, 
                                        end_date, 
-                                       [user_id], 
                                        average=False)[
                 user_id
             ].values()
