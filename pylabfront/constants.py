@@ -69,6 +69,11 @@ _DAILY_SUMMARY_STEPS_GOAL_COL = "stepsGoal"
 _DAILY_SUMMARY_MODERATE_INTENSITY_COL = "moderateIntensityDurationInMs"
 _DAILY_SUMMARY_VIGOROUS_INTENSITY_COL = "vigorousIntensityDurationInMs"
 
+# Respiratory data columns #
+_RESPIRATION_BREATHS_PER_MINUTE_COL = "breathsPerMinute"
+_RESPIRATION_SLEEP_SUMMARY_ID_COL = "sleepSummaryId"
+_RESPIRATION_CALENDAR_DATE_COL = "calendarDate"
+
 # Epochs #
 _EPOCH_INTENSITY_COL = "intensity"
 _EPOCH_ACTIVE_TIME_MS_COL = "activeTimeInMs"
