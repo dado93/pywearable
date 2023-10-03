@@ -130,7 +130,7 @@ def get_breaths_per_minute(
 
 def get_rest_breaths_per_minute(
     loader: loader.LabfrontLoader,
-    user_id: str = "all",
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, None] = None,
     end_date: Union[datetime.datetime, datetime.date, None] = None,
     average: bool = False,
@@ -143,16 +143,16 @@ def get_rest_breaths_per_minute(
     ----------
         loader: :class:`pylabfront.loader.LabfrontLoader`
             Instance of `LabfrontLoader`.
+        user_id: :class:`str` or :class:`list`, optional
+            ID of the user for which breaths per minute must be computed, by default "all".
         start_date: :class:`datetime.datetime`, optional
             Start date from which breaths per minute must be computed, by default None.
         end_date: :class:`datetime.datetime`, optional
             End date to which breaths per minute must be computed, by default to None.
-        user_id: :class:`str`
-            ID of the user for which breaths per minute must be computed, by default "all".
         average: :class:`bool`, optional
-            Whether to average the breaths per minute over the timerange, by default false.
-            If set to `True`, then the breaths per minute are averaged across the timerange,
-            thus returing a dictionary with the average breaths per minute and the valid days
+            Whether to average the breaths per minute over the time-range, by default false.
+            If set to `True`, then the breaths per minute are averaged across the time-range,
+            thus returning a dictionary with the average breaths per minute and the valid days
             over which the average was computed. If set to `False`, the dictionary contains
             the breaths per minute value for each day.
         remove_zero: :class:`bool`, optional
@@ -162,7 +162,7 @@ def get_rest_breaths_per_minute(
 
     Returns
     -------
-        :class:`dict`
+    :class:`dict`
         Dictionary with user id as primary key, calendar days as secondary keys, and breaths per minute as value.
     """
     return get_breaths_per_minute(
@@ -179,29 +179,29 @@ def get_rest_breaths_per_minute(
 
 def get_waking_breaths_per_minute(
     loader: loader.LabfrontLoader,
-    user_id: str = "all",
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, None] = None,
     end_date: Union[datetime.datetime, datetime.date, None] = None,
     average: bool = False,
     remove_zero: bool = False,
     return_days: bool = False,
 ):
-    """Get average waking breaths per minute across timerange.
+    """Get average waking breaths per minute across time-range.
 
     Parameters
     ----------
         loader: :class:`pylabfront.loader.Loader`
             Instance of `LabfrontLoader`.
+        user_id :class:`str` or :class:`list`, optional
+            ID of the user for which breaths per minute must be computed, by default "all".
         start_date: :class:`datetime.datetime`, optional
             Start date from which breaths per minute must be computed, by default None.
         end_date :class:`datetime.datetime`, optional
             End date to which breaths per minute must be computed, by default None.
-        participant_id :class:`str`, optional
-            ID of the user for which breaths per minute must be computed, by default "all".
         average: :class:`bool`, optional
-            Whether to average the breaths per minute over the timerange, by default false.
-            If set to `True`, then the breaths per minute are averaged across the timerange,
-            thus returing a dictionary with the average breaths per minute and the valid days
+            Whether to average the breaths per minute over the time-range, by default false.
+            If set to `True`, then the breaths per minute are averaged across the time-range,
+            thus returning a dictionary with the average breaths per minute and the valid days
             over which the average was computed. If set to `False`, the dictionary contains
             the breaths per minute value for each day.
         remove_zero: :class:`bool`, optional
@@ -210,7 +210,8 @@ def get_waking_breaths_per_minute(
             Whether to return the days over which the average value was computed, by default False.
 
     Returns:
-        dict: Dictionary with participant id as primary key, calendar days as secondary keys, and average breaths per minute as value.
+        :class:`dict`
+        Dictionary with participant id as primary key, calendar days as secondary keys, and average breaths per minute as value.
     """
     return get_breaths_per_minute(
         loader,
