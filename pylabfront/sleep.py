@@ -40,7 +40,7 @@ _SLEEP_METRIC_SLEEP_SCORE = "SCORE"
 
 def get_time_in_bed(
     loader: loader.LabfrontLoader,
-    user_id: Union[str, list],
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -99,8 +99,8 @@ def get_time_in_bed(
     ----------
     loader : :class:`pylabfront.loader.LabfrontLoader`
         An instance of a data loader.
-    user_id : :class:`str` or :class:`list`
-        The id(s) for which TIB must be retrieved.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) for which TIB must be retrieved, by default "all"
     start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
@@ -110,7 +110,7 @@ def get_time_in_bed(
 
     Returns
     -------
-    dict
+    :class:`dict`
         If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
         calendar days (as :class:`datetime.date`) as keys and time in bed as values.
         If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `TIB`
@@ -124,7 +124,7 @@ def get_time_in_bed(
 
 def get_sleep_period_time(
     loader: loader.LabfrontLoader,
-    user_id: str,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -178,8 +178,8 @@ def get_sleep_period_time(
     ----------
     loader : :class:`pylabfront.loader.LabfrontLoader`
         An instance of a data loader.
-    user_id : :class:`str` or :class:`list`
-        The id(s) for which SPT must be retrieved.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) for which SPT must be retrieved, by default "all".
     start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
@@ -189,7 +189,7 @@ def get_sleep_period_time(
 
     Returns
     -------
-    dict
+    :class:`dict`
         If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
         calendar days (as :class:`datetime.date`) as keys and sleep period time as values.
         If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `SPT`
@@ -203,7 +203,7 @@ def get_sleep_period_time(
 
 def get_total_sleep_time(
     loader: loader.LabfrontLoader,
-    user_id: str,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -258,8 +258,8 @@ def get_total_sleep_time(
     ----------
     loader : :class:`loader.LabfrontLoader`
         An instance of a data loader.
-    user_id : :class:`str` or :class:`list`
-        The id(s) for which TST must be retrieved.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) for which TST must be retrieved, by default "all".
     start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
@@ -269,7 +269,7 @@ def get_total_sleep_time(
 
     Returns
     -------
-    dict
+    :class:`dict`
         If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
         calendar days (as :class:`datetime.date`) as keys and total sleep time as values.
         If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `TST`
@@ -283,7 +283,7 @@ def get_total_sleep_time(
 
 def get_sleep_efficiency(
     loader: loader.LabfrontLoader,
-    user_id: str,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -339,8 +339,8 @@ def get_sleep_efficiency(
     ----------
     loader : :class:`loader.LabfrontLoader`
         An instance of a data loader.
-    user_id : :class:`str` or :class:`list`
-        The id(s) for which SE must be retrieved.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) for which SE must be retrieved, by default "all"
     start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
@@ -350,7 +350,7 @@ def get_sleep_efficiency(
 
     Returns
     -------
-    dict
+    :class:`dict`
         If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
         calendar days (as :class:`datetime.date`) as keys and sleep efficiency as values.
         If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `SE`
@@ -364,7 +364,7 @@ def get_sleep_efficiency(
 
 def get_sleep_maintenance_efficiency(
     loader: loader.LabfrontLoader,
-    user_id: str,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -422,8 +422,8 @@ def get_sleep_maintenance_efficiency(
     ----------
     loader : :class:`loader.LabfrontLoader`
         An instance of a data loader.
-    user_id : :class:`str` or :class:`list`
-        The id(s) for which SME must be retrieved.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) for which SME must be retrieved, by default "all"
     start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
@@ -433,7 +433,7 @@ def get_sleep_maintenance_efficiency(
 
     Returns
     -------
-    dict
+    :class:`dict`
         If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
         calendar days (as :class:`datetime.date`) as keys and sleep maintenance efficiency as values.
         If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `SME`
@@ -447,7 +447,7 @@ def get_sleep_maintenance_efficiency(
 
 def get_n1_latency(
     loader: loader.LabfrontLoader,
-    user_id: str,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -502,8 +502,8 @@ def get_n1_latency(
     ----------
     loader : :class:`loader.LabfrontLoader`
         An instance of a data loader.
-    user_id : :class:`str` or :class:`list`
-        The id(s) for which N1 sleep latency must be retrieved.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) for which N1 sleep latency must be retrieved, by default "all"
     start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
@@ -513,7 +513,7 @@ def get_n1_latency(
 
     Returns
     -------
-    dict
+    :class:`dict`
         If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
         calendar days (as :class:`datetime.date`) as keys and N1 sleep latency as values.
         If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `Lat_N1`
@@ -527,7 +527,7 @@ def get_n1_latency(
 
 def get_n2_latency(
     loader: loader.LabfrontLoader,
-    user_id: str,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -584,8 +584,8 @@ def get_n2_latency(
     ----------
     loader : :class:`loader.LabfrontLoader`
         An instance of a data loader.
-    user_id : :class:`str` or :class:`list`
-        The id(s) for which N2 sleep latency must be retrieved.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) for which N2 sleep latency must be retrieved, by default "all"
     start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
@@ -595,7 +595,7 @@ def get_n2_latency(
 
     Returns
     -------
-    dict
+    :class:`dict`
         If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
         calendar days (as :class:`datetime.date`) as keys and N2 sleep latency as values.
         If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `Lat_N2`
@@ -609,7 +609,7 @@ def get_n2_latency(
 
 def get_n3_latency(
     loader: loader.LabfrontLoader,
-    user_id: str,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -663,8 +663,8 @@ def get_n3_latency(
     ----------
     loader : :class:`loader.LabfrontLoader`
         An instance of a data loader.
-    user_id : :class:`str` or :class:`list`
-        The id(s) for which N3 sleep latency must be retrieved.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) for which N3 sleep latency must be retrieved, by default "all"
     start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
@@ -674,7 +674,7 @@ def get_n3_latency(
 
     Returns
     -------
-    dict
+    :class:`dict`
         If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
         calendar days (as :class:`datetime.date`) as keys and N3 sleep latency as values.
         If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `Lat_N3`
@@ -688,7 +688,7 @@ def get_n3_latency(
 
 def get_rem_latency(
     loader: loader.LabfrontLoader,
-    user_id: str,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -742,8 +742,8 @@ def get_rem_latency(
     ----------
     loader : :class:`loader.LabfrontLoader`
         An instance of a data loader.
-    user_id : :class:`str` or :class:`list`
-        The id(s) for which REM sleep latency must be retrieved.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) for which REM sleep latency must be retrieved, by default "all"
     start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
@@ -753,7 +753,7 @@ def get_rem_latency(
 
     Returns
     -------
-    dict
+    :class:`dict`
         If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
         calendar days (as :class:`datetime.date`) as keys and REM sleep latency as values.
         If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `Lat_REM`
@@ -767,7 +767,7 @@ def get_rem_latency(
 
 def get_n1_duration(
     loader: loader.LabfrontLoader,
-    user_id: Union[str, list],
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -822,6 +822,8 @@ def get_n1_duration(
     ----------
     loader : :class:`loader.LabfrontLoader`
         Initialized instance of :class:`loader.LabfrontLoader`, required in order to properly load data.
+    user_id : :class:`str` or :class:`list`, optional
+        IDs of the users for which N1 sleep data have to be extracted, by default "all"
     start_date : :class:`datetime.datetime`, optional
         Start date from which sleep data should be extracted, by default None.
         If None is used, then the ``start_date`` will be the first day with available sleep data
@@ -830,16 +832,14 @@ def get_n1_duration(
         End date up to which sleep data should be extracted, by default None.
         If None is used, then the ``end_date`` will be the last day with available sleep data
         for the given ``user_id``, by default None
-    user_id : :class:`str` or :class:`list`, optional
-        IDs of the users for which light data have to extracted
-    average : bool, optional
+    average : :class:`bool`, optional
         Average N1 sleep across nights, by default False. If set to ``True``, then
         the average N1 sleep from ``start_date`` to ``end_date`` is returned. Otherwise,
         N1 sleep for each night from ``start_date`` to ``end_date`` is returned.
 
     Returns
     -------
-    dict
+    :class:`dict`
         If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
         calendar days (as :class:`datetime.date`) as keys and N1 sleep duration as values.
         If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `N1`
@@ -853,7 +853,7 @@ def get_n1_duration(
 
 def get_n2_duration(
     loader: loader.LabfrontLoader,
-    user_id: str,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -910,6 +910,8 @@ def get_n2_duration(
     ----------
     loader : :class:`loader.LabfrontLoader`
         Initialized instance of :class:`loader.LabfrontLoader`, required in order to properly load data.
+    user_id : :class:`str` or :class:`list`, optional
+        IDs of the users for which N2 sleep data have to be extracted, by default "all"
     start_date : :class:`datetime.datetime`, optional
         Start date from which sleep data should be extracted, by default None.
         If None is used, then the ``start_date`` will be the first day with available sleep data
@@ -918,16 +920,14 @@ def get_n2_duration(
         End date up to which sleep data should be extracted, by default None.
         If None is used, then the ``end_date`` will be the last day with available sleep data
         for the given ``user_id``, by default None
-    user_id : :class:`str` or :class:`list`, optional
-        IDs of the users for which light data have to extracted
-    average : bool, optional
+    average : :class:`bool`, optional
         Average N2 sleep across nights, by default False. If set to ``True``, then
         the average N2 sleep from ``start_date`` to ``end_date`` is returned. Otherwise,
         N1 sleep for each night from ``start_date`` to ``end_date`` is returned.
 
     Returns
     -------
-    dict
+    :class:`dict`
         If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
         calendar days (as :class:`datetime.date`) as keys and N2 sleep duration as values.
         If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `N2`
@@ -941,7 +941,7 @@ def get_n2_duration(
 
 def get_n3_duration(
     loader: loader.LabfrontLoader,
-    user_id: str,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -996,6 +996,8 @@ def get_n3_duration(
     ----------
     loader : :class:`loader.LabfrontLoader`
         Initialized instance of :class:`loader.LabfrontLoader`, required in order to properly load data.
+    user_id : :class:`str` or :class:`list`, optional
+        IDs of the users for which N3 sleep data have to be extracted, by default "all"
     start_date : :class:`datetime.datetime`, optional
         Start date from which sleep data should be extracted, by default None.
         If None is used, then the ``start_date`` will be the first day with available sleep data
@@ -1004,16 +1006,14 @@ def get_n3_duration(
         End date up to which sleep data should be extracted, by default None.
         If None is used, then the ``end_date`` will be the last day with available sleep data
         for the given ``user_id``, by default None
-    user_id : :class:`str` or :class:`list`, optional
-        IDs of the users for which light data have to extracted
-    average : bool, optional
+    average : :class:`bool`, optional
         Average N3 sleep across nights, by default False. If set to ``True``, then
         the average N3 sleep from ``start_date`` to ``end_date`` is returned. Otherwise,
         N1 sleep for each night from ``start_date`` to ``end_date`` is returned.
 
     Returns
     -------
-    dict
+    :class:`dict`
         If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
         calendar days (as :class:`datetime.date`) as keys and N3 sleep duration as values.
         If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `N3`
@@ -1027,7 +1027,7 @@ def get_n3_duration(
 
 def get_rem_duration(
     loader: loader.LabfrontLoader,
-    user_id: str,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -1082,6 +1082,8 @@ def get_rem_duration(
     ----------
     loader : :class:`loader.LabfrontLoader`
         Initialized instance of :class:`loader.LabfrontLoader`, required in order to properly load data.
+    user_id : :class:`str` or :class:`list`, optional
+        IDs of the users for which REM sleep data have to be extracted, by default "all"
     start_date : :class:`datetime.datetime`, optional
         Start date from which sleep data should be extracted, by default None.
         If None is used, then the ``start_date`` will be the first day with available sleep data
@@ -1090,16 +1092,14 @@ def get_rem_duration(
         End date up to which sleep data should be extracted, by default None.
         If None is used, then the ``end_date`` will be the last day with available sleep data
         for the given ``user_id``, by default None
-    user_id : :class:`str` or :class:`list`, optional
-        IDs of the users for which light data have to extracted
-    average : bool, optional
+    average : :class:`bool`, optional
         Average REM sleep across nights, by default False. If set to ``True``, then
         the average REM sleep from ``start_date`` to ``end_date`` is returned. Otherwise,
         N1 sleep for each night from ``start_date`` to ``end_date`` is returned.
 
     Returns
     -------
-    dict
+    :class:`dict`
         If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
         calendar days (as :class:`datetime.date`) as keys and REM sleep duration as values.
         If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `REM`
@@ -1113,7 +1113,7 @@ def get_rem_duration(
 
 def get_nrem_duration(
     loader: loader.LabfrontLoader,
-    user_id: str,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -1168,6 +1168,8 @@ def get_nrem_duration(
     ----------
     loader : :class:`loader.LabfrontLoader`
         Initialized instance of :class:`loader.LabfrontLoader`, required in order to properly load data.
+    user_id : :class:`str` or :class:`list`, optional
+        IDs of the users for which NREM sleep data have to be extracted, by default "all"
     start_date : :class:`datetime.datetime`, optional
         Start date from which sleep data should be extracted, by default None.
         If None is used, then the ``start_date`` will be the first day with available sleep data
@@ -1176,16 +1178,14 @@ def get_nrem_duration(
         End date up to which sleep data should be extracted, by default None.
         If None is used, then the ``end_date`` will be the last day with available sleep data
         for the given ``user_id``, by default None
-    user_id : :class:`str` or :class:`list`, optional
-        IDs of the users for which light data have to extracted
-    average : bool, optional
+    average : :class:`bool`, optional
         Average NREM sleep across nights, by default False. If set to ``True``, then
         the average NREM sleep from ``start_date`` to ``end_date`` is returned. Otherwise,
         N1 sleep for each night from ``start_date`` to ``end_date`` is returned.
 
     Returns
     -------
-    dict
+    :class:`dict`
         If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
         calendar days (as :class:`datetime.date`) as keys and NREM sleep duration as values.
         If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `NREM`
@@ -1199,7 +1199,7 @@ def get_nrem_duration(
 
 def get_awake_duration(
     loader: loader.LabfrontLoader,
-    user_id: str,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -1254,6 +1254,8 @@ def get_awake_duration(
     ----------
     loader : :class:`loader.LabfrontLoader`
         Initialized instance of :class:`loader.LabfrontLoader`, required in order to properly load data.
+    user_id : :class:`str` or :class:`list`, optional
+        IDs of the users for which awake data have to be extracted, by default "all"
     start_date : :class:`datetime.datetime`, optional
         Start date from which sleep data should be extracted, by default None.
         If None is used, then the ``start_date`` will be the first day with available sleep data
@@ -1262,16 +1264,14 @@ def get_awake_duration(
         End date up to which sleep data should be extracted, by default None.
         If None is used, then the ``end_date`` will be the last day with available sleep data
         for the given ``user_id``, by default None
-    user_id : :class:`str` or :class:`list`, optional
-        IDs of the users for which light data have to extracted
-    average : bool, optional
+    average : :class:`bool`, optional
         Average awake time across nights, by default False. If set to ``True``, then
         the average awake time sleep from ``start_date`` to ``end_date`` is returned. Otherwise,
         awake time for each night from ``start_date`` to ``end_date`` is returned.
 
     Returns
     -------
-    dict
+    :class:`dict`
         If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
         calendar days (as :class:`datetime.date`) as keys and awake duration as values.
         If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `AWAKE`
@@ -1285,7 +1285,7 @@ def get_awake_duration(
 
 def get_unmeasurable_duration(
     loader: loader.LabfrontLoader,
-    user_id: str,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -1340,6 +1340,8 @@ def get_unmeasurable_duration(
     ----------
     loader : :class:`loader.LabfrontLoader`
         Initialized instance of :class:`loader.LabfrontLoader`, required in order to properly load data.
+    user_id : :class:`str` or :class:`list`, optional
+        IDs of the users for which unmeasurable sleep data have to be extracted, by default "all"
     start_date : :class:`datetime.datetime`, optional
         Start date from which sleep data should be extracted, by default None.
         If None is used, then the ``start_date`` will be the first day with available sleep data
@@ -1348,16 +1350,14 @@ def get_unmeasurable_duration(
         End date up to which sleep data should be extracted, by default None.
         If None is used, then the ``end_date`` will be the last day with available sleep data
         for the given ``user_id``, by default None
-    user_id : :class:`str` or :class:`list`, optional
-        IDs of the users for which light data have to extracted
-    average : bool, optional
+    average : :class:`bool`, optional
         Average NREM sleep across nights, by default False. If set to ``True``, then
         the average NREM sleep from ``start_date`` to ``end_date`` is returned. Otherwise,
         N1 sleep for each night from ``start_date`` to ``end_date`` is returned.
 
     Returns
     -------
-    dict
+    :class:`dict`
         If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
         calendar days (as :class:`datetime.date`) as keys and unmeasurable sleep duration as values.
         If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `UNMEASURABLE`
@@ -1376,7 +1376,7 @@ def get_unmeasurable_duration(
 
 def get_n1_percentage(
     loader: loader.LabfrontLoader,
-    user_id: str,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -1388,7 +1388,7 @@ def get_n1_percentage(
 
 def get_n2_percentage(
     loader: loader.LabfrontLoader,
-    user_id: str,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -1400,7 +1400,7 @@ def get_n2_percentage(
 
 def get_n3_percentage(
     loader: loader.LabfrontLoader,
-    user_id: str,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -1412,7 +1412,7 @@ def get_n3_percentage(
 
 def get_rem_percentage(
     loader: loader.LabfrontLoader,
-    user_id: str,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -1424,7 +1424,7 @@ def get_rem_percentage(
 
 def get_nrem_percentage(
     loader: loader.LabfrontLoader,
-    user_id: str,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -1436,7 +1436,7 @@ def get_nrem_percentage(
 
 def get_wake_after_sleep_onset(
     loader: loader.LabfrontLoader,
-    user_id: str,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -1448,7 +1448,7 @@ def get_wake_after_sleep_onset(
 
 def get_sleep_score(
     loader: loader.LabfrontLoader,
-    user_id: str,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     average: bool = False,
@@ -1460,10 +1460,10 @@ def get_sleep_score(
 
 def get_sleep_timestamps(
     loader: loader.LabfrontLoader,
-    user_id="all",
-    start_date=None,
-    end_date=None,
-    average=False,
+    user_id : Union[str, list] = "all",
+    start_date : Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    average : bool = False,
 ):
     """Get the timestamps of the beginning and the end of sleep occurrences.
 
@@ -1474,18 +1474,18 @@ def get_sleep_timestamps(
     ----------
     loader : :class:`pylabfront.loader.Loader`
         Initialized instance of a data loader.
-    user_id : :class:`str`, optional
-        ID of the user for which sleep timestamps are computed, by default "all".
-    start_date : class:`datetime.datetime`, optional
-        Start date of the period of interest, by default None.
-    end_date : class:`datetime.datetime`, optional
-        End date of the period of interest, by default None.
+    user_id : :class:`str` or :class:`list`, optional
+        ID of the user(s) for which sleep timestamps are computed, by default "all".
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None.
     average : :class:`bool`, optional
-        Whether to calculate the average sleep and awake time of the user (in hours), by default False.
+        Whether to calculate the average sleep and awake time of the user, by default False.
 
     Returns
     -------
-    dict
+    :class:`dict`
         Dictionary with user ids as primary keys, if average is False then dates as secondary keys
         and sleep timestamps as values, otherwise (average starting time, average ending time) as values
     """
@@ -1524,9 +1524,9 @@ def get_sleep_timestamps(
 
 def get_sleep_midpoints(
     loader: loader.LabfrontLoader,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    user_id: Union[str, list] = "all",
     average: bool = False,
     return_days: bool = False,
 ):
@@ -1539,20 +1539,20 @@ def get_sleep_midpoints(
     ----------
     loader : :class:`pylabfront.loader.Loader`
         Initialized instance of data loader.
-    start_date : :class:`datetime.datetime`, optional
-        Start date of the period of interest, by default None.
-    end_date : :class:`datetime.datetime`, optional
-        End date of the period of interest, by default None.
     user_id : :class:`str`, optional
         ID of the user for which sleep midpoints are computed, by default "all".
-    average : bool, optional
+    start_date : :class:`datetime.datetime`, optional
+        Start date for data retrieval, by default None
+    end_date : :class:`datetime.datetime`, optional
+        End date for data retrieval, by default None
+    average : :class:`bool`, optional
         Whether to return the average midpoint for the user (in hours, from midnight), by default False
-    return_days : bool, optional
+    return_days : :class:`bool`, optional
         Whether to show the days used for the computation of the average, by default False
 
     Returns
     -------
-    dict
+    :class:`dict`
         Dictionary with user ids as primary keys, if average is False then dates as secondary keys
         and sleep timestamps as values, otherwise the average for that user
     """
@@ -1561,7 +1561,10 @@ def get_sleep_midpoints(
     user_id = utils.get_user_ids(loader, user_id)
 
     for user in user_id:
-        sleep_timestamps = get_sleep_timestamps(loader, start_date, end_date, user)[
+        sleep_timestamps = get_sleep_timestamps(loader, 
+                                                user_id = user,
+                                                start_date = start_date,
+                                                end_date = end_date)[
             user
         ]
         if sleep_timestamps is None:
@@ -1589,11 +1592,11 @@ def get_sleep_midpoints(
 
 
 def get_awakenings(
-    loader: loader.LabfrontLoader, 
-    user_id="all",
-    start_date = None, 
-    end_date = None, 
-    average=False
+    loader : loader.LabfrontLoader, 
+    user_id : Union[str, list] = "all",
+    start_date : Union[datetime.datetime, datetime.date, str, None] = None, 
+    end_date : Union[datetime.datetime, datetime.date, str, None] = None, 
+    average : bool = False
 ):
     """Get the number of awakenings
 
@@ -1606,18 +1609,18 @@ def get_awakenings(
     ----------
     loader : :class:`pylabfront.loader.Loader`
         Initialized instance of data loader.
-    start_date : :class:`datetime.datetime`, optional
-        Start date of the period of interest, by default None.
-    end_date : :class:`datetime.datetime`, optional
-        End date of the period of interest, by default None.
     user_id : :class:`str`, optional
         ID of the user for which awakenings are computed, by default "all".
-    average : bool, optional
+    start_date : :class:`datetime.datetime`, optional
+        Start date for data retrieval, by default None
+    end_date : :class:`datetime.datetime`, optional
+        End date for data retrieval, by default None
+    average : :class:`bool`, optional
         Whether to return only the average number of awakenings per night for the user, by default False
 
     Returns
     -------
-    dict
+    :class:`dict`
         Dictionary with user ids as primary keys, dates as secondary keys, and number of awakenings as values.
         If `average` is set to True, the average and the dates used for its calculation are returned as values.
     """
@@ -1670,16 +1673,16 @@ def get_awakenings(
 
 
 def get_cpd(
-    loader,
-    start_date=None,
-    end_date=None,
-    user=None,
-    sleep_metric="midpoint",
-    chronotype_sleep_start="00:00",
-    chronotype_sleep_end="08:00",
-    days_to_consider=28,
-    verbose=False,
-    average=True,
+    loader : loader.LabfrontLoader,
+    user : Union[str, None] = None,
+    start_date : Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date : Union[datetime.datetime, datetime.date, str, None] = None,
+    sleep_metric : str = "midpoint",
+    chronotype_sleep_start : str = "00:00",
+    chronotype_sleep_end : str = "08:00",
+    days_to_consider : int = 28,
+    verbose : bool = False,
+    average : bool = True,
 ):
     """Computes composite phase deviation (CPD)
 
@@ -1687,24 +1690,26 @@ def get_cpd(
     if `sleep_metric` is 'midpoint', or in terms of duration is `sleep_metric` is 'duration'.
     The measure is computed for the period between `start_date` and `end_date`
     but only keeping in consideration the most recent `days_to_consider`.
+    Note that this function, since it requires a specific chronotype for a person,
+    is only computed for a specific user, it can't consider multiple users at the same time.
 
     Parameters
     ----------
     loader : :class:`pylabfront.loader.Loader`
         Initialized instance of data loader.
+    user : :class:`str`, optional
+        ID of the user for which CPD is computed, by default None.
     start_date : :class:`datetime.datetime`, optional
         Start date from which to compute CPD, by default None.
     end_date : :class:`datetime.datetime`, optional
         End date until which to compute CPD, by default None.
-    user : :class:`str`, optional
-        ID of the user for which CPD is computed, by default None.
     sleep_metric : :class:`str`, optional
         the metric for the computation of CPD, can be either "midpoint" or "duration", by default "midpoint"
-    chronotype_sleep_start : str, optional
+    chronotype_sleep_start : :class:`str`, optional
         the hour of reference at which the user begins to sleep in format HH:MM, by default "00:00"
-    chronotype_sleep_end : str, optional
+    chronotype_sleep_end : :class:`str`, optional
         the hour of reference at which the user wakes up in format HH:MM, by default "08:00"
-    days_to_consider : int, optional
+    days_to_consider : :class:`int`, optional
         the maximum number of days to consider in the period of interest, by default 28
     verbose : :class:`str`, optional
         whether to show daily cpd components
@@ -1713,19 +1718,30 @@ def get_cpd(
 
     Returns
     -------
-    float
+    :class:`float`
         CPD metric, indicating sleep regularity of the user
+
+    Raises
+    -------
+    ValueError
+
+    `user` isn't specified.
     """
 
     if user is None:
-        raise KeyError("Specify a user")
+        raise ValueError("Specify a user")
+    
+    user = loader.get_full_id(user)
 
     if sleep_metric == "midpoint":
         # define what is the expected midpoint based on the chronotype
         chronotype_sleep_midpoint = utils.mean_time(
             [chronotype_sleep_start, chronotype_sleep_end]
         )
-        sleep_midpoints = get_sleep_midpoints(loader, start_date, end_date, user)[user]
+        sleep_midpoints = get_sleep_midpoints(loader,
+                                             user_id = user,
+                                             start_date = start_date,
+                                             end_date = end_date)[user]
 
         previous_midpoint = None
         CPDs = []
@@ -1835,7 +1851,11 @@ def get_cpd(
 
 
 def get_sleep_metric_std(
-    loader, start_date=None, end_date=None, user=None, metric=None
+    loader : loader.LabfrontLoader,
+    metric : str,
+    user_id : str, 
+    start_date : Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date : Union[datetime.datetime, datetime.date, str, None] = None, 
 ):
     """Calculates standard deviation of a desired sleep metric
 
@@ -1846,29 +1866,34 @@ def get_sleep_metric_std(
     ----------
     loader : :class:`pylabfront.loader.Loader`
         Initialized instance of data loader.
-    start_date : :class:`datetime.datetime`, optional
-        Start date for the period of interest, by default None.
-    end_date : :class:`datetime.datetime`, optional
-        End date for the period of interest, by default None.
-    user : str, optional
-        user id for the user of interest, by default None
-    metric : str, optional
-        name of the metric or name of the sleep function for which calculate std, by default None
+    metric : :class:`str`
+        Name of the metric or name of the sleep function for which calculate std
+    user_id : :class:`str`
+        user id for the user of interest
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None.
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None.
 
     Returns
     -------
-    float
+    :class:`float`
         Standard deviation for the sleep metric of interest
-    """
 
-    if metric is None:
-        raise KeyError("Must specify a valid sleep metric")
-    elif metric == "duration":  # in hours
-        metric_data = get_sleep_period_time(loader, user, start_date, end_date)[user]
+    Raises
+    -------
+    ValueError
+        `metric` must valid: support is only for "midpoint" or "duration" in the current version
+    """
+    if metric == "duration":  # in hours
+        metric_data = get_sleep_period_time(loader, user_id, start_date, end_date)[user_id]
         metric_data = [duration / (1000 * 60 * 60) for duration in metric_data.values()]
     elif metric == "midpoint":  # in hours
         midpoints = list(
-            get_sleep_midpoints(loader, start_date, end_date, user)[user].values()
+            get_sleep_midpoints(loader, 
+                                user_id = user_id,
+                                start_date = start_date, 
+                                end_date = end_date)[user_id].values()
         )
         # need to check for possible midpoints before midnight
         metric_data = []
@@ -1881,10 +1906,10 @@ def get_sleep_metric_std(
             metric_data.append(hour_component + minute_component / 60)
     else:
         try:
-            metric_data = metric(loader, start_date, end_date, user)[user]
+            metric_data = metric(loader, start_date, end_date, user_id)[user_id]
             metric_data = list(metric_data.values())
         except:
-            raise KeyError(
+            raise ValueError(
                 "Metric specified isn't valid"
             )  # TODO implement for other features as needed
 
@@ -1892,6 +1917,26 @@ def get_sleep_metric_std(
 
 
 def _compute_sleep_score(sleep_summary: pd.DataFrame, *args) -> pd.Series:
+    """Retrieves sleep score from a sleep summary
+
+    This function retrieves, if available, the sleep scores
+    given sleep summary data.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pandas.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    pd.Series
+        Sleep score data.
+
+    Raises
+    ------
+    ValueError
+        If `sleep_summary` is not a :class:`pandas.DataFrame` .
+    """
     if not isinstance(sleep_summary, pd.DataFrame):
         raise ValueError(
             f"sleep_summary must be a pd.DataFrame. {type(sleep_summary)} is not a valid type."
@@ -1951,12 +1996,12 @@ def _compute_total_sleep_time(sleep_summary: pd.DataFrame, *args) -> pd.Series:
 
     Parameters
     ----------
-    sleep_summary : pd.DataFrame
+    sleep_summary : :class:`pd.DataFrame`
         Sleep summary data.
 
     Returns
     -------
-    pd.Series
+    :class:`pd.Series`
         TST data.
 
     Raises
@@ -2004,12 +2049,12 @@ def _compute_sleep_efficiency(sleep_summary: pd.DataFrame, *args) -> pd.Series:
 
     Parameters
     ----------
-    sleep_summary : pd.DataFrame
+    sleep_summary : :class:`pd.DataFrame`
         Sleep summary data.
 
     Returns
     -------
-    pd.Series
+    :class:`pd.Series`
         SE data.
 
     Raises
@@ -2056,6 +2101,29 @@ def _compute_sleep_efficiency(sleep_summary: pd.DataFrame, *args) -> pd.Series:
 def _compute_sleep_maintenance_efficiency(
     sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame
 ) -> pd.Series:
+    """Compute Sleep Maintenance efficiency (SME) metric for sleep data.
+
+    This function computes the SME as the ratio between
+    the sum of all non-wake sleep stages (N1+N2+N2+REM)
+    and Sleep Period Time (SPT).
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pd.DataFrame`
+        Sleep summary data.
+    sleep_stages : :class:`pd.DataFrame`
+        Sleep stages data.
+
+    Returns
+    -------
+    :class:`pd.Series`
+        SME data.
+
+    Raises
+    ------
+    ValueError
+        If `sleep_summary` is not a :class:`pd.DataFrame`.
+    """
     if not isinstance(sleep_summary, pd.DataFrame):
         raise ValueError(
             f"sleep_summary must be a pd.DataFrame. {type(sleep_summary)} is not a valid type."
@@ -2091,6 +2159,31 @@ def _compute_sleep_maintenance_efficiency(
 def _compute_sleep_stage_percentage(
     sleep_summary: pd.DataFrame, sleep_stage: str
 ) -> pd.Series:
+    """Compute the percentage of time spent in a sleep stage.
+
+    This function computes the percentage of time in a sleep stage
+    as the ratio between the time spent in it and the sum of the
+    time spent sleeping 
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pd.DataFrame`
+        Sleep summary data.
+    sleep_stage : :class:`str`
+        Name of the sleep stage of interest.
+
+    Returns
+    -------
+    :class:`pd.Series`
+        Percentage of time spent in `sleep_stage` per night.
+
+    Raises
+    ------
+    ValueError
+        If `sleep_summary` is not a :class:`pd.DataFrame`.
+    ValueError
+        if `sleep_stage` isn't one of "N1","N3","REM","NREM".
+    """
     if not isinstance(sleep_summary, pd.DataFrame):
         raise ValueError(
             f"sleep_summary must be a pd.DataFrame. {type(sleep_summary)} is not a valid type."
@@ -2144,28 +2237,132 @@ def _compute_sleep_stage_percentage(
 
 
 def _compute_n1_percentage(sleep_summary: pd.DataFrame, *args) -> pd.Series:
+    """Compute the percentage of time spent in the N1 sleep stage.
+
+    This function computes the percentage of time in N1
+    as the ratio between the time spent in it and the sum of the
+    time spent sleeping.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pd.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    :class:`pd.Series`
+        Percentage of time spent in N1 per night.
+    """
     return _compute_sleep_stage_percentage(sleep_summary, "N1")
 
 
 def _compute_n2_percentage(sleep_summary: pd.DataFrame, *args) -> pd.Series:
+    """Compute the percentage of time spent in the N2 sleep stage.
+
+    This function computes the percentage of time in N2
+    as the ratio between the time spent in it and the sum of the
+    time spent sleeping.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pd.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    :class:`pd.Series`
+        Percentage of time spent in N2 per night.
+    """
     return pd.Series(np.nan, sleep_summary.index)
 
 
 def _compute_n3_percentage(sleep_summary: pd.DataFrame, *args) -> pd.Series:
+    """Compute the percentage of time spent in the N3 sleep stage.
+
+    This function computes the percentage of time in N3
+    as the ratio between the time spent in it and the sum of the
+    time spent sleeping.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pd.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    :class:`pd.Series`
+        Percentage of time spent in N3 per night.
+    """
     return _compute_sleep_stage_percentage(sleep_summary, "N3")
 
 
 def _compute_rem_percentage(sleep_summary: pd.DataFrame, *args) -> pd.Series:
+    """Compute the percentage of time spent in the REM sleep stage.
+
+    This function computes the percentage of time in REM
+    as the ratio between the time spent in it and the sum of the
+    time spent sleeping.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pd.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    :class:`pd.Series`
+        Percentage of time spent in REM per night.
+    """
     return _compute_sleep_stage_percentage(sleep_summary, "REM")
 
 
 def _compute_nrem_percentage(sleep_summary: pd.DataFrame, *args) -> pd.Series:
+    """Compute the percentage of time spent in the NREM sleep stage.
+
+    This function computes the percentage of time in NREM
+    as the ratio between the time spent in it and the sum of the
+    time spent sleeping.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pd.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    :class:`pd.Series`
+        Percentage of time spent in NREM per night.
+    """
     return _compute_sleep_stage_percentage(sleep_summary, "NREM")
 
 
 def _compute_sleep_stage_duration(
     sleep_summary: pd.DataFrame, sleep_stage: str
 ) -> pd.Series:
+    """Compute the duration of a specified sleep stage.
+
+    This function computes the time spent (in minutes)
+    in a specific sleep stage.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pd.DataFrame`
+        Sleep summary data.
+    sleep_stage : :class:`str`
+        Name of a sleep stage.
+
+    Returns
+    -------
+    :class:`pd.Series`
+        Amount of minutes spent in `sleep_stage` per night.
+
+    Raises
+    ------
+    ValueError
+        If `sleep_summary` is not a :class:`pd.DataFrame`.
+    ValueError
+        if `sleep_stage` isn't one of "N1","N3","REM","NREM","AWAKE","UNMEASURABLE".
+    """
     if not isinstance(sleep_summary, pd.DataFrame):
         raise ValueError(
             f"sleep_summary must be a pd.DataFrame. {type(sleep_summary)} is not a valid type."
@@ -2200,30 +2397,114 @@ def _compute_sleep_stage_duration(
 
 
 def _compute_n1_duration(sleep_summary: pd.DataFrame, *args) -> pd.Series:
+    """Compute the duration of the N1 sleep stage.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pd.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    :class:`pd.Series`
+        Amount of minutes spent in N1 per night.
+    """
     return _compute_sleep_stage_duration(sleep_summary, "N1")
 
 
 def _compute_n2_duration(sleep_summary: pd.DataFrame, *args) -> pd.Series:
+    """Compute the duration of the N2 sleep stage.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pd.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    :class:`pd.Series`
+        Amount of minutes spent in N2 per night.
+    """
     return pd.Series(np.nan, index=sleep_summary.index)
 
 
 def _compute_n3_duration(sleep_summary: pd.DataFrame, *args) -> pd.Series:
+    """Compute the duration of the N3 sleep stage.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pd.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    :class:`pd.Series`
+        Amount of minutes spent in N3 per night.
+    """
     return _compute_sleep_stage_duration(sleep_summary, "N3")
 
 
 def _compute_rem_duration(sleep_summary: pd.DataFrame, *args) -> pd.Series:
+    """Compute the duration of the REM sleep stage.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pd.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    :class:`pd.Series`
+        Amount of minutes spent in REM per night.
+    """
     return _compute_sleep_stage_duration(sleep_summary, "REM")
 
 
 def _compute_nrem_duration(sleep_summary: pd.DataFrame, *args) -> pd.Series:
+    """Compute the duration of the NREM sleep stages.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pd.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    :class:`pd.Series`
+        Amount of minutes spent in NREM per night.
+    """
     return _compute_sleep_stage_duration(sleep_summary, "NREM")
 
 
 def _compute_awake_duration(sleep_summary: pd.DataFrame, *args) -> pd.Series:
+    """Compute the amount of time spent awake during the night
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pd.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    :class:`pd.Series`
+        Amount of minutes spent in awake per night.
+    """
     return _compute_sleep_stage_duration(sleep_summary, "AWAKE")
 
 
 def _compute_unmeasurable_duration(sleep_summary: pd.DataFrame, *args) -> pd.Series:
+    """Compute the duration of unmeasurable sleep in a night.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pd.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    :class:`pd.Series`
+        Amount of minutes where sleep was unmeasurable per night.
+    """
     return _compute_sleep_stage_duration(sleep_summary, "UNMEASURABLE")
 
 
@@ -2534,8 +2815,7 @@ def get_sleep_statistic(
     data_dict = {}
     if average:
         average_dict = {}
-    if isinstance(user_id, str):
-        user_id = [user_id]
+    user_id = utils.get_user_ids(loader, user_id)
 
     for user in user_id:
         # Load sleep summary data
@@ -2732,8 +3012,7 @@ def get_sleep_statistics(
     data_dict = {}
     if average:
         average_dict = {}
-    if isinstance(user_id, str):
-        user_id = [user_id]
+    user_id = utils.get_user_ids(loader, user_id)
 
     for user in user_id:
         # Load sleep summary data
