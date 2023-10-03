@@ -819,6 +819,8 @@ def get_sleep_summary_graph(
         assertion_msg = "Must specify chronotype when plotting circadian measures"
         assert chronotype_sleep_start is not None and chronotype_sleep_end is not None, assertion_msg
     
+    user_id = loader.get_full_id(user_id)
+
     # Define parameters for plotting
     ALPHA = alpha
     POSITION = 1.3
