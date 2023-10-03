@@ -234,16 +234,16 @@ def get_cardiac_line_graph_and_stats(
     # get time series
     dates, rest_hr = zip(
         *cardiac.get_rest_heart_rate(loader, 
+                                     user_id,
                                      start_date, 
-                                     end_date, 
-                                     user_id)[user_id].items()
+                                     end_date)[user_id].items()
     )
     # avg_hr = list(cardiac.get_avg_heart_rate(loader,start_date,end_date,user)[user].values())
     max_hr = list(
         cardiac.get_max_heart_rate(loader,
+                                   user_id,
                                    start_date,
-                                   end_date, 
-                                   user_id)[user_id].values()
+                                   end_date)[user_id].values()
     )
 
     # plotting
@@ -1112,17 +1112,17 @@ def get_sleep_summary_graph(
             sleep_metric = metrics[k]
             # we get data for cpd antecedent to the period of interest so that we may have a NR already set in some cases
             cpd_dict = sleep.get_cpd(loader,
-                                            start_date-datetime.timedelta(days=30),
-                                            end_date,
-                                            loader.get_full_id(user_id),
-                                            days_to_consider=1000,
-                                            average=False,
-                                            sleep_metric=sleep_metric,
-                                            chronotype_sleep_start=chronotype_sleep_start,
-                                            chronotype_sleep_end=chronotype_sleep_end)
+                                     user_id,
+                                     start_date-datetime.timedelta(days=30),
+                                     end_date,
+                                     days_to_consider=1000,
+                                     average=False,
+                                     sleep_metric=sleep_metric,
+                                     chronotype_sleep_start=chronotype_sleep_start,
+                                     chronotype_sleep_end=chronotype_sleep_end)
             cpd_trend = utils.trend_analysis(cpd_dict,
-                                            start_date-datetime.timedelta(days=30),
-                                            end_date)
+                                             start_date-datetime.timedelta(days=30),
+                                             end_date)
             # filter out to keep appropriate period
             cpd_trend = cpd_trend[cpd_trend.index.isin(time_period)]
 
@@ -1489,7 +1489,7 @@ def plot_trend_analysis(
     ax.set_ylabel(ylabel, fontsize=fontsize)
     ax.set_title(title, fontsize=fontsize + 2)
     if show_legend:
-        plt.legend(loc="best")
+        plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
     if save_to:
         plt.savefig(save_to, bbox_inches="tight")
     if show:
