@@ -466,7 +466,7 @@ def get_stress_grid_and_stats(
     
     # get stats
     dates, metrics = zip(
-        *stress.get_daily_stress_statistics(loader, start_date, end_date, user_id)[
+        *stress.get_daily_stress_statistics(loader, user_id, start_date, end_date)[
             user_id
         ].items()
     )
