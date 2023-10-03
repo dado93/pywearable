@@ -16,25 +16,12 @@ _LABFRONT_TODO_STRING = "todo"
 _LABFRONT_GARMIN_CONNECT_CALENDAR_DAY_COL = "calendarDate"
 _MS_TO_HOURS_CONVERSION = 1000 * 60 * 60
 
-"""
-    Args:
-        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        number_of_days (int): How many days the study lasted
-        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
-        user_id (list):  IDs of participants. Defaults to "all".
-        questionnaire_names (list): Name of the questionnaires. Defaults to "all".
-        safe_delta (int): Amount of hours needed to consider two successive filled questionnaires valid. Defaults to 6.
-
-    Returns:
-        dict: Dictionary with adherence data for the participants and questionnaires required.
-    """
-
 
 def get_questionnaire_dict(
     labfront_loader: loader.LabfrontLoader,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    user_id: str = "all",
     questionnaire: str = "all",
     safe_delta: int = 6,
 ):
@@ -64,29 +51,24 @@ def get_questionnaire_dict(
     ----------
     loader : :class:`loader.LabfrontLoader`
         Instance of :class:`loader.LabfrontLoader`.
-    start_date : datetime.datetime or datetime.date or str or None, optional
+    user_id : :class:`str` or :class:`list`, optional
+        Id(s) of user(s) for which adherence has to be computed, by default "all"
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         Start date for questionnaire adherence, by default None
-    end_date : datetime.datetime or datetime.date or str or None, optional
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for questionnaire adherence, by default None
-    user_id : str, optional
-        User(s) for which adherence has to be computed, by default "all"
-    questionnaire : str, optional
+    questionnaire : :class:`str`, optional
         Questionnaire of interest, by default "all"
-    safe_delta : int, optional
+    safe_delta : :class:`int`, optional
         Amount of hours needed to consider valid two successive filled questionnaires, by default 6
 
     Returns
     -------
-    dict
+    :class:`dict`
         Dictionary with user_id as key, then a nested dictionary
         with questionnaire name as key, and number of filled
         questionnaires (`n_filled`) and `taskScheduleRepeat`
         as keys with their correspondent values.
-
-    Raises
-    ------
-    TypeError
-        If parameters are not of correct type.
     """
 
     adherence_dict = {}
@@ -142,12 +124,12 @@ def get_questionnaire_dict(
                 # need to understand if the questionnaire is repeatable
                 # we do this by iterating through all users
                 is_repeatable = None
-                for user in labfront_loader.get_user_ids():
+                for full_user in labfront_loader.get_full_ids():
                     try:
                         is_repeatable = utils.is_task_repeatable(
                             (
                                 labfront_loader.data_path
-                                / labfront_loader.get_full_id(user)
+                                / full_user
                                 / constants._QUESTIONNAIRE_FOLDER
                                 / quest
                             )
@@ -164,12 +146,12 @@ def get_questionnaire_dict(
 
 
 def get_questionnaire_adherence(
-    loader,
-    number_of_days,
-    start_date=None,
-    end_date=None,
-    user_id="all",
-    questionnaire_names="all",
+    loader : loader.LabfrontLoader,
+    number_of_days : int,
+    user_id : Union[str, list] = "all",
+    start_date : Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date : Union[datetime.datetime, datetime.date, str, None] = None,
+    questionnaire_names = "all",
     safe_delta=6,
     return_percentage=True,
 ):
@@ -200,7 +182,7 @@ def get_questionnaire_adherence(
     -------
         :class:`dict`
             Adherence dictionary containing the percentages of adherence
-            with respect to the requirements for the questionaries and
+            with respect to the requirements for the questionnaires and
             users of interest.
     """
 
