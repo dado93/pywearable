@@ -77,6 +77,8 @@ def get_questionnaire_dict(
 
     if questionnaire == "all":
         questionnaire = labfront_loader.get_available_questionnaires()
+    elif isinstance(questionnaire, str):
+        questionnaire = [labfront_loader.get_task_full_id(questionnaire)]
 
     if not (isinstance(user_id, list) and isinstance(questionnaire, list)):
         raise TypeError("user id and questionnaire_names have to be lists.")
@@ -165,12 +167,12 @@ def get_questionnaire_adherence(
             Instance of `LabfrontLoader`.
         number_of_days: :class:`int`
             Total number of days over which adherence must be computed.
+        user_id: :class:`list` or :class:`str`, optional
+            List of the user IDs of interest, by default "all".
         start_date: :class:`datetime.datetime`, optional
             Start date from which data have to be extracted, by default None.
         end_date: :class:`datetime.datetime`, optional
             End date from which data have to be extracted, by default None.
-        user_id: :class:`list` or :class:`str`, optional
-            List of the user IDs of interest, by default "all".
         questionnaire_names: :class:`list`, optional
             List of the questionnaires of interest, by default "all".
         safe_delta: :class:`int`, optional
