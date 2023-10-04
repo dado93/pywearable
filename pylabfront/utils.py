@@ -4,15 +4,14 @@ This module contains utility functions that don't directly load/compute metrics.
 
 import datetime
 import time
-import hrvanalysis
 from cmath import phase, rect
 from math import degrees, radians
 from typing import Union
 
-import pylabfront.loader as loader
 import dateutil.parser
-import pandas as pd
+import hrvanalysis
 import numpy as np
+import pandas as pd
 
 _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY = "lastSampleUnixTimestampInMs"
 _LABFRONT_QUESTIONNAIRE_STRING = "questionnaire"
@@ -53,11 +52,8 @@ def check_date(
         raise ValueError(f"{type(date)} is not valid.")
 
 
-def get_user_ids(
-    labfront_loader : loader.LabfrontLoader, 
-    user_id: Union[str, list]
-):
-    """ Returns user ids in the appropriate format required by pylabfront functions
+def get_user_ids(labfront_loader, user_id: Union[str, list]):
+    """Returns user ids in the appropriate format required by pylabfront functions
 
     Parameters
     ----------
@@ -290,14 +286,17 @@ def mean_time(times):
     m, s = divmod(m, 60)
     return "%02i:%02i" % (h, m)
 
-def filter_bbi(bbi,
-               remove_outliers=True,
-               remove_ectopic=True,
-               verbose=False,
-               low_rri=300,
-               high_rri=2000,
-               ectopic_method="malik",
-               interpolation_method="linear"):
+
+def filter_bbi(
+    bbi,
+    remove_outliers=True,
+    remove_ectopic=True,
+    verbose=False,
+    low_rri=300,
+    high_rri=2000,
+    ectopic_method="malik",
+    interpolation_method="linear",
+):
     """Get filtered bbi data.
 
     This function returns bbi data filtered out from outliers and/or ectopic beats.
@@ -322,25 +321,23 @@ def filter_bbi(bbi,
         method used to interpolate missing values after the removal of outliers/ectopic beats, by default "linear"
     """
     if remove_outliers:
-        bbi  = hrvanalysis.remove_outliers(bbi,
-                                           low_rri=low_rri,
-                                           high_rri=high_rri,
-                                           verbose=verbose)
-        bbi = hrvanalysis.interpolate_nan_values(bbi,
-                                                 interpolation_method=interpolation_method)
+        bbi = hrvanalysis.remove_outliers(
+            bbi, low_rri=low_rri, high_rri=high_rri, verbose=verbose
+        )
+        bbi = hrvanalysis.interpolate_nan_values(
+            bbi, interpolation_method=interpolation_method
+        )
     if remove_ectopic:
-        bbi = hrvanalysis.remove_ectopic_beats(bbi,
-                                               method=ectopic_method,
-                                               verbose=verbose)
-        bbi = hrvanalysis.interpolate_nan_values(bbi,
-                                                 interpolation_method=interpolation_method)
+        bbi = hrvanalysis.remove_ectopic_beats(
+            bbi, method=ectopic_method, verbose=verbose
+        )
+        bbi = hrvanalysis.interpolate_nan_values(
+            bbi, interpolation_method=interpolation_method
+        )
     return bbi
 
 
-def filter_out_awake_bbi(loader,
-                          user,
-                          bbi_df,
-                          date):
+def filter_out_awake_bbi(loader, user, bbi_df, date):
     """Filters out night bbi data relative to periods where the user was awake
 
     Parameters
@@ -357,29 +354,37 @@ def filter_out_awake_bbi(loader,
     Returns
     -------
     pandas.DataFrame
-    DataFrame in the same format of `bbi_df`, including only bbi data of periods when the participant is asleep. 
+    DataFrame in the same format of `bbi_df`, including only bbi data of periods when the participant is asleep.
     """
-    hypnogram = loader.load_hypnogram(user,date)
+    hypnogram = loader.load_hypnogram(user, date)
     hypnogram["stages_diff"] = np.concatenate(
-                        [
-                            [0],
-                            hypnogram.iloc[1:, :].stage.values
-                            - hypnogram.iloc[:-1, :].stage.values,
-                        ]
-                    )
+        [
+            [0],
+            hypnogram.iloc[1:, :].stage.values - hypnogram.iloc[:-1, :].stage.values,
+        ]
+    )
     # if there has been a negative change and the current stage is awake, then count it as awakening start
     hypnogram["awakening_start"] = np.logical_and(
-                        hypnogram.stage == 0, hypnogram.stages_diff < 0
-                    )
+        hypnogram.stage == 0, hypnogram.stages_diff < 0
+    )
     # if there has been a positive change and the previous stage was awake, then count it as awakening end
-    hypnogram["awakening_end"] = np.concatenate([
-        [0],
-        np.logical_and((hypnogram.iloc[:-1, :].stage == 0).values, (hypnogram.iloc[1:, :].stages_diff > 0).values)
-    ])
-    relevant_rows = hypnogram.loc[np.logical_or(hypnogram.awakening_start==1, hypnogram.awakening_end==1)][:20]
+    hypnogram["awakening_end"] = np.concatenate(
+        [
+            [0],
+            np.logical_and(
+                (hypnogram.iloc[:-1, :].stage == 0).values,
+                (hypnogram.iloc[1:, :].stages_diff > 0).values,
+            ),
+        ]
+    )
+    relevant_rows = hypnogram.loc[
+        np.logical_or(hypnogram.awakening_start == 1, hypnogram.awakening_end == 1)
+    ][:20]
     awakening_starts = relevant_rows.isoDate.iloc[::2].values
     awakening_ends = relevant_rows.isoDate.iloc[1::2].values
-    for awakening_start, awakening_end in zip(awakening_starts,awakening_ends):
-        bbi_df = bbi_df.loc[(bbi_df.index < awakening_start) | (bbi_df.index > awakening_end)]
+    for awakening_start, awakening_end in zip(awakening_starts, awakening_ends):
+        bbi_df = bbi_df.loc[
+            (bbi_df.index < awakening_start) | (bbi_df.index > awakening_end)
+        ]
 
     return bbi_df
