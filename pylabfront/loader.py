@@ -186,7 +186,7 @@ class LabfrontLoader:
             # Check if we have duplicates
             if self.ids.count(id) > 1:
                 raise ValueError(
-                    f"Multiple users exist with ID {id}. Specificy either Labfront ID or full ID."
+                    f"Multiple users exist with ID {id}. Specify either Labfront ID or full ID."
                 )
             return id + "_" + self.ids_dict[id]
         elif id in self.labfront_ids:

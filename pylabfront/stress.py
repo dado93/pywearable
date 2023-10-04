@@ -7,7 +7,9 @@ import pylabfront.utils as utils
 import pylabfront.sleep as sleep
 import pandas as pd
 import numpy as np
+import datetime
 from . import loader
+from typing import Union
 from datetime import timedelta
 
 _LABFRONT_ISO_DATE_KEY = "isoDate"
@@ -26,17 +28,30 @@ _LABFRONT_STRESS_SCORE_KEY = "stressQualifier"
 _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL = "calendarDate"
 
 
-def get_body_battery(loader, start_date=None, end_date=None, user_id="all"):
-    """Get body battery time series for a given period
+def get_body_battery(
+    loader : loader.LabfrontLoader, 
+    user_id : Union[str, list] = "all",
+    start_date : Union[datetime.datetime, datetime.date, str, None] = None, 
+    end_date : Union[datetime.datetime, datetime.date, str, None] = None
+) -> dict:
+    """Gets body battery time series
 
-    Args:
-        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
-        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
-        user_id (str, optional): ID of the participants. Defaults to "all".
+    Parameters
+    ----------
+    loader : loader.LabfrontLoader
+        An instance of a data loader
+    user_id : Union[str, list], optional
+        The id(s) for which body battery must be retrieved, by default "all"
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None
 
-    Returns:
-        dict: Dictionary with participant id(s) as key(s), and body battery time series as value(s).
+    Returns
+    -------
+    :class:`dict`
+        Dictionary with user IDs as primary keys, 
+        and body battery time series as values.
     """
 
     data_dict = {}
@@ -55,17 +70,30 @@ def get_body_battery(loader, start_date=None, end_date=None, user_id="all"):
     return data_dict
 
 
-def get_stress(loader, start_date=None, end_date=None, user_id="all"):
+def get_stress(
+    loader : loader.LabfrontLoader,
+    user_id : Union[str, list] = "all",
+    start_date : Union[datetime.datetime, datetime.date, str, None] = None, 
+    end_date : Union[datetime.datetime, datetime.date, str, None] = None, 
+):
     """Get stress time series for a given period.
 
-    Args:
-        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
-        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
-        user_id (str, optional): ID of the participants. Defaults to "all".
+    Parameters
+    ----------
+    loader: :class:`pylabfront.loader.LabfrontLoader`
+        An instance of a data loader.
+    user_id : Union[str, list], optional
+        The id(s) for which stress must be retrieved, by default "all"
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None
 
     Returns:
-        dict: Dictionary with participant id(s) as key(s), and stress time series as value(s).
+    --------
+    :class:`dict`
+        Dictionary with participant id(s) as key(s), 
+        and stress time series as value(s).
         Stress values of -1,-2 are included in the series.
     """
 
@@ -86,19 +114,31 @@ def get_stress(loader, start_date=None, end_date=None, user_id="all"):
 
 
 def get_daily_stress_statistics(
-    loader, start_date=None, end_date=None, user_id="all", entire_period=False
+    loader : loader.LabfrontLoader, 
+    user_id : Union[str, list] = "all", 
+    start_date : Union[datetime.datetime, datetime.date, str, None] = None, 
+    end_date : Union[datetime.datetime, datetime.date, str, None] = None, 
+    entire_period : bool = False
 ):
     """Get avg/max statistics for daily stress.
 
-    Args:
-        loader: (:class:`pylabfront.loader.LabfrontLoader`): Instance of `LabfrontLoader`.
-        start_date (:class:`datetime.datetime`, optional): Start date from which data should be extracted. Defaults to None.
-        end_date (:class:`datetime.datetime`, optional): End date from which data should be extracted. Defaults to None.
-        user_id (str, optional): ID of the participants. Defaults to "all".
-        entire_period (bool, optional): Indication if statistics are computed over the entire period, not daily. Defaults to False.
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.LabfrontLoader`
+        Instance of `LabfrontLoader`.
+    user_id : Union[str, list], optional
+        The id(s) for which stress statistics must be retrieved, by default "all"
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None
+    entire_period : :class:`bool`, optional 
+        Whether statistics are computed over the entire period, not daily. Defaults to False.
 
     Returns:
-        dict: Dictionary reporting information about daily levels of stress.
+    --------
+    :class:`dict` 
+        Dictionary reporting information about daily levels of stress.
     """
 
     data_dict = {}
@@ -637,36 +677,42 @@ def get_max_body_battery(loader, start_date, end_date, user_id="all"):
 
     return data_dict
 
-def get_daily_average_stress(loader, start_date=None, end_date=None, user_id="all"):
+def get_daily_average_stress(loader : loader.LabfrontLoader, 
+                             user_id : Union[str, list] = "all",
+                             start_date : Union[datetime.datetime, datetime.date, str, None] = None, 
+                             end_date : Union[datetime.datetime, datetime.date, str, None] = None):
     
-    daily_stress_stats = get_daily_stress_statistics(loader,start_date, end_date, user_id)
+    daily_stress_stats = get_daily_stress_statistics(loader, user_id, start_date, end_date)
     
     data_dict = {}
 
-    for user_id in daily_stress_stats.keys():
-        if daily_stress_stats[user_id] is None:
-            data_dict[user_id] = None
+    for user in daily_stress_stats.keys():
+        if daily_stress_stats[user] is None:
+            data_dict[user] = None
         else:
-            data_dict[user_id] = {k.date():v[0] for k,v in daily_stress_stats[user_id].items()}
+            data_dict[user] = {k.date():v[0] for k,v in daily_stress_stats[user].items()}
         
     return data_dict
     
-def get_waking_body_battery(labfront_loader, start_date=None, end_date=None, user_id="all"):
+def get_waking_body_battery(loader : loader.LabfrontLoader, 
+                            user_id : Union[str, list] = "all",
+                            start_date : Union[datetime.datetime, datetime.date, str, None] = None, 
+                            end_date : Union[datetime.datetime, datetime.date, str, None] = None):
 
     data_dict = {}
 
-    user_id = utils.get_user_ids(labfront_loader, user_id)
+    user_id = utils.get_user_ids(loader, user_id)
 
     for user in user_id:
         data_dict[user] = {}
         sleep_timestamps = sleep.get_sleep_timestamps(
-            labfront_loader, start_date, end_date, user
+            loader, user, start_date, end_date
         )[user]
         if not (sleep_timestamps is None):
             for k, v in sleep_timestamps.items():
                 sleep_onset, awake_time = v[0], v[1]
 
-                df = labfront_loader.load_garmin_connect_stress(
+                df = loader.load_garmin_connect_stress(
                     user, sleep_onset, awake_time
                 )
                 if len(df) == 0:
@@ -683,22 +729,25 @@ def get_waking_body_battery(labfront_loader, start_date=None, end_date=None, use
 
     return data_dict
 
-def get_body_battery_starting_sleep(labfront_loader, start_date=None, end_date=None, user_id="all"):
+def get_body_battery_starting_sleep(loader : loader.LabfrontLoader,
+                                    user_id : Union[str, list] = "all",
+                                    start_date : Union[datetime.datetime, datetime.date, str, None] = None, 
+                                    end_date : Union[datetime.datetime, datetime.date, str, None] = None):
 
     data_dict = {}
 
-    user_id = utils.get_user_ids(labfront_loader, user_id)
+    user_id = utils.get_user_ids(loader, user_id)
 
     for user in user_id:
         data_dict[user] = {}
         sleep_timestamps = sleep.get_sleep_timestamps(
-            labfront_loader, start_date, end_date, user
+            loader, user, start_date, end_date
         )[user]
         if not (sleep_timestamps is None):
             for k, v in sleep_timestamps.items():
                 sleep_onset, awake_time = v[0], v[1]
 
-                df = labfront_loader.load_garmin_connect_stress(
+                df = loader.load_garmin_connect_stress(
                     user, sleep_onset, awake_time
                 )
                 if len(df) == 0:

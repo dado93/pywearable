@@ -9,6 +9,7 @@ from cmath import phase, rect
 from math import degrees, radians
 from typing import Union
 
+import pylabfront.loader as loader
 import dateutil.parser
 import pandas as pd
 import numpy as np
@@ -52,7 +53,24 @@ def check_date(
         raise ValueError(f"{type(date)} is not valid.")
 
 
-def get_user_ids(labfront_loader, user_id: Union[str, list]):
+def get_user_ids(
+    labfront_loader : loader.LabfrontLoader, 
+    user_id: Union[str, list]
+):
+    """ Returns user ids in the appropriate format required by pylabfront functions
+
+    Parameters
+    ----------
+    labfront_loader : :class:`loader.LabfrontLoader`
+        An instance of a data loader
+    user_id : :class:`str` or :class:`list`
+        The id(s) of the user(s9) of interest
+
+    Returns
+    -------
+    list
+        List of all the full user ids of interest.
+    """
     if user_id == "all":
         user_id = labfront_loader.get_full_ids()
 
