@@ -9,7 +9,6 @@ from cmath import phase, rect
 from math import degrees, radians
 from typing import Union
 
-import pylabfront.loader as loader
 import dateutil.parser
 import pandas as pd
 import numpy as np
@@ -54,9 +53,9 @@ def check_date(
 
 
 def get_user_ids(
-    labfront_loader : loader.LabfrontLoader, 
+    labfront_loader, 
     user_id: Union[str, list]
-):
+) -> list:
     """ Returns user ids in the appropriate format required by pylabfront functions
 
     Parameters

@@ -557,7 +557,7 @@ def get_sleep_battery_recovery(
     for user in user_id:
         data_dict[user] = {}
         sleep_timestamps = sleep.get_sleep_timestamps(
-            labfront_loader, start_date, end_date, user
+            labfront_loader, user, start_date, end_date
         )[user]
         if not (sleep_timestamps is None):
             for k, v in sleep_timestamps.items():
