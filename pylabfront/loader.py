@@ -1838,7 +1838,7 @@ class LabfrontLoader:
         user_id: str,
         start_date: Union[str, datetime.date, datetime.datetime],
         end_date: Union[str, datetime.date, datetime.datetime, None],
-        resolution: int = 1,
+        resolution: float = 1,
         map_hypnogram: bool = True,
     ) -> pd.DataFrame:
         """Load hypnogram for given user for a given day.
@@ -1957,10 +1957,12 @@ class LabfrontLoader:
             ).tz_localize(None)
 
             intervals = int(
-                divmod((sleep_end_time - sleep_start_time).total_seconds(), 60)[0]
+                divmod(
+                    (sleep_end_time - sleep_start_time).total_seconds(), 60 * resolution
+                )[0]
             )
             time_delta_intervals = [
-                sleep_start_time + i * datetime.timedelta(minutes=1)
+                sleep_start_time + i * datetime.timedelta(minutes=resolution)
                 for i in range(intervals)
             ]
 
