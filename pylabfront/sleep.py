@@ -1460,10 +1460,10 @@ def get_sleep_score(
 
 def get_sleep_timestamps(
     loader: loader.LabfrontLoader,
-    user_id : Union[str, list] = "all",
-    start_date : Union[datetime.datetime, datetime.date, str, None] = None,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average : bool = False,
+    average: bool = False,
 ):
     """Get the timestamps of the beginning and the end of sleep occurrences.
 
@@ -1561,12 +1561,9 @@ def get_sleep_midpoints(
     user_id = utils.get_user_ids(loader, user_id)
 
     for user in user_id:
-        sleep_timestamps = get_sleep_timestamps(loader, 
-                                                user_id = user,
-                                                start_date = start_date,
-                                                end_date = end_date)[
-            user
-        ]
+        sleep_timestamps = get_sleep_timestamps(
+            loader, user_id=user, start_date=start_date, end_date=end_date
+        )[user]
         if sleep_timestamps is None:
             data_dict[user] = None
         else:
@@ -1592,11 +1589,11 @@ def get_sleep_midpoints(
 
 
 def get_awakenings(
-    loader : loader.LabfrontLoader, 
-    user_id : Union[str, list] = "all",
-    start_date : Union[datetime.datetime, datetime.date, str, None] = None, 
-    end_date : Union[datetime.datetime, datetime.date, str, None] = None, 
-    average : bool = False
+    loader: loader.LabfrontLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    average: bool = False,
 ):
     """Get the number of awakenings
 
@@ -1639,27 +1636,19 @@ def get_awakenings(
             df = loader.load_garmin_connect_sleep_summary(user, start_date, end_date)
             nights_available = df[constants._SLEEP_SUMMARY_CALENDAR_DATE_COL]
             for night in nights_available:
-                hypnogram = loader.load_hypnogram(
-                    user, night, night
-                )[night]["values"]
+                hypnogram = loader.load_hypnogram(user, night, night)[night]["values"]
 
                 # TODO do we need hyonogram? Can't we use sleep stages?
-                
+
                 # check if there a difference in stage between successive observations (first one defaults to no change)
-                stages_diff = np.concatenate(
-                    [
-                        [0],
-                        hypnogram[1:]
-                        - hypnogram[:-1]
-                    ]
-                )
+                stages_diff = np.concatenate([[0], hypnogram[1:] - hypnogram[:-1]])
                 # if there has been a negative change and the current stage is awake, then count it as awakening
-                num_awakenings = np.logical_and(
-                    hypnogram == 0, stages_diff < 0
-                ).sum()
+                num_awakenings = np.logical_and(hypnogram == 0, stages_diff < 0).sum()
                 data_dict[user][night] = num_awakenings
             if average:
-                average_dict[user]["AWAKENINGS"] = np.nanmean(list(data_dict[user].values()))
+                average_dict[user]["AWAKENINGS"] = np.nanmean(
+                    list(data_dict[user].values())
+                )
                 average_dict[user]["days"] = [
                     datetime.datetime.strftime(night, "%Y-%m-%d")
                     for night in nights_available
@@ -1673,16 +1662,16 @@ def get_awakenings(
 
 
 def get_cpd(
-    loader : loader.LabfrontLoader,
-    user : Union[str, None] = None,
-    start_date : Union[datetime.datetime, datetime.date, str, None] = None,
-    end_date : Union[datetime.datetime, datetime.date, str, None] = None,
-    sleep_metric : str = "midpoint",
-    chronotype_sleep_start : str = "00:00",
-    chronotype_sleep_end : str = "08:00",
-    days_to_consider : int = 28,
-    verbose : bool = False,
-    average : bool = True,
+    loader: loader.LabfrontLoader,
+    user: Union[str, None] = None,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    sleep_metric: str = "midpoint",
+    chronotype_sleep_start: str = "00:00",
+    chronotype_sleep_end: str = "08:00",
+    days_to_consider: int = 28,
+    verbose: bool = False,
+    average: bool = True,
 ):
     """Computes composite phase deviation (CPD)
 
@@ -1730,7 +1719,7 @@ def get_cpd(
 
     if user is None:
         raise ValueError("Specify a user")
-    
+
     user = loader.get_full_id(user)
 
     if sleep_metric == "midpoint":
@@ -1738,10 +1727,9 @@ def get_cpd(
         chronotype_sleep_midpoint = utils.mean_time(
             [chronotype_sleep_start, chronotype_sleep_end]
         )
-        sleep_midpoints = get_sleep_midpoints(loader,
-                                             user_id = user,
-                                             start_date = start_date,
-                                             end_date = end_date)[user]
+        sleep_midpoints = get_sleep_midpoints(
+            loader, user_id=user, start_date=start_date, end_date=end_date
+        )[user]
 
         previous_midpoint = None
         CPDs = []
@@ -1851,11 +1839,11 @@ def get_cpd(
 
 
 def get_sleep_metric_std(
-    loader : loader.LabfrontLoader,
-    metric : str,
-    user_id : str, 
-    start_date : Union[datetime.datetime, datetime.date, str, None] = None,
-    end_date : Union[datetime.datetime, datetime.date, str, None] = None, 
+    loader: loader.LabfrontLoader,
+    metric: str,
+    user_id: str,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
 ):
     """Calculates standard deviation of a desired sleep metric
 
@@ -1886,14 +1874,15 @@ def get_sleep_metric_std(
         `metric` must valid: support is only for "midpoint" or "duration" in the current version
     """
     if metric == "duration":  # in hours
-        metric_data = get_sleep_period_time(loader, user_id, start_date, end_date)[user_id]
+        metric_data = get_sleep_period_time(loader, user_id, start_date, end_date)[
+            user_id
+        ]
         metric_data = [duration / (1000 * 60 * 60) for duration in metric_data.values()]
     elif metric == "midpoint":  # in hours
         midpoints = list(
-            get_sleep_midpoints(loader, 
-                                user_id = user_id,
-                                start_date = start_date, 
-                                end_date = end_date)[user_id].values()
+            get_sleep_midpoints(
+                loader, user_id=user_id, start_date=start_date, end_date=end_date
+            )[user_id].values()
         )
         # need to check for possible midpoints before midnight
         metric_data = []
@@ -2163,7 +2152,7 @@ def _compute_sleep_stage_percentage(
 
     This function computes the percentage of time in a sleep stage
     as the ratio between the time spent in it and the sum of the
-    time spent sleeping 
+    time spent sleeping
 
     Parameters
     ----------
@@ -2535,6 +2524,7 @@ def _compute_sleep_period_time(
             filtered_sleep_stages[constants._SLEEP_STAGE_SLEEP_TYPE_COL]
             != constants._SLEEP_STAGE_AWAKE_STAGE_VALUE
         ]
+        .reset_index(drop=True)
         .groupby(constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL)
         .apply(sleep_diff)
     )
@@ -2551,19 +2541,44 @@ def _compute_wake_after_sleep_onset(
         raise ValueError(
             f"sleep_stages must be a pd.DataFrame. {type(sleep_stages)} is not a valid type."
         )
+    # Get only sleep stages belonging to the sleep summaries of interest
     filtered_sleep_stages = sleep_stages[
         sleep_stages[constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL].isin(
             sleep_summary.index
         )
     ].reset_index(drop=True)
-    return filtered_sleep_stages[
-        filtered_sleep_stages[constants._SLEEP_STAGE_SLEEP_TYPE_COL]
-        == constants._SLEEP_STAGE_AWAKE_STAGE_VALUE
-    ].groupby(constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL)[
-        constants._SLEEP_SUMMARY_DURATION_IN_MS_COL
-    ].sum() / (
-        1000 * 60
+    # Get first sleep stages that are awake and remove them
+    first_sleep_stages = filtered_sleep_stages.drop_duplicates(
+        subset=[constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL], keep="first"
     )
+    first_sleep_stages = first_sleep_stages[
+        first_sleep_stages[constants._SLEEP_STAGE_SLEEP_TYPE_COL]
+        == constants._SLEEP_STAGE_AWAKE_STAGE_VALUE
+    ]
+    filtered_sleep_stages = filtered_sleep_stages[
+        ~filtered_sleep_stages.index.isin(first_sleep_stages.index)
+    ]
+    # Get last sleep stages that are awake and remove them
+    last_sleep_stages = filtered_sleep_stages.drop_duplicates(
+        subset=[constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL], keep="last"
+    )
+    last_sleep_stages = last_sleep_stages[
+        last_sleep_stages[constants._SLEEP_STAGE_SLEEP_TYPE_COL]
+        == constants._SLEEP_STAGE_AWAKE_STAGE_VALUE
+    ]
+    filtered_sleep_stages = filtered_sleep_stages[
+        ~filtered_sleep_stages.index.isin(last_sleep_stages.index)
+    ]
+    return (
+        filtered_sleep_stages[
+            filtered_sleep_stages[constants._SLEEP_STAGE_SLEEP_TYPE_COL]
+            == constants._SLEEP_STAGE_AWAKE_STAGE_VALUE
+        ]
+        .groupby(constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL)[
+            constants._SLEEP_SUMMARY_DURATION_IN_MS_COL
+        ]
+        .sum()
+    ) / (1000 * 60)
 
 
 def _compute_n1_latency(
