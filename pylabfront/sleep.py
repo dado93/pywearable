@@ -23,7 +23,7 @@ _SLEEP_METRIC_NREM_DURATION = "NREM"
 _SLEEP_METRIC_REM_DURATION = "REM"
 _SLEEP_METRIC_AWAKE_DURATION = "AWAKE"
 _SLEEP_METRIC_UNMEASURABLE_DURATION = "UNMEASURABLE"
-_SLEEP_METRIC_LATENCY_SOL = "SOL"
+_SLEEP_METRIC_SOL = "SOL"
 _SLEEP_METRIC_N1_LATENCY = "Lat_N1"
 _SLEEP_METRIC_N2_LATENCY = "Lat_N2"
 _SLEEP_METRIC_N3_LATENCY = "Lat_N3"
@@ -1446,6 +1446,18 @@ def get_wake_after_sleep_onset(
     )
 
 
+def get_sleep_onset_latency(
+    loader: loader.LabfrontLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    average: bool = False,
+):
+    return get_sleep_statistic(
+        loader, user_id, _SLEEP_METRIC_SOL, start_date, end_date, average
+    )
+
+
 def get_sleep_score(
     loader: loader.LabfrontLoader,
     user_id: Union[str, list] = "all",
@@ -2530,6 +2542,23 @@ def _compute_sleep_period_time(
     )
 
 
+def _compute_sleep_onset_latency(
+    sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame
+) -> pd.Series:
+    if not isinstance(sleep_summary, pd.DataFrame):
+        raise ValueError(
+            f"sleep_summary must be a pd.DataFrame. {type(sleep_summary)} is not a valid type."
+        )
+    if not isinstance(sleep_stages, pd.DataFrame):
+        raise ValueError(
+            f"sleep_stages must be a pd.DataFrame. {type(sleep_stages)} is not a valid type."
+        )
+    latencies = _compute_latencies(sleep_summary, sleep_stages)
+    # Remove awake latency
+    latencies = latencies.drop([constants._SLEEP_STAGE_AWAKE_STAGE_VALUE], axis=1)
+    return latencies.min(axis=1)
+
+
 def _compute_wake_after_sleep_onset(
     sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame
 ) -> pd.Series:
@@ -2746,6 +2775,7 @@ _SLEEP_STATISTICS_DICT = {
     _SLEEP_METRIC_SME: _compute_sleep_maintenance_efficiency,
     _SLEEP_METRIC_SPT: _compute_sleep_period_time,
     _SLEEP_METRIC_WASO: _compute_wake_after_sleep_onset,
+    _SLEEP_METRIC_SOL: _compute_sleep_onset_latency,
     _SLEEP_METRIC_N1_DURATION: _compute_n1_duration,
     _SLEEP_METRIC_N2_DURATION: _compute_n2_duration,
     _SLEEP_METRIC_N3_DURATION: _compute_n3_duration,
@@ -2786,6 +2816,7 @@ def get_sleep_statistic(
         - Time in Bed (``metric="TIB"``)
         - Total Sleep Time (``metric="TST"``)
         - Wake After Sleep Onset (``metric="WASO"``)
+        - Sleep Onset Latency (``metric="SOL"``)
         - Sleep Period Time (``metric="SPT"``)
         - N1 Sleep Duration (``metric="N1"``)
         - N2 Sleep Duration (``metric="N2"``)
@@ -3105,6 +3136,9 @@ def get_sleep_statistics(
             sleep_summary[_SLEEP_METRIC_WASO] = _compute_wake_after_sleep_onset(
                 sleep_summary, sleep_stages
             )
+            sleep_summary[_SLEEP_METRIC_SOL] = _compute_sleep_onset_latency(
+                sleep_summary, sleep_stages
+            )
             latencies = _compute_latencies(sleep_summary, sleep_stages)
             if constants._SLEEP_STAGE_LIGHT_STAGE_VALUE in latencies.columns:
                 sleep_summary[_SLEEP_METRIC_N1_LATENCY] = latencies[
@@ -3133,6 +3167,7 @@ def get_sleep_statistics(
                     _SLEEP_METRIC_TIB,
                     _SLEEP_METRIC_SPT,
                     _SLEEP_METRIC_WASO,
+                    _SLEEP_METRIC_SOL,
                     _SLEEP_METRIC_TST,
                     _SLEEP_METRIC_N1_DURATION,
                     _SLEEP_METRIC_N2_DURATION,
