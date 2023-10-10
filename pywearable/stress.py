@@ -3,14 +3,17 @@ This module contains all the functions related to the analysis
 of Labfront stress data.
 """
 
-import pylabfront.utils as utils
-import pylabfront.sleep as sleep
-import pandas as pd
-import numpy as np
 import datetime
-from . import loader
-from typing import Union
 from datetime import timedelta
+from typing import Union
+
+import numpy as np
+import pandas as pd
+
+import pywearable.sleep as sleep
+import pywearable.utils as utils
+
+from . import loader
 
 _LABFRONT_ISO_DATE_KEY = "isoDate"
 _LABFRONT_BODY_BATTERY_KEY = "bodyBattery"
@@ -29,10 +32,10 @@ _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL = "calendarDate"
 
 
 def get_body_battery(
-    loader : loader.LabfrontLoader, 
-    user_id : Union[str, list] = "all",
-    start_date : Union[datetime.datetime, datetime.date, str, None] = None, 
-    end_date : Union[datetime.datetime, datetime.date, str, None] = None
+    loader: loader.LabfrontLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
 ) -> dict:
     """Gets body battery time series
 
@@ -50,7 +53,7 @@ def get_body_battery(
     Returns
     -------
     :class:`dict`
-        Dictionary with user IDs as primary keys, 
+        Dictionary with user IDs as primary keys,
         and body battery time series as values.
     """
 
@@ -71,10 +74,10 @@ def get_body_battery(
 
 
 def get_stress(
-    loader : loader.LabfrontLoader,
-    user_id : Union[str, list] = "all",
-    start_date : Union[datetime.datetime, datetime.date, str, None] = None, 
-    end_date : Union[datetime.datetime, datetime.date, str, None] = None, 
+    loader: loader.LabfrontLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
 ):
     """Get stress time series for a given period.
 
@@ -92,7 +95,7 @@ def get_stress(
     Returns:
     --------
     :class:`dict`
-        Dictionary with participant id(s) as key(s), 
+        Dictionary with participant id(s) as key(s),
         and stress time series as value(s).
         Stress values of -1,-2 are included in the series.
     """
@@ -114,11 +117,11 @@ def get_stress(
 
 
 def get_daily_stress_statistics(
-    loader : loader.LabfrontLoader, 
-    user_id : Union[str, list] = "all", 
-    start_date : Union[datetime.datetime, datetime.date, str, None] = None, 
-    end_date : Union[datetime.datetime, datetime.date, str, None] = None, 
-    entire_period : bool = False
+    loader: loader.LabfrontLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    entire_period: bool = False,
 ):
     """Get avg/max statistics for daily stress.
 
@@ -132,12 +135,12 @@ def get_daily_stress_statistics(
         Start date for data retrieval, by default None
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None
-    entire_period : :class:`bool`, optional 
+    entire_period : :class:`bool`, optional
         Whether statistics are computed over the entire period, not daily. Defaults to False.
 
     Returns:
     --------
-    :class:`dict` 
+    :class:`dict`
         Dictionary reporting information about daily levels of stress.
     """
 
@@ -572,12 +575,13 @@ def get_sleep_battery_recovery(
                 df = df[~df[_LABFRONT_BODY_BATTERY_KEY].isna()]
                 if len(df) == 0:
                     continue
-                df = df.groupby(_LABFRONT_ISO_DATE_KEY)[_LABFRONT_BODY_BATTERY_KEY].mean().sort_index()
-
-                data_dict[user][k] = int(
-                    df.iloc[-1]
-                    - df.iloc[0]
+                df = (
+                    df.groupby(_LABFRONT_ISO_DATE_KEY)[_LABFRONT_BODY_BATTERY_KEY]
+                    .mean()
+                    .sort_index()
                 )
+
+                data_dict[user][k] = int(df.iloc[-1] - df.iloc[0])
 
     return data_dict
 
@@ -677,28 +681,36 @@ def get_max_body_battery(loader, start_date, end_date, user_id="all"):
 
     return data_dict
 
-def get_daily_average_stress(loader : loader.LabfrontLoader, 
-                             user_id : Union[str, list] = "all",
-                             start_date : Union[datetime.datetime, datetime.date, str, None] = None, 
-                             end_date : Union[datetime.datetime, datetime.date, str, None] = None):
-    
-    daily_stress_stats = get_daily_stress_statistics(loader, user_id, start_date, end_date)
-    
+
+def get_daily_average_stress(
+    loader: loader.LabfrontLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+):
+    daily_stress_stats = get_daily_stress_statistics(
+        loader, user_id, start_date, end_date
+    )
+
     data_dict = {}
 
     for user in daily_stress_stats.keys():
         if daily_stress_stats[user] is None:
             data_dict[user] = None
         else:
-            data_dict[user] = {k.date():v[0] for k,v in daily_stress_stats[user].items()}
-        
-    return data_dict
-    
-def get_waking_body_battery(loader : loader.LabfrontLoader, 
-                            user_id : Union[str, list] = "all",
-                            start_date : Union[datetime.datetime, datetime.date, str, None] = None, 
-                            end_date : Union[datetime.datetime, datetime.date, str, None] = None):
+            data_dict[user] = {
+                k.date(): v[0] for k, v in daily_stress_stats[user].items()
+            }
 
+    return data_dict
+
+
+def get_waking_body_battery(
+    loader: loader.LabfrontLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+):
     data_dict = {}
 
     user_id = utils.get_user_ids(loader, user_id)
@@ -712,28 +724,30 @@ def get_waking_body_battery(loader : loader.LabfrontLoader,
             for k, v in sleep_timestamps.items():
                 sleep_onset, awake_time = v[0], v[1]
 
-                df = loader.load_garmin_connect_stress(
-                    user, sleep_onset, awake_time
-                )
+                df = loader.load_garmin_connect_stress(user, sleep_onset, awake_time)
                 if len(df) == 0:
                     continue
 
                 df = df[~df[_LABFRONT_BODY_BATTERY_KEY].isna()]
                 if len(df) == 0:
                     continue
-                df = df.groupby(_LABFRONT_ISO_DATE_KEY)[_LABFRONT_BODY_BATTERY_KEY].mean().sort_index()
-
-                data_dict[user][k] = int(
-                    df.iloc[-1]
+                df = (
+                    df.groupby(_LABFRONT_ISO_DATE_KEY)[_LABFRONT_BODY_BATTERY_KEY]
+                    .mean()
+                    .sort_index()
                 )
+
+                data_dict[user][k] = int(df.iloc[-1])
 
     return data_dict
 
-def get_body_battery_starting_sleep(loader : loader.LabfrontLoader,
-                                    user_id : Union[str, list] = "all",
-                                    start_date : Union[datetime.datetime, datetime.date, str, None] = None, 
-                                    end_date : Union[datetime.datetime, datetime.date, str, None] = None):
 
+def get_body_battery_starting_sleep(
+    loader: loader.LabfrontLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+):
     data_dict = {}
 
     user_id = utils.get_user_ids(loader, user_id)
@@ -747,19 +761,19 @@ def get_body_battery_starting_sleep(loader : loader.LabfrontLoader,
             for k, v in sleep_timestamps.items():
                 sleep_onset, awake_time = v[0], v[1]
 
-                df = loader.load_garmin_connect_stress(
-                    user, sleep_onset, awake_time
-                )
+                df = loader.load_garmin_connect_stress(user, sleep_onset, awake_time)
                 if len(df) == 0:
                     continue
 
                 df = df[~df[_LABFRONT_BODY_BATTERY_KEY].isna()]
                 if len(df) == 0:
                     continue
-                df = df.groupby(_LABFRONT_ISO_DATE_KEY)[_LABFRONT_BODY_BATTERY_KEY].mean().sort_index()
-
-                data_dict[user][k] = int(
-                    df.iloc[0]
+                df = (
+                    df.groupby(_LABFRONT_ISO_DATE_KEY)[_LABFRONT_BODY_BATTERY_KEY]
+                    .mean()
+                    .sort_index()
                 )
+
+                data_dict[user][k] = int(df.iloc[0])
 
     return data_dict

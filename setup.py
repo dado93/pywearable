@@ -11,9 +11,9 @@ config = {
     "author_email": "davide.marzorati.93@gmail.com",
     "version": "0.1",
     "install_requires": ["nose", "pandas", "yasa", "hrv-analysis", "july"],
-    "packages": ["pylabfront"],
+    "packages": ["pywearable"],
     "scripts": [],
-    "name": "pylabfront",
+    "name": "pywearable",
     "python_requires": ">=3.9.0",
 }
 

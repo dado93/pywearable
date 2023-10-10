@@ -11,8 +11,8 @@ import numpy as np
 import pandas as pd
 import pyhrv
 
-import pylabfront.sleep as sleep
-import pylabfront.utils as utils
+import pywearable.sleep as sleep
+import pywearable.utils as utils
 
 _LABFRONT_SPO2_COLUMN = "spo2"
 
@@ -98,12 +98,7 @@ def get_rest_spO2(
 
 
 def get_cardiac_statistic(
-    loader, 
-    statistic, 
-    user_id="all",
-    start_date=None, 
-    end_date=None, 
-    average=False
+    loader, statistic, user_id="all", start_date=None, end_date=None, average=False
 ):
     """Get a single cardiac summary statistic.
 
@@ -183,11 +178,7 @@ def get_cardiac_statistic(
 
 
 def get_rest_heart_rate(
-    loader, 
-    user_id="all",
-    start_date=None, 
-    end_date=None, 
-    average=False
+    loader, user_id="all", start_date=None, end_date=None, average=False
 ):
     """Get heart rate during sleep.
 
@@ -222,11 +213,7 @@ def get_rest_heart_rate(
 
 
 def get_max_heart_rate(
-    loader,
-    user_id="all",
-    start_date=None,
-    end_date=None, 
-    average=False
+    loader, user_id="all", start_date=None, end_date=None, average=False
 ):
     """Get maximum daily heart rate.
 
@@ -261,11 +248,7 @@ def get_max_heart_rate(
 
 
 def get_min_heart_rate(
-    loader, 
-    user_id="all", 
-    start_date=None, 
-    end_date=None, 
-    average=False
+    loader, user_id="all", start_date=None, end_date=None, average=False
 ):
     """Get minimum daily heart rate.
 
@@ -275,7 +258,7 @@ def get_min_heart_rate(
     ----------
     loader: :class:`pylabfront.loader.Loader`
         Initialized instance of data loader.
-    user_id: :class:`str`, optional 
+    user_id: :class:`str`, optional
         ID of the user for which min heart rate must be computed, by default "all".
     start_date: :class:`datetime.datetime`, optional
         Start date from which min heart rate must be computed, by default None.
@@ -299,11 +282,7 @@ def get_min_heart_rate(
 
 
 def get_avg_heart_rate(
-    loader, 
-    user_id="all",
-    start_date=None, 
-    end_date=None, 
-    average=False
+    loader, user_id="all", start_date=None, end_date=None, average=False
 ):
     """Get average daily heart rate.
 
@@ -331,10 +310,9 @@ def get_avg_heart_rate(
         Dictionary with participant id as primary key, calendar days as secondary keys,
         and average heart rate as value.
     """
-    return get_cardiac_statistic(loader,_LABFRONT_AVG_HR_COLUMN,user_id,start_date,end_date,average)
-
-
-
+    return get_cardiac_statistic(
+        loader, _LABFRONT_AVG_HR_COLUMN, user_id, start_date, end_date, average
+    )
 
 
 def get_hrv_time_domain(
@@ -343,7 +321,8 @@ def get_hrv_time_domain(
     start_date=None,
     end_date=None,
     pyhrv=False,
-    filtering_kwargs={}):
+    filtering_kwargs={},
+):
     """Get time-domain heart rate variability features.
 
     This function returns a dictionary containing for every user of interest
@@ -375,9 +354,9 @@ def get_hrv_time_domain(
 
     for user in user_id:
         try:
-            bbi = loader.load_garmin_device_bbi(user,start_date,end_date).bbi
+            bbi = loader.load_garmin_device_bbi(user, start_date, end_date).bbi
             bbi = utils.filter_bbi(bbi, **filtering_kwargs)
-            if pyhrv: # pyhrv has more features but it's a lot slower
+            if pyhrv:  # pyhrv has more features but it's a lot slower
                 td_features = pyhrv.time_domain.time_domain(bbi).as_dict()
             else:
                 td_features = hrvanalysis.get_time_domain_features(bbi)
@@ -437,7 +416,7 @@ def get_hrv_frequency_domain(
 
     for user in user_id:
         try:
-            bbi = loader.load_garmin_device_bbi(user,start_date,end_date).bbi
+            bbi = loader.load_garmin_device_bbi(user, start_date, end_date).bbi
             bbi = utils.filter_bbi(bbi, **filtering_kwargs)
             if method == "ar":
                 fd_features = pyhrv.frequency_domain.ar_psd(
@@ -513,7 +492,7 @@ def get_hrv_nonlinear_domain(
 
     for user in user_id:
         try:
-            bbi = loader.load_garmin_device_bbi(user,start_date,end_date).bbi
+            bbi = loader.load_garmin_device_bbi(user, start_date, end_date).bbi
             bbi = utils.filter_bbi(bbi, **filtering_kwargs)
             non_linear_features = {}
             non_linear_features |= pyhrv.nonlinear.poincare(
@@ -613,7 +592,7 @@ def get_hrv_features(
 
 def get_night_rmssd(
     loader,
-    user_id="all",  
+    user_id="all",
     start_date=None,
     end_date=None,
     coverage=0.7,

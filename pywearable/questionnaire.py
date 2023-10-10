@@ -4,9 +4,7 @@ from . import constants, loader
 
 
 def process_questionnaire(
-    labfront_loader: loader.LabfrontLoader, 
-    questionnaire: str, 
-    verbose: bool = False
+    labfront_loader: loader.LabfrontLoader, questionnaire: str, verbose: bool = False
 ) -> pd.DataFrame:
     """Process questionnaire to extract answers.
 
