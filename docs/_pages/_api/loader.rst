@@ -1,5 +1,5 @@
 Loader
 ======
 
-.. automodule:: pylabfront.loader
+.. automodule:: pywearable.loader
    :members:

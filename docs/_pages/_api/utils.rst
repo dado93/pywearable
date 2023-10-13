@@ -1,5 +1,5 @@
 Utils
 =====
 
-.. automodule:: pylabfront.utils
+.. automodule:: pywearable.utils
    :members:

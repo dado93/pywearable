@@ -1,5 +1,5 @@
 Adherence
 =========
 
-.. automodule:: pylabfront.adherence
+.. automodule:: pywearable.adherence
    :members:
