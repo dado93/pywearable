@@ -40,6 +40,7 @@ _TODO_FOLDER = "todo"
 # General columns #
 _ISODATE_COL = "isoDate"
 _UNIXTIMESTAMP_IN_MS_COL = "unixTimestampInMs"
+_TIMEZONEOFFSET_IN_MS_COL = "timezoneOFfsetInMs"
 _GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL = "timezoneOffsetInMs"
 _GARMIN_DEVICE_TIMEZONEOFFSET_IN_MS_COL = "timezone"
 _FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL = "firstSampleUnixTimestampInMs"
