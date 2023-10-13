@@ -71,7 +71,9 @@ class LifeSnapsLoader(BaseLoader):
         start_date = utils.convert_to_datetime(start_date)
         end_date = utils.convert_to_datetime(end_date)
         date_of_sleep_key = f"{constants._DB_FITBIT_COLLECTION_DATA_KEY}"
-        date_of_sleep_key += f".{constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DATE_OF_SLEEP_KEY}"
+        date_of_sleep_key += (
+            f".{constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DATE_OF_SLEEP_KEY}"
+        )
         start_sleep_key = f"{constants._DB_FITBIT_COLLECTION_DATA_KEY}"
         start_sleep_key += (
             f".{constants._DB_FITBIT_COLLECTION_SLEEP_DATA_START_TIME_KEY}"
@@ -114,15 +116,9 @@ class LifeSnapsLoader(BaseLoader):
         for sleep_summary in filtered_coll:
             # For each row, save all fields except sleep levels
             filtered_dict = {
-                k: sleep_summary[constants._DB_FITBIT_COLLECTION_DATA_KEY][
-                    k
-                ]
+                k: sleep_summary[constants._DB_FITBIT_COLLECTION_DATA_KEY][k]
                 for k in set(
-                    list(
-                        sleep_summary[
-                            constants._DB_FITBIT_COLLECTION_DATA_KEY
-                        ].keys()
-                    )
+                    list(sleep_summary[constants._DB_FITBIT_COLLECTION_DATA_KEY].keys())
                 )
                 - set(["levels"])
             }
@@ -140,9 +136,7 @@ class LifeSnapsLoader(BaseLoader):
             # Get duration for each sleep stage
             sleep_stages_duration = sleep_stages_df.groupby(
                 constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_LEVEL_KEY
-            )[
-                constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_SECONDS_KEY
-            ].sum()
+            )[constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_SECONDS_KEY].sum()
             # Create dictionary with sleep_stage : duration column name
             stage_value_col_dict = {
                 constants._DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_DEEP_VALUE: constants._SLEEP_DEEP_DURATION_IN_MS_COL,
@@ -167,11 +161,9 @@ class LifeSnapsLoader(BaseLoader):
                     constants._DB_FITBIT_COLLECTION_SLEEP_DATA_START_TIME_KEY: constants._ISODATE_COL
                 }
             )
-            sleep_summary_df[
-                constants._UNIXTIMESTAMP_IN_MS_COL
-            ] = sleep_summary_df[constants._ISODATE_COL].apply(
-                lambda x: int(x.timestamp() * 1000)
-            )
+            sleep_summary_df[constants._UNIXTIMESTAMP_IN_MS_COL] = sleep_summary_df[
+                constants._ISODATE_COL
+            ].apply(lambda x: int(x.timestamp() * 1000))
             sleep_summary_df = sleep_summary_df.sort_values(
                 by=constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DATE_OF_SLEEP_KEY
             ).reset_index(drop=True)
@@ -192,11 +184,9 @@ class LifeSnapsLoader(BaseLoader):
 
     def _merge_sleep_data_and_sleep_short_data(self, sleep_entry: dict) -> pd.DataFrame:
         # Get data
-        sleep_data_dict = sleep_entry[
-            constants._DB_FITBIT_COLLECTION_DATA_KEY
-        ][constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY][
-            constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_KEY
-        ]
+        sleep_data_dict = sleep_entry[constants._DB_FITBIT_COLLECTION_DATA_KEY][
+            constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY
+        ][constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_KEY]
         # Create a pd.DataFrame with sleep data
         sleep_data_df = pd.DataFrame(sleep_data_dict)
         if not (
@@ -206,21 +196,15 @@ class LifeSnapsLoader(BaseLoader):
             ].keys()
         ):
             return sleep_data_df
-        sleep_short_data_list = sleep_entry[
-            constants._DB_FITBIT_COLLECTION_DATA_KEY
-        ][constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY][
-            constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_SHORT_DATA_KEY
-        ]
+        sleep_short_data_list = sleep_entry[constants._DB_FITBIT_COLLECTION_DATA_KEY][
+            constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY
+        ][constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_SHORT_DATA_KEY]
         # Just store column names
         datetime_col = (
             constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_DATETIME_KEY
         )
-        seconds_col = (
-            constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_SECONDS_KEY
-        )
-        level_col = (
-            constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_LEVEL_KEY
-        )
+        seconds_col = constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_SECONDS_KEY
+        level_col = constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_LEVEL_KEY
         # Create a pd.DataFrame with sleep data
 
         # We need to inject sleep short data in data
@@ -338,7 +322,6 @@ class LifeSnapsLoader(BaseLoader):
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
         include_short_data: bool = True,
     ) -> pd.DataFrame:
-        
         # We need to load sleep data -> then levels.data and levels.shortData
         # After getting levels.shortData, we merge everything together
         # with 30 seconds resolution
@@ -388,11 +371,9 @@ class LifeSnapsLoader(BaseLoader):
                 sleep_data_df = self._merge_sleep_data_and_sleep_short_data(sleep_entry)
             else:
                 # Get data
-                sleep_data_dict = sleep_entry[
-                    constants._DB_FITBIT_COLLECTION_DATA_KEY
-                ][constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY][
-                    constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_KEY
-                ]
+                sleep_data_dict = sleep_entry[constants._DB_FITBIT_COLLECTION_DATA_KEY][
+                    constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY
+                ][constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_KEY]
                 # Create a pd.DataFrame with sleep data
                 sleep_data_df = pd.DataFrame(sleep_data_dict)
                 # Add log id to pd.DataFrame
@@ -413,23 +394,19 @@ class LifeSnapsLoader(BaseLoader):
                 utc=True,
             ).dt.tz_localize(None)
             sleep_stage_df = sleep_stage_df.drop(
-                [
-                    constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_DATETIME_KEY
-                ],
+                [constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_DATETIME_KEY],
                 axis=1,
             )
-            sleep_stage_df[
-                constants._UNIXTIMESTAMP_IN_MS_COL
-            ] = sleep_stage_df[constants._ISODATE_COL].apply(
-                lambda x: int(x.timestamp() * 1000)
-            )
+            sleep_stage_df[constants._UNIXTIMESTAMP_IN_MS_COL] = sleep_stage_df[
+                constants._ISODATE_COL
+            ].apply(lambda x: int(x.timestamp() * 1000))
             sleep_stage_df = sleep_stage_df.sort_values(
                 by=constants._UNIXTIMESTAMP_IN_MS_COL
             ).reset_index(drop=True)
             sleep_stage_df[constants._TIMEZONEOFFSET_IN_MS_COL] = 0
         return sleep_stage_df
 
-        def _get_start_and_end_date_time_filter_dict(
+    def _get_start_and_end_date_time_filter_dict(
         self, start_date_key, end_date_key=None, start_date=None, end_date=None
     ) -> dict:
         if end_date_key is None:
