@@ -13,6 +13,8 @@ import hrvanalysis
 import numpy as np
 import pandas as pd
 
+from .loader.base import BaseLoader
+
 _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY = "lastSampleUnixTimestampInMs"
 _LABFRONT_QUESTIONNAIRE_STRING = "questionnaire"
 _LABFRONT_TODO_STRING = "todo"
@@ -61,7 +63,7 @@ def check_start_and_end_dates(
     return True
 
 
-def get_user_ids(labfront_loader, user_id: Union[str, list]):
+def get_user_ids(loader: "BaseLoader", user_id: Union[str, list]):
     """Returns user ids in the appropriate format required by pylabfront functions
 
     Parameters
@@ -77,10 +79,10 @@ def get_user_ids(labfront_loader, user_id: Union[str, list]):
         List of all the full user ids of interest.
     """
     if user_id == "all":
-        user_id = labfront_loader.get_full_ids()
+        user_id = loader.get_full_ids()
 
     elif isinstance(user_id, str):
-        user_id = labfront_loader.get_full_id(user_id)
+        user_id = loader.get_full_id(user_id)
         user_id = [user_id]
 
     elif not isinstance(user_id, list):
@@ -89,7 +91,7 @@ def get_user_ids(labfront_loader, user_id: Union[str, list]):
     return user_id
 
 
-def get_summary(labfront_loader, comparison_date=time.time()):
+def get_summary(loader: "BaseLoader", comparison_date=time.time()):
     """Returns a general summary of the latest update of every metric for every participant
 
     Args:
@@ -101,23 +103,23 @@ def get_summary(labfront_loader, comparison_date=time.time()):
         Entries are NaN if the metric has never been registered for the participant.
     """
 
-    available_metrics = set(labfront_loader.get_available_metrics())
+    available_metrics = set(loader.get_available_metrics())
     available_metrics.discard("todo")
     available_metrics.discard("questionnaire")
     available_metrics = sorted(list(available_metrics))
-    available_questionnaires = labfront_loader.get_available_questionnaires()
-    available_todos = labfront_loader.get_available_todos()
+    available_questionnaires = loader.get_available_questionnaires()
+    available_todos = loader.get_available_todos()
 
     features_dictionary = {}
 
-    for participant_id in sorted(labfront_loader.get_user_ids()):
-        full_participant_id = labfront_loader.get_full_id(participant_id)
+    for participant_id in sorted(loader.get_user_ids()):
+        full_participant_id = loader.get_full_id(participant_id)
         features_dictionary[participant_id] = {}
-        participant_metrics = labfront_loader.get_available_metrics([participant_id])
-        participant_questionnaires = labfront_loader.get_available_questionnaires(
+        participant_metrics = loader.get_available_metrics([participant_id])
+        participant_questionnaires = loader.get_available_questionnaires(
             [participant_id]
         )
-        participant_todos = labfront_loader.get_available_todos([participant_id])
+        participant_todos = loader.get_available_todos([participant_id])
 
         for metric in available_metrics:
             if metric not in participant_metrics:
@@ -125,7 +127,7 @@ def get_summary(labfront_loader, comparison_date=time.time()):
             else:  # figure out how many days since the last update
                 last_unix_times = [
                     v[_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY]
-                    for v in labfront_loader.data_dictionary[full_participant_id][
+                    for v in loader.data_dictionary[full_participant_id][
                         metric
                     ].values()
                 ]
@@ -142,7 +144,7 @@ def get_summary(labfront_loader, comparison_date=time.time()):
             else:
                 last_unix_times = [
                     v[_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY]
-                    for v in labfront_loader.data_dictionary[full_participant_id][
+                    for v in loader.data_dictionary[full_participant_id][
                         _LABFRONT_QUESTIONNAIRE_STRING
                     ][questionnaire].values()
                 ]
@@ -159,7 +161,7 @@ def get_summary(labfront_loader, comparison_date=time.time()):
             else:
                 last_unix_times = [
                     v[_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY]
-                    for v in labfront_loader.data_dictionary[full_participant_id][
+                    for v in loader.data_dictionary[full_participant_id][
                         _LABFRONT_TODO_STRING
                     ][todo].values()
                 ]
