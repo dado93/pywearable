@@ -52,6 +52,15 @@ def check_date(
         raise ValueError(f"{type(date)} is not valid.")
 
 
+def check_start_and_end_dates(
+    start_date: datetime.datetime, end_date: datetime.datetime
+) -> bool:
+    if not ((start_date is None) and (end_date is None)):
+        if end_date < start_date:
+            return False
+    return True
+
+
 def get_user_ids(labfront_loader, user_id: Union[str, list]):
     """Returns user ids in the appropriate format required by pylabfront functions
 
