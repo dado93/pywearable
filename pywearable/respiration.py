@@ -8,8 +8,9 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
-import pylabfront.constants
-import pylabfront.utils as utils
+import pywearable.constants
+import pywearable.utils as utils
+
 from . import loader
 
 _RESPIRATION_DAY = "DAY"
@@ -75,7 +76,7 @@ def get_breaths_per_minute(
             if remove_zero:
                 respiratory_data = respiratory_data[
                     respiratory_data[
-                        pylabfront.constants._RESPIRATION_BREATHS_PER_MINUTE_COL
+                        pywearable.constants._RESPIRATION_BREATHS_PER_MINUTE_COL
                     ]
                     > 0
                 ]
@@ -91,7 +92,7 @@ def get_breaths_per_minute(
                     ].dt.date
                     data_dict[user] = (
                         respiratory_data.groupby("Date")[
-                            pylabfront.constants._RESPIRATION_BREATHS_PER_MINUTE_COL
+                            pywearable.constants._RESPIRATION_BREATHS_PER_MINUTE_COL
                         ]
                         .mean()
                         .to_dict()
@@ -99,8 +100,8 @@ def get_breaths_per_minute(
                 else:
                     data_dict[user] = (
                         respiratory_data.groupby(
-                            pylabfront.constants._RESPIRATION_CALENDAR_DATE_COL
-                        )[pylabfront.constants._RESPIRATION_BREATHS_PER_MINUTE_COL]
+                            pywearable.constants._RESPIRATION_CALENDAR_DATE_COL
+                        )[pywearable.constants._RESPIRATION_BREATHS_PER_MINUTE_COL]
                         .mean()
                         .to_dict()
                     )

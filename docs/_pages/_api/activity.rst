@@ -1,5 +1,5 @@
 Activity
 ========
 
-.. automodule:: pylabfront.activity
+.. automodule:: pywearable.activity
    :members:

@@ -4,14 +4,16 @@ This module contains utility functions that don't directly load/compute metrics.
 
 import datetime
 import time
-import hrvanalysis
 from cmath import phase, rect
 from math import degrees, radians
 from typing import Union
 
 import dateutil.parser
-import pandas as pd
+import hrvanalysis
 import numpy as np
+import pandas as pd
+
+from .loader.base import BaseLoader
 
 _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY = "lastSampleUnixTimestampInMs"
 _LABFRONT_QUESTIONNAIRE_STRING = "questionnaire"
@@ -52,11 +54,16 @@ def check_date(
         raise ValueError(f"{type(date)} is not valid.")
 
 
+<<<<<<< HEAD:pylabfront/utils.py
 def get_user_ids(
     labfront_loader, 
     user_id: Union[str, list]
 ) -> list:
     """ Returns user ids in the appropriate format required by pylabfront functions
+=======
+def get_user_ids(loader: "BaseLoader", user_id: Union[str, list]):
+    """Returns user ids in the appropriate format required by pylabfront functions
+>>>>>>> 2495d555b1df9466687e840018fba325d418d38e:pywearable/utils.py
 
     Parameters
     ----------
@@ -71,10 +78,10 @@ def get_user_ids(
         List of all the full user ids of interest.
     """
     if user_id == "all":
-        user_id = labfront_loader.get_full_ids()
+        user_id = loader.get_full_ids()
 
     elif isinstance(user_id, str):
-        user_id = labfront_loader.get_full_id(user_id)
+        user_id = loader.get_full_id(user_id)
         user_id = [user_id]
 
     elif not isinstance(user_id, list):
@@ -83,7 +90,7 @@ def get_user_ids(
     return user_id
 
 
-def get_summary(labfront_loader, comparison_date=time.time()):
+def get_summary(loader: "BaseLoader", comparison_date=time.time()):
     """Returns a general summary of the latest update of every metric for every participant
 
     Args:
@@ -95,23 +102,23 @@ def get_summary(labfront_loader, comparison_date=time.time()):
         Entries are NaN if the metric has never been registered for the participant.
     """
 
-    available_metrics = set(labfront_loader.get_available_metrics())
+    available_metrics = set(loader.get_available_metrics())
     available_metrics.discard("todo")
     available_metrics.discard("questionnaire")
     available_metrics = sorted(list(available_metrics))
-    available_questionnaires = labfront_loader.get_available_questionnaires()
-    available_todos = labfront_loader.get_available_todos()
+    available_questionnaires = loader.get_available_questionnaires()
+    available_todos = loader.get_available_todos()
 
     features_dictionary = {}
 
-    for participant_id in sorted(labfront_loader.get_user_ids()):
-        full_participant_id = labfront_loader.get_full_id(participant_id)
+    for participant_id in sorted(loader.get_user_ids()):
+        full_participant_id = loader.get_full_id(participant_id)
         features_dictionary[participant_id] = {}
-        participant_metrics = labfront_loader.get_available_metrics([participant_id])
-        participant_questionnaires = labfront_loader.get_available_questionnaires(
+        participant_metrics = loader.get_available_metrics([participant_id])
+        participant_questionnaires = loader.get_available_questionnaires(
             [participant_id]
         )
-        participant_todos = labfront_loader.get_available_todos([participant_id])
+        participant_todos = loader.get_available_todos([participant_id])
 
         for metric in available_metrics:
             if metric not in participant_metrics:
@@ -119,7 +126,7 @@ def get_summary(labfront_loader, comparison_date=time.time()):
             else:  # figure out how many days since the last update
                 last_unix_times = [
                     v[_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY]
-                    for v in labfront_loader.data_dictionary[full_participant_id][
+                    for v in loader.data_dictionary[full_participant_id][
                         metric
                     ].values()
                 ]
@@ -136,7 +143,7 @@ def get_summary(labfront_loader, comparison_date=time.time()):
             else:
                 last_unix_times = [
                     v[_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY]
-                    for v in labfront_loader.data_dictionary[full_participant_id][
+                    for v in loader.data_dictionary[full_participant_id][
                         _LABFRONT_QUESTIONNAIRE_STRING
                     ][questionnaire].values()
                 ]
@@ -153,7 +160,7 @@ def get_summary(labfront_loader, comparison_date=time.time()):
             else:
                 last_unix_times = [
                     v[_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY]
-                    for v in labfront_loader.data_dictionary[full_participant_id][
+                    for v in loader.data_dictionary[full_participant_id][
                         _LABFRONT_TODO_STRING
                     ][todo].values()
                 ]
@@ -289,14 +296,17 @@ def mean_time(times):
     m, s = divmod(m, 60)
     return "%02i:%02i" % (h, m)
 
-def filter_bbi(bbi,
-               remove_outliers=True,
-               remove_ectopic=True,
-               verbose=False,
-               low_rri=300,
-               high_rri=2000,
-               ectopic_method="malik",
-               interpolation_method="linear"):
+
+def filter_bbi(
+    bbi,
+    remove_outliers=True,
+    remove_ectopic=True,
+    verbose=False,
+    low_rri=300,
+    high_rri=2000,
+    ectopic_method="malik",
+    interpolation_method="linear",
+):
     """Get filtered bbi data.
 
     This function returns bbi data filtered out from outliers and/or ectopic beats.
@@ -321,25 +331,23 @@ def filter_bbi(bbi,
         method used to interpolate missing values after the removal of outliers/ectopic beats, by default "linear"
     """
     if remove_outliers:
-        bbi  = hrvanalysis.remove_outliers(bbi,
-                                           low_rri=low_rri,
-                                           high_rri=high_rri,
-                                           verbose=verbose)
-        bbi = hrvanalysis.interpolate_nan_values(bbi,
-                                                 interpolation_method=interpolation_method)
+        bbi = hrvanalysis.remove_outliers(
+            bbi, low_rri=low_rri, high_rri=high_rri, verbose=verbose
+        )
+        bbi = hrvanalysis.interpolate_nan_values(
+            bbi, interpolation_method=interpolation_method
+        )
     if remove_ectopic:
-        bbi = hrvanalysis.remove_ectopic_beats(bbi,
-                                               method=ectopic_method,
-                                               verbose=verbose)
-        bbi = hrvanalysis.interpolate_nan_values(bbi,
-                                                 interpolation_method=interpolation_method)
+        bbi = hrvanalysis.remove_ectopic_beats(
+            bbi, method=ectopic_method, verbose=verbose
+        )
+        bbi = hrvanalysis.interpolate_nan_values(
+            bbi, interpolation_method=interpolation_method
+        )
     return bbi
 
 
-def filter_out_awake_bbi(loader,
-                          user,
-                          bbi_df,
-                          date):
+def filter_out_awake_bbi(loader, user, bbi_df, date):
     """Filters out night bbi data relative to periods where the user was awake
 
     Parameters
@@ -356,29 +364,37 @@ def filter_out_awake_bbi(loader,
     Returns
     -------
     pandas.DataFrame
-    DataFrame in the same format of `bbi_df`, including only bbi data of periods when the participant is asleep. 
+    DataFrame in the same format of `bbi_df`, including only bbi data of periods when the participant is asleep.
     """
-    hypnogram = loader.load_hypnogram(user,date)
+    hypnogram = loader.load_hypnogram(user, date)
     hypnogram["stages_diff"] = np.concatenate(
-                        [
-                            [0],
-                            hypnogram.iloc[1:, :].stage.values
-                            - hypnogram.iloc[:-1, :].stage.values,
-                        ]
-                    )
+        [
+            [0],
+            hypnogram.iloc[1:, :].stage.values - hypnogram.iloc[:-1, :].stage.values,
+        ]
+    )
     # if there has been a negative change and the current stage is awake, then count it as awakening start
     hypnogram["awakening_start"] = np.logical_and(
-                        hypnogram.stage == 0, hypnogram.stages_diff < 0
-                    )
+        hypnogram.stage == 0, hypnogram.stages_diff < 0
+    )
     # if there has been a positive change and the previous stage was awake, then count it as awakening end
-    hypnogram["awakening_end"] = np.concatenate([
-        [0],
-        np.logical_and((hypnogram.iloc[:-1, :].stage == 0).values, (hypnogram.iloc[1:, :].stages_diff > 0).values)
-    ])
-    relevant_rows = hypnogram.loc[np.logical_or(hypnogram.awakening_start==1, hypnogram.awakening_end==1)][:20]
+    hypnogram["awakening_end"] = np.concatenate(
+        [
+            [0],
+            np.logical_and(
+                (hypnogram.iloc[:-1, :].stage == 0).values,
+                (hypnogram.iloc[1:, :].stages_diff > 0).values,
+            ),
+        ]
+    )
+    relevant_rows = hypnogram.loc[
+        np.logical_or(hypnogram.awakening_start == 1, hypnogram.awakening_end == 1)
+    ][:20]
     awakening_starts = relevant_rows.isoDate.iloc[::2].values
     awakening_ends = relevant_rows.isoDate.iloc[1::2].values
-    for awakening_start, awakening_end in zip(awakening_starts,awakening_ends):
-        bbi_df = bbi_df.loc[(bbi_df.index < awakening_start) | (bbi_df.index > awakening_end)]
+    for awakening_start, awakening_end in zip(awakening_starts, awakening_ends):
+        bbi_df = bbi_df.loc[
+            (bbi_df.index < awakening_start) | (bbi_df.index > awakening_end)
+        ]
 
     return bbi_df

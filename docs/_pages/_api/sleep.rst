@@ -1,5 +1,5 @@
 Sleep
 ======
 
-.. automodule:: pylabfront.sleep
+.. automodule:: pywearable.sleep
    :members:

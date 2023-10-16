@@ -9,7 +9,7 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
-import pylabfront.utils as utils
+import pywearable.utils as utils
 
 from . import constants, loader
 

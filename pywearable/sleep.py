@@ -10,7 +10,8 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
-from . import constants, loader, utils
+from . import constants, utils
+from .loader.base import BaseLoader
 
 _SLEEP_METRIC_TIB = "TIB"
 _SLEEP_METRIC_TST = "TST"
@@ -23,7 +24,7 @@ _SLEEP_METRIC_NREM_DURATION = "NREM"
 _SLEEP_METRIC_REM_DURATION = "REM"
 _SLEEP_METRIC_AWAKE_DURATION = "AWAKE"
 _SLEEP_METRIC_UNMEASURABLE_DURATION = "UNMEASURABLE"
-_SLEEP_METRIC_LATENCY_SOL = "SOL"
+_SLEEP_METRIC_SOL = "SOL"
 _SLEEP_METRIC_N1_LATENCY = "Lat_N1"
 _SLEEP_METRIC_N2_LATENCY = "Lat_N2"
 _SLEEP_METRIC_N3_LATENCY = "Lat_N3"
@@ -39,7 +40,7 @@ _SLEEP_METRIC_SLEEP_SCORE = "SCORE"
 
 
 def get_time_in_bed(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -59,16 +60,7 @@ def get_time_in_bed(
 
     Example::
 
-        import pylabfront.loader
-        import pylabfront.sleep
-        import datetime
-
-        loader = pylabfront.loader.LabfrontLoader()
-        start_date = datetime.date(2023, 9, 9)
-        end_date = datetime.date.today()
-        user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
-
-        pylabfront.sleep.get_time_in_bed(loader, user_id, start_date, end_date)
+        pywearable.sleep.get_time_in_bed(loader, user_id, start_date, end_date)
 
         >> {'f457c562-2159-431c-8866-dfa9a917d9b8':
             datetime.date(2023, 9, 9): 501.0,
@@ -79,7 +71,7 @@ def get_time_in_bed(
             datetime.date(2023, 9, 14): 402.0,
             datetime.date(2023, 9, 15): 469.0}
 
-        pylabfront.sleep.get_time_in_bed(loader, user_id, start_date, end_date, average=True)
+        pywearable.sleep.get_time_in_bed(loader, user_id, start_date, end_date, average=True)
         >> {
                 'f457c562-2159-431c-8866-dfa9a917d9b8':
                     {
@@ -123,7 +115,7 @@ def get_time_in_bed(
 
 
 def get_sleep_period_time(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -202,7 +194,7 @@ def get_sleep_period_time(
 
 
 def get_total_sleep_time(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -282,7 +274,7 @@ def get_total_sleep_time(
 
 
 def get_sleep_efficiency(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -363,7 +355,7 @@ def get_sleep_efficiency(
 
 
 def get_sleep_maintenance_efficiency(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -446,7 +438,7 @@ def get_sleep_maintenance_efficiency(
 
 
 def get_n1_latency(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -526,7 +518,7 @@ def get_n1_latency(
 
 
 def get_n2_latency(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -608,7 +600,7 @@ def get_n2_latency(
 
 
 def get_n3_latency(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -687,7 +679,7 @@ def get_n3_latency(
 
 
 def get_rem_latency(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -766,7 +758,7 @@ def get_rem_latency(
 
 
 def get_n1_duration(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -852,7 +844,7 @@ def get_n1_duration(
 
 
 def get_n2_duration(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -940,7 +932,7 @@ def get_n2_duration(
 
 
 def get_n3_duration(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -1026,7 +1018,7 @@ def get_n3_duration(
 
 
 def get_rem_duration(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -1112,7 +1104,7 @@ def get_rem_duration(
 
 
 def get_nrem_duration(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -1198,7 +1190,7 @@ def get_nrem_duration(
 
 
 def get_awake_duration(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -1284,7 +1276,7 @@ def get_awake_duration(
 
 
 def get_unmeasurable_duration(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -1375,7 +1367,7 @@ def get_unmeasurable_duration(
 
 
 def get_n1_percentage(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -1387,7 +1379,7 @@ def get_n1_percentage(
 
 
 def get_n2_percentage(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -1399,7 +1391,7 @@ def get_n2_percentage(
 
 
 def get_n3_percentage(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -1411,7 +1403,7 @@ def get_n3_percentage(
 
 
 def get_rem_percentage(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -1423,7 +1415,7 @@ def get_rem_percentage(
 
 
 def get_nrem_percentage(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -1435,7 +1427,7 @@ def get_nrem_percentage(
 
 
 def get_wake_after_sleep_onset(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -1446,8 +1438,20 @@ def get_wake_after_sleep_onset(
     )
 
 
+def get_sleep_onset_latency(
+    loader: BaseLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    average: bool = False,
+):
+    return get_sleep_statistic(
+        loader, user_id, _SLEEP_METRIC_SOL, start_date, end_date, average
+    )
+
+
 def get_sleep_score(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -1459,11 +1463,11 @@ def get_sleep_score(
 
 
 def get_sleep_timestamps(
-    loader: loader.LabfrontLoader,
-    user_id : Union[str, list] = "all",
-    start_date : Union[datetime.datetime, datetime.date, str, None] = None,
+    loader: BaseLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average : bool = False,
+    average: bool = False,
 ):
     """Get the timestamps of the beginning and the end of sleep occurrences.
 
@@ -1523,7 +1527,7 @@ def get_sleep_timestamps(
 
 
 def get_sleep_midpoints(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -1561,12 +1565,9 @@ def get_sleep_midpoints(
     user_id = utils.get_user_ids(loader, user_id)
 
     for user in user_id:
-        sleep_timestamps = get_sleep_timestamps(loader, 
-                                                user_id = user,
-                                                start_date = start_date,
-                                                end_date = end_date)[
-            user
-        ]
+        sleep_timestamps = get_sleep_timestamps(
+            loader, user_id=user, start_date=start_date, end_date=end_date
+        )[user]
         if sleep_timestamps is None:
             data_dict[user] = None
         else:
@@ -1592,11 +1593,11 @@ def get_sleep_midpoints(
 
 
 def get_awakenings(
-    loader : loader.LabfrontLoader, 
-    user_id : Union[str, list] = "all",
-    start_date : Union[datetime.datetime, datetime.date, str, None] = None, 
-    end_date : Union[datetime.datetime, datetime.date, str, None] = None, 
-    average : bool = False
+    loader: BaseLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    average: bool = False,
 ):
     """Get the number of awakenings
 
@@ -1639,27 +1640,19 @@ def get_awakenings(
             df = loader.load_garmin_connect_sleep_summary(user, start_date, end_date)
             nights_available = df[constants._SLEEP_SUMMARY_CALENDAR_DATE_COL]
             for night in nights_available:
-                hypnogram = loader.load_hypnogram(
-                    user, night, night
-                )[night]["values"]
+                hypnogram = loader.load_hypnogram(user, night, night)[night]["values"]
 
                 # TODO do we need hyonogram? Can't we use sleep stages?
-                
+
                 # check if there a difference in stage between successive observations (first one defaults to no change)
-                stages_diff = np.concatenate(
-                    [
-                        [0],
-                        hypnogram[1:]
-                        - hypnogram[:-1]
-                    ]
-                )
+                stages_diff = np.concatenate([[0], hypnogram[1:] - hypnogram[:-1]])
                 # if there has been a negative change and the current stage is awake, then count it as awakening
-                num_awakenings = np.logical_and(
-                    hypnogram == 0, stages_diff < 0
-                ).sum()
+                num_awakenings = np.logical_and(hypnogram == 0, stages_diff < 0).sum()
                 data_dict[user][night] = num_awakenings
             if average:
-                average_dict[user]["AWAKENINGS"] = np.nanmean(list(data_dict[user].values()))
+                average_dict[user]["AWAKENINGS"] = np.nanmean(
+                    list(data_dict[user].values())
+                )
                 average_dict[user]["days"] = [
                     datetime.datetime.strftime(night, "%Y-%m-%d")
                     for night in nights_available
@@ -1673,16 +1666,16 @@ def get_awakenings(
 
 
 def get_cpd(
-    loader : loader.LabfrontLoader,
-    user : Union[str, None] = None,
-    start_date : Union[datetime.datetime, datetime.date, str, None] = None,
-    end_date : Union[datetime.datetime, datetime.date, str, None] = None,
-    sleep_metric : str = "midpoint",
-    chronotype_sleep_start : str = "00:00",
-    chronotype_sleep_end : str = "08:00",
-    days_to_consider : int = 28,
-    verbose : bool = False,
-    average : bool = True,
+    loader: BaseLoader,
+    user: Union[str, None] = None,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    sleep_metric: str = "midpoint",
+    chronotype_sleep_start: str = "00:00",
+    chronotype_sleep_end: str = "08:00",
+    days_to_consider: int = 28,
+    verbose: bool = False,
+    average: bool = True,
 ):
     """Computes composite phase deviation (CPD)
 
@@ -1730,7 +1723,7 @@ def get_cpd(
 
     if user is None:
         raise ValueError("Specify a user")
-    
+
     user = loader.get_full_id(user)
 
     if sleep_metric == "midpoint":
@@ -1738,10 +1731,9 @@ def get_cpd(
         chronotype_sleep_midpoint = utils.mean_time(
             [chronotype_sleep_start, chronotype_sleep_end]
         )
-        sleep_midpoints = get_sleep_midpoints(loader,
-                                             user_id = user,
-                                             start_date = start_date,
-                                             end_date = end_date)[user]
+        sleep_midpoints = get_sleep_midpoints(
+            loader, user_id=user, start_date=start_date, end_date=end_date
+        )[user]
 
         previous_midpoint = None
         CPDs = []
@@ -1851,11 +1843,11 @@ def get_cpd(
 
 
 def get_sleep_metric_std(
-    loader : loader.LabfrontLoader,
-    metric : str,
-    user_id : str, 
-    start_date : Union[datetime.datetime, datetime.date, str, None] = None,
-    end_date : Union[datetime.datetime, datetime.date, str, None] = None, 
+    loader: BaseLoader,
+    metric: str,
+    user_id: str,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
 ):
     """Calculates standard deviation of a desired sleep metric
 
@@ -1886,14 +1878,15 @@ def get_sleep_metric_std(
         `metric` must valid: support is only for "midpoint" or "duration" in the current version
     """
     if metric == "duration":  # in hours
-        metric_data = get_sleep_period_time(loader, user_id, start_date, end_date)[user_id]
+        metric_data = get_sleep_period_time(loader, user_id, start_date, end_date)[
+            user_id
+        ]
         metric_data = [duration / (1000 * 60 * 60) for duration in metric_data.values()]
     elif metric == "midpoint":  # in hours
         midpoints = list(
-            get_sleep_midpoints(loader, 
-                                user_id = user_id,
-                                start_date = start_date, 
-                                end_date = end_date)[user_id].values()
+            get_sleep_midpoints(
+                loader, user_id=user_id, start_date=start_date, end_date=end_date
+            )[user_id].values()
         )
         # need to check for possible midpoints before midnight
         metric_data = []
@@ -2163,7 +2156,7 @@ def _compute_sleep_stage_percentage(
 
     This function computes the percentage of time in a sleep stage
     as the ratio between the time spent in it and the sum of the
-    time spent sleeping 
+    time spent sleeping
 
     Parameters
     ----------
@@ -2535,9 +2528,27 @@ def _compute_sleep_period_time(
             filtered_sleep_stages[constants._SLEEP_STAGE_SLEEP_TYPE_COL]
             != constants._SLEEP_STAGE_AWAKE_STAGE_VALUE
         ]
+        .reset_index(drop=True)
         .groupby(constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL)
         .apply(sleep_diff)
     )
+
+
+def _compute_sleep_onset_latency(
+    sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame
+) -> pd.Series:
+    if not isinstance(sleep_summary, pd.DataFrame):
+        raise ValueError(
+            f"sleep_summary must be a pd.DataFrame. {type(sleep_summary)} is not a valid type."
+        )
+    if not isinstance(sleep_stages, pd.DataFrame):
+        raise ValueError(
+            f"sleep_stages must be a pd.DataFrame. {type(sleep_stages)} is not a valid type."
+        )
+    latencies = _compute_latencies(sleep_summary, sleep_stages)
+    # Remove awake latency
+    latencies = latencies.drop([constants._SLEEP_STAGE_AWAKE_STAGE_VALUE], axis=1)
+    return latencies.min(axis=1)
 
 
 def _compute_wake_after_sleep_onset(
@@ -2551,19 +2562,44 @@ def _compute_wake_after_sleep_onset(
         raise ValueError(
             f"sleep_stages must be a pd.DataFrame. {type(sleep_stages)} is not a valid type."
         )
+    # Get only sleep stages belonging to the sleep summaries of interest
     filtered_sleep_stages = sleep_stages[
         sleep_stages[constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL].isin(
             sleep_summary.index
         )
     ].reset_index(drop=True)
-    return filtered_sleep_stages[
-        filtered_sleep_stages[constants._SLEEP_STAGE_SLEEP_TYPE_COL]
-        == constants._SLEEP_STAGE_AWAKE_STAGE_VALUE
-    ].groupby(constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL)[
-        constants._SLEEP_SUMMARY_DURATION_IN_MS_COL
-    ].sum() / (
-        1000 * 60
+    # Get first sleep stages that are awake and remove them
+    first_sleep_stages = filtered_sleep_stages.drop_duplicates(
+        subset=[constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL], keep="first"
     )
+    first_sleep_stages = first_sleep_stages[
+        first_sleep_stages[constants._SLEEP_STAGE_SLEEP_TYPE_COL]
+        == constants._SLEEP_STAGE_AWAKE_STAGE_VALUE
+    ]
+    filtered_sleep_stages = filtered_sleep_stages[
+        ~filtered_sleep_stages.index.isin(first_sleep_stages.index)
+    ]
+    # Get last sleep stages that are awake and remove them
+    last_sleep_stages = filtered_sleep_stages.drop_duplicates(
+        subset=[constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL], keep="last"
+    )
+    last_sleep_stages = last_sleep_stages[
+        last_sleep_stages[constants._SLEEP_STAGE_SLEEP_TYPE_COL]
+        == constants._SLEEP_STAGE_AWAKE_STAGE_VALUE
+    ]
+    filtered_sleep_stages = filtered_sleep_stages[
+        ~filtered_sleep_stages.index.isin(last_sleep_stages.index)
+    ]
+    return (
+        filtered_sleep_stages[
+            filtered_sleep_stages[constants._SLEEP_STAGE_SLEEP_TYPE_COL]
+            == constants._SLEEP_STAGE_AWAKE_STAGE_VALUE
+        ]
+        .groupby(constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL)[
+            constants._SLEEP_SUMMARY_DURATION_IN_MS_COL
+        ]
+        .sum()
+    ) / (1000 * 60)
 
 
 def _compute_n1_latency(
@@ -2731,6 +2767,7 @@ _SLEEP_STATISTICS_DICT = {
     _SLEEP_METRIC_SME: _compute_sleep_maintenance_efficiency,
     _SLEEP_METRIC_SPT: _compute_sleep_period_time,
     _SLEEP_METRIC_WASO: _compute_wake_after_sleep_onset,
+    _SLEEP_METRIC_SOL: _compute_sleep_onset_latency,
     _SLEEP_METRIC_N1_DURATION: _compute_n1_duration,
     _SLEEP_METRIC_N2_DURATION: _compute_n2_duration,
     _SLEEP_METRIC_N3_DURATION: _compute_n3_duration,
@@ -2752,7 +2789,7 @@ _SLEEP_STATISTICS_DICT = {
 
 
 def get_sleep_statistic(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list],
     metric: str,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -2771,6 +2808,7 @@ def get_sleep_statistic(
         - Time in Bed (``metric="TIB"``)
         - Total Sleep Time (``metric="TST"``)
         - Wake After Sleep Onset (``metric="WASO"``)
+        - Sleep Onset Latency (``metric="SOL"``)
         - Sleep Period Time (``metric="SPT"``)
         - N1 Sleep Duration (``metric="N1"``)
         - N2 Sleep Duration (``metric="N2"``)
@@ -2887,7 +2925,7 @@ def get_sleep_statistic(
 
 
 def get_sleep_statistics(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list],
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -3090,6 +3128,9 @@ def get_sleep_statistics(
             sleep_summary[_SLEEP_METRIC_WASO] = _compute_wake_after_sleep_onset(
                 sleep_summary, sleep_stages
             )
+            sleep_summary[_SLEEP_METRIC_SOL] = _compute_sleep_onset_latency(
+                sleep_summary, sleep_stages
+            )
             latencies = _compute_latencies(sleep_summary, sleep_stages)
             if constants._SLEEP_STAGE_LIGHT_STAGE_VALUE in latencies.columns:
                 sleep_summary[_SLEEP_METRIC_N1_LATENCY] = latencies[
@@ -3118,6 +3159,7 @@ def get_sleep_statistics(
                     _SLEEP_METRIC_TIB,
                     _SLEEP_METRIC_SPT,
                     _SLEEP_METRIC_WASO,
+                    _SLEEP_METRIC_SOL,
                     _SLEEP_METRIC_TST,
                     _SLEEP_METRIC_N1_DURATION,
                     _SLEEP_METRIC_N2_DURATION,
