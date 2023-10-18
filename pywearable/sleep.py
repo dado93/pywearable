@@ -1499,18 +1499,19 @@ def get_sleep_timestamps(
 
     for user in user_id:
         # better to give a bit of rooms before and after start_date and end_date to ensure they're included
-        df = loader.load_garmin_connect_sleep_summary(user, start_date, end_date)
+        df = loader.load_sleep_summary(user, start_date, end_date)
         if len(df) > 0:
-            df = df.groupby(constants._SLEEP_SUMMARY_CALENDAR_DATE_COL).head(1)
-            df["waking_time"] = df[constants._ISODATE_COL] + df[
-                constants._SLEEP_SUMMARY_DURATION_IN_MS_COL
-            ].astype(int).apply(lambda x: datetime.timedelta(milliseconds=x))
+            df = df.groupby(constants._CALENDAR_DATE_COL).head(1)
+            df["waking_time"] = df[constants._ISODATE_COL] + (
+                df[constants._SLEEP_SUMMARY_DURATION_IN_MS_COL]
+                + df[constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL]
+            ).astype(int).apply(lambda x: datetime.timedelta(milliseconds=x))
             data_dict[user] = pd.Series(
                 zip(
-                    df[constants._ISODATE_COL].dt.to_pydatetime(),
-                    df["waking_time"].dt.to_pydatetime(),
+                    np.array(df[constants._ISODATE_COL].dt.to_pydatetime()),
+                    np.array(df["waking_time"].dt.to_pydatetime()),
                 ),
-                df[constants._SLEEP_SUMMARY_CALENDAR_DATE_COL],
+                df[constants._CALENDAR_DATE_COL],
             ).to_dict()
             if average:
                 sleep_times = [timestamp[0] for timestamp in data_dict[user].values()]
@@ -1637,8 +1638,8 @@ def get_awakenings(
         if average:
             average_dict[user] = {}
         try:
-            df = loader.load_garmin_connect_sleep_summary(user, start_date, end_date)
-            nights_available = df[constants._SLEEP_SUMMARY_CALENDAR_DATE_COL]
+            df = loader.load_sleep_summary(user, start_date, end_date)
+            nights_available = df[constants._CALENDAR_DATE_COL]
             for night in nights_available:
                 hypnogram = loader.load_hypnogram(user, night, night)[night]["values"]
 
@@ -2857,7 +2858,7 @@ def get_sleep_statistic(
 
     for user in user_id:
         # Load sleep summary data
-        sleep_summary = loader.load_garmin_connect_sleep_summary(
+        sleep_summary = loader.load_connect_sleep_summary(
             user, start_date, end_date, same_day_filter=True
         )
         if len(sleep_summary) > 0:
@@ -2881,7 +2882,7 @@ def get_sleep_statistic(
                     )
                 )
             ).to_pydatetime()
-            sleep_stages = loader.load_garmin_connect_sleep_stage(
+            sleep_stages = loader.load_sleep_stage(
                 user, sleep_summary_start_date, sleep_summary_end_date
             )
             # Keep only those belonging to sleep summaries
@@ -2897,12 +2898,12 @@ def get_sleep_statistic(
                 )
             )
             # Convert it to a pd.Series with calendarDate as index
-            metric_data[constants._SLEEP_SUMMARY_CALENDAR_DATE_COL] = sleep_summary[
-                constants._SLEEP_SUMMARY_CALENDAR_DATE_COL
+            metric_data[constants._CALENDAR_DATE_COL] = sleep_summary[
+                constants._CALENDAR_DATE_COL
             ]
             data_dict[user] = pd.Series(
                 metric_data[metric].values,
-                index=metric_data[constants._SLEEP_SUMMARY_CALENDAR_DATE_COL],
+                index=metric_data[constants._CALENDAR_DATE_COL],
             ).to_dict()
             if average:
                 sleep_data_df = pd.DataFrame.from_dict(data_dict[user], orient="index")
@@ -3054,12 +3055,22 @@ def get_sleep_statistics(
 
     for user in user_id:
         # Load sleep summary data
-        sleep_summary = loader.load_garmin_connect_sleep_summary(
-            user, start_date, end_date, same_day_filter=True
-        )
+        sleep_summary = loader.load_sleep_summary(user, start_date, end_date)
         if len(sleep_summary) > 0:
             sleep_summary = sleep_summary.set_index(
                 constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL
+            )
+
+            # Drop duplicates of calendar date and keep longest ones
+            sleep_summary = sleep_summary.sort_values(
+                by=[
+                    constants._CALENDAR_DATE_COL,
+                    constants._SLEEP_SUMMARY_DURATION_IN_MS_COL,
+                ]
+            )
+
+            sleep_summary = sleep_summary.drop_duplicates(
+                constants._CALENDAR_DATE_COL, keep="last"
             )
             # Metrics from sleep summary
             sleep_summary[_SLEEP_METRIC_TIB] = _compute_time_in_bed(sleep_summary)
@@ -3091,6 +3102,7 @@ def get_sleep_statistics(
             sleep_summary[_SLEEP_METRIC_NREM_DURATION] = _compute_nrem_duration(
                 sleep_summary
             )
+
             # Metrics for sleep stages
             # SOL -
             # Load sleep stages from start to end of sleep summaries
@@ -3110,7 +3122,7 @@ def get_sleep_statistics(
                     )
                 )
             ).to_pydatetime()
-            sleep_stages = loader.load_garmin_connect_sleep_stage(
+            sleep_stages = loader.load_sleep_stage(
                 user, sleep_summary_start_date, sleep_summary_end_date
             )
             # Keep only those belonging to sleep summaries
@@ -3152,7 +3164,7 @@ def get_sleep_statistics(
             else:
                 sleep_summary[_SLEEP_METRIC_REM_LATENCY] = np.nan
             user_sleep_metrics_df = sleep_summary.set_index(
-                sleep_summary[constants._SLEEP_SUMMARY_CALENDAR_DATE_COL]
+                sleep_summary[constants._CALENDAR_DATE_COL]
             ).loc[
                 :,
                 [
