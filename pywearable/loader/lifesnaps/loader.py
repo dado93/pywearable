@@ -19,6 +19,10 @@ _METRIC_DICT = {
         "metric_key": lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_TYPE_DAILY_SPO2,
         "start_date_key": lifesnaps_constants._DB_FITBIT_COLLECTION_SPO2_TIMESTAMP_KEY,
     },
+    lifesnaps_constants._METRIC_STEPS: {
+        "metric_key": lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_TYPE_STEPS,
+        "start_date_key": lifesnaps_constants._DB_FITBIT_COLLECTION_STEPS_DATETIME_COL,
+    },
 }
 
 
@@ -357,7 +361,7 @@ class LifeSnapsLoader(BaseLoader):
         # with 30 seconds resolution
         if str(user_id) not in self.get_user_ids():
             raise ValueError(f"f{user_id} does not exist in DB.")
-        user_id = utils.check_user_id(user_id)
+        user_id = self._check_user_id(user_id)
         start_date = utils.check_date(start_date)
         end_date = utils.check_date(end_date)
         if not utils.check_start_and_end_dates(start_date, end_date):
@@ -440,6 +444,112 @@ class LifeSnapsLoader(BaseLoader):
             ).reset_index(drop=True)
             sleep_stage_df[constants._TIMEZONEOFFSET_IN_MS_COL] = 0
         return sleep_stage_df
+
+    def load_metric(
+        self,
+        metric: str,
+        user_id: Union[ObjectId, str],
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    ) -> pd.DataFrame:
+        if str(user_id) not in self.get_user_ids():
+            raise ValueError(f"f{user_id} does not exist in DB.")
+        user_id = self._check_user_id(user_id)
+        start_date = utils.check_date(start_date)
+        end_date = utils.check_date(end_date)
+
+        metric_start_key = _METRIC_DICT[metric]["start_date_key"]
+        if "end_date_key" in _METRIC_DICT[metric].keys():
+            metric_end_key = _METRIC_DICT[metric]["end_date_key"]
+        else:
+            metric_end_key = None
+        if metric_start_key is None:
+            metric_start_date_key_db = None
+        else:
+            metric_start_date_key_db = (
+                lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_KEY
+                + "."
+                + metric_start_key
+            )
+        if metric_end_key is None:
+            metric_end_date_key_db = None
+        else:
+            metric_end_date_key_db = (
+                lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_KEY
+                + "."
+                + metric_end_key
+            )
+
+        date_filter_dict = self._get_start_and_end_date_time_filter_dict(
+            start_date_key=metric_start_date_key_db,
+            end_date_key=metric_end_date_key_db,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        date_conversion_dict = self._get_date_conversion_dict(
+            start_date_key=metric_start_date_key_db, end_date_key=metric_end_date_key_db
+        )
+        filtered_coll = self.fitbit_collection.aggregate(
+            [
+                {
+                    "$match": {
+                        lifesnaps_constants._DB_FITBIT_COLLECTION_TYPE_KEY: _METRIC_DICT[
+                            metric
+                        ][
+                            "metric_key"
+                        ],
+                        lifesnaps_constants._DB_FITBIT_COLLECTION_ID_KEY: user_id,
+                    }
+                },
+                date_conversion_dict,
+                date_filter_dict,
+            ]
+        )
+        metric_df = pd.DataFrame()
+        list_of_metric_dict = [
+            entry[lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_KEY]
+            for entry in filtered_coll
+        ]
+
+        metric_df = pd.json_normalize(list_of_metric_dict)
+        if len(metric_df) > 0 and (metric_start_key is not None):
+            metric_df = metric_df.sort_values(by=metric_start_key).reset_index(
+                drop=True
+            )
+        metric_df = self._setup_datetime_columns(df=metric_df, metric=metric)
+        return metric_df
+
+    def load_steps(
+        self,
+        user_id: Union[ObjectId, str],
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    ) -> pd.DataFrame:
+        steps = self.load_metric(
+            metric=lifesnaps_constants._METRIC_STEPS,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        steps = self._reorder_datetime_columns(steps)
+        if len(steps) > 0:
+            steps = steps.rename(
+                columns={
+                    lifesnaps_constants._DB_FITBIT_COLLECTION_STEPS_VALUE_COL: lifesnaps_constants._STEPS_COL
+                }
+            )
+            # Compute daily steps column
+            steps[lifesnaps_constants._CALENDAR_DATE_COL] = pd.to_datetime(
+                steps[lifesnaps_constants._ISODATE_COL].dt.strftime("%Y-%m-%d"),
+            )
+            steps[lifesnaps_constants._STEPS_COL] = steps[
+                lifesnaps_constants._STEPS_COL
+            ].astype("int64")
+            steps[lifesnaps_constants._TOTAL_STEPS_COL] = steps.groupby(
+                [lifesnaps_constants._CALENDAR_DATE_COL]
+            )[lifesnaps_constants._STEPS_COL].cumsum()
+            steps = steps.drop([lifesnaps_constants._CALENDAR_DATE_COL], axis=1)
+        return steps
 
     def _get_start_and_end_date_time_filter_dict(
         self, start_date_key, end_date_key=None, start_date=None, end_date=None

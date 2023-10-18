@@ -11,12 +11,11 @@ from typing import Tuple, Union
 import dateutil.parser
 import pandas as pd
 
-import pywearable.constants
-import pywearable.loader.base
-import pywearable.utils
+from .. import constants, utils
+from .base import BaseLoader
 
 
-class LabfrontLoader(pywearable.loader.base.BaseLoader):
+class LabfrontLoader(BaseLoader):
     """Loader for Labfront data.
 
     This is the main object for loading and analyzing data collected
@@ -31,7 +30,6 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
     def __init__(self, data_path: Union[str, Path]):
         """Constructor method"""
         self.set_path(data_path)
-        self.date_column = pywearable.constants._ISODATE_COL
 
     def set_path(self, data_path: Union[str, Path]):
         """Set path to folder containing Labfront data.
@@ -222,14 +220,12 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         questionnaires = set()
         questionnaires_dict = {}
 
-        participant_ids = pywearable.utils.get_user_ids(self, user_id)
+        participant_ids = utils.get_user_ids(self, user_id)
 
         for participant_id in participant_ids:
             participant_id = self.get_full_id(participant_id)
             participant_path = (
-                self.data_path
-                / participant_id
-                / pywearable.constants._QUESTIONNAIRE_FOLDER
+                self.data_path / participant_id / constants._QUESTIONNAIRE_FOLDER
             )
             if participant_path.exists():
                 participant_questionnaires = set(
@@ -246,8 +242,8 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
                         questionnaire_name = pd.read_csv(
                             list((participant_path / questionnaire).iterdir())[0],
                             nrows=1,
-                            skiprows=pywearable.constants._CSV_STATS_SKIP_ROWS,
-                        )[pywearable.constants._QUESTIONNAIRE_NAME_COL][0]
+                            skiprows=constants._CSV_STATS_SKIP_ROWS,
+                        )[constants._QUESTIONNAIRE_NAME_COL][0]
                         questionnaires_dict[questionnaire_name.lower()] = questionnaire
                 questionnaires |= participant_questionnaires
 
@@ -285,13 +281,11 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         todos = set()
         todos_dict = {}
 
-        participant_ids = pywearable.utils.get_user_ids(self, user_id)
+        participant_ids = utils.get_user_ids(self, user_id)
 
         for participant_id in participant_ids:
             participant_id = self.get_full_id(participant_id)
-            participant_path = (
-                self.data_path / participant_id / pywearable.constants._TODO_FOLDER
-            )
+            participant_path = self.data_path / participant_id / constants._TODO_FOLDER
             if participant_path.exists():
                 participant_todos = set(
                     [
@@ -307,8 +301,8 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
                         todo_name = pd.read_csv(
                             list((participant_path / todo).iterdir())[0],
                             nrows=1,
-                            skiprows=pywearable.constants._CSV_STATS_SKIP_ROWS,
-                        )[pywearable.constants._TODO_NAME_COL][0]
+                            skiprows=constants._CSV_STATS_SKIP_ROWS,
+                        )[constants._TODO_NAME_COL][0]
                         todos_dict[todo_name.lower()] = todo
                 todos |= participant_todos
 
@@ -402,14 +396,14 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
                                 participant_dict[participant_folder.name][
                                     participant_metric_folder.name
                                 ][metric_data.name] = {
-                                    pywearable.constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: first_ts,
-                                    pywearable.constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: last_ts,
+                                    constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: first_ts,
+                                    constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: last_ts,
                                 }
                                 metrics_time_dict[participant_folder.name][
                                     participant_metric_folder.name
                                 ] = {
-                                    pywearable.constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: metrics_first_ts,
-                                    pywearable.constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: metrics_last_ts,
+                                    constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: metrics_first_ts,
+                                    constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: metrics_last_ts,
                                 }
                             else:
                                 if not metric_data.is_dir():
@@ -422,10 +416,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
                                     if csv_file.is_file() and str(csv_file).endswith(
                                         "csv"
                                     ):
-                                        if (
-                                            pywearable.constants._TODO_FOLDER
-                                            == metric_data.name
-                                        ):
+                                        if constants._TODO_FOLDER == metric_data.name:
                                             is_questionnaire_or_to_do = False
                                         else:
                                             is_questionnaire_or_to_do = True
@@ -452,14 +443,14 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
                                         participant_dict[participant_folder.name][
                                             participant_metric_folder.name
                                         ][metric_data.name][csv_file.name] = {
-                                            pywearable.constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: first_ts,
-                                            pywearable.constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: last_ts,
+                                            constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: first_ts,
+                                            constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: last_ts,
                                         }
                         metrics_time_dict[participant_folder.name][
                             participant_metric_folder.name
                         ] = {
-                            pywearable.constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: metrics_first_ts,
-                            pywearable.constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: metrics_last_ts,
+                            constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: metrics_first_ts,
+                            constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: metrics_last_ts,
                         }
 
         return participant_dict, metrics_time_dict
@@ -480,7 +471,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
             First available unix timestamp.
         """
         return self.metrics_data_dictionary[self.get_full_id(user_id)][metric][
-            pywearable.constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
+            constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
         ]
 
     def get_last_unix_timestamp(self, user_id, metric):
@@ -499,7 +490,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
             Last available unix timestamp.
         """
         return self.metrics_data_dictionary[self.get_full_id(user_id)][metric][
-            pywearable.constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
+            constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
         ]
 
     def get_labfront_file_time_stats(
@@ -526,13 +517,13 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
 
         # Get first and last unix timestamps from header
         header = pd.read_csv(
-            path_to_file, nrows=1, skiprows=pywearable.constants._CSV_STATS_SKIP_ROWS
+            path_to_file, nrows=1, skiprows=constants._CSV_STATS_SKIP_ROWS
         )
         first_unix_timestamp = header[
-            pywearable.constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
+            constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
         ].iloc[0]
         last_unix_timestamp = header[
-            pywearable.constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
+            constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
         ].iloc[0]
 
         return first_unix_timestamp, last_unix_timestamp
@@ -612,7 +603,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
 
         # Convert dictionary to a pandas dataframe, so that we can sort it
         temp_pd = pd.DataFrame.from_dict(temp_dict, orient="index").sort_values(
-            by=pywearable.constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
+            by=constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
         )
 
         if (start_date is None) and (end_date is None):
@@ -629,11 +620,11 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         if not (start_date is None):
             start_date_unix_ms = int(datetime.datetime.timestamp(start_date) * 1000)
             temp_pd["before_start_date"] = temp_pd[
-                pywearable.constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
+                constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
             ].apply(lambda x: True if x < start_date_unix_ms else False)
             # Compute difference with first and last columns
             temp_pd["start_diff"] = abs(
-                temp_pd[pywearable.constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL]
+                temp_pd[constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL]
                 - start_date_unix_ms
             )
 
@@ -641,10 +632,10 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         if not (end_date is None):
             end_date_unix_ms = int(datetime.datetime.timestamp(end_date) * 1000)
             temp_pd["after_end_date"] = temp_pd[
-                pywearable.constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
+                constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
             ].apply(lambda x: True if x > end_date_unix_ms else False)
             temp_pd["end_diff"] = abs(
-                temp_pd[pywearable.constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL]
+                temp_pd[constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL]
                 - end_date_unix_ms
             )
         print(temp_pd)
@@ -775,14 +766,14 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
             path_to_folder = (
                 self.data_path
                 / participant_id
-                / pywearable.constants._QUESTIONNAIRE_FOLDER
+                / constants._QUESTIONNAIRE_FOLDER
                 / task_name
             )
         elif is_todo:
             path_to_folder = (
                 self.data_path
                 / participant_id
-                / pywearable.constants._QUESTIONNAIRE_FOLDER
+                / constants._QUESTIONNAIRE_FOLDER
                 / task_name
             )
         else:
@@ -795,52 +786,52 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         data = pd.read_csv(path_to_folder / files[0], skiprows=n_rows_to_skip)
         for f in files[1:]:
             tmp = pd.read_csv(path_to_folder / f, skiprows=n_rows_to_skip)
-            if pywearable.constants._GARMIN_CONNECT_BASE_FOLDER in metric:
+            if constants._GARMIN_CONNECT_BASE_FOLDER in metric:
                 tmp = tmp.drop(
                     [
-                        pywearable.constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL,
-                        pywearable.constants._UNIXTIMESTAMP_IN_MS_COL,
+                        constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL,
+                        constants._UNIXTIMESTAMP_IN_MS_COL,
                     ],
                     axis=1,
                 )
             data = pd.concat([data, tmp], ignore_index=True)
-        if pywearable.constants._GARMIN_CONNECT_BASE_FOLDER in metric:
+        if constants._GARMIN_CONNECT_BASE_FOLDER in metric:
             # Convert to datetime according to isoformat
-            data[pywearable.constants._ISODATE_COL] = (
-                data[pywearable.constants._UNIXTIMESTAMP_IN_MS_COL]
-                + data[pywearable.constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL]
+            data[constants._ISODATE_COL] = (
+                data[constants._UNIXTIMESTAMP_IN_MS_COL]
+                + data[constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL]
             )
-            data[pywearable.constants._ISODATE_COL] = pd.to_datetime(
-                data[pywearable.constants._ISODATE_COL], unit="ms", utc=True
+            data[constants._ISODATE_COL] = pd.to_datetime(
+                data[constants._ISODATE_COL], unit="ms", utc=True
             )
-            data[pywearable.constants._ISODATE_COL] = data[
-                pywearable.constants._ISODATE_COL
-            ].dt.tz_localize(None)
+            data[constants._ISODATE_COL] = data[constants._ISODATE_COL].dt.tz_localize(
+                None
+            )
         else:
             # Convert unix time stamp
-            data[pywearable.constants._ISODATE_COL] = pd.to_datetime(
-                data[pywearable.constants._UNIXTIMESTAMP_IN_MS_COL], unit="ms", utc=True
+            data[constants._ISODATE_COL] = pd.to_datetime(
+                data[constants._UNIXTIMESTAMP_IN_MS_COL], unit="ms", utc=True
             )
-            data[pywearable.constants._ISODATE_COL] = data.groupby(
-                pywearable.constants._GARMIN_DEVICE_TIMEZONEOFFSET_IN_MS_COL,
+            data[constants._ISODATE_COL] = data.groupby(
+                constants._GARMIN_DEVICE_TIMEZONEOFFSET_IN_MS_COL,
                 group_keys=False,
-            )[pywearable.constants._ISODATE_COL].apply(
+            )[constants._ISODATE_COL].apply(
                 lambda x: x.dt.tz_convert(x.name).dt.tz_localize(tz=None)
             )
 
         # Get data only from given start and end dates
         if (start_date is None) and (not end_date is None):
-            return data[
-                (data[pywearable.constants._ISODATE_COL] <= end_date)
-            ].reset_index(drop=True)
+            return data[(data[constants._ISODATE_COL] <= end_date)].reset_index(
+                drop=True
+            )
         elif (not start_date is None) and (end_date is None):
-            return data[
-                (data[pywearable.constants._ISODATE_COL] >= start_date)
-            ].reset_index(drop=True)
+            return data[(data[constants._ISODATE_COL] >= start_date)].reset_index(
+                drop=True
+            )
         elif (not start_date is None) and (not end_date is None):
             return data[
-                (data[pywearable.constants._ISODATE_COL] >= start_date)
-                & (data[pywearable.constants._ISODATE_COL] <= end_date)
+                (data[constants._ISODATE_COL] >= start_date)
+                & (data[constants._ISODATE_COL] <= end_date)
             ].reset_index(drop=True)
         else:
             return data.reset_index(drop=True)
@@ -900,7 +891,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         """
         metrics = set()
 
-        participant_ids = pywearable.utils.get_user_ids(self, user_id)
+        participant_ids = utils.get_user_ids(self, user_id)
 
         for participant_id in participant_ids:
             participant_path = self.data_path / participant_id
@@ -969,14 +960,11 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         no_user_id = True
         full_task_id = self.get_task_full_id(questionnaire_name)
         for user_id in self.data_dictionary.keys():
-            if (
-                pywearable.constants._QUESTIONNAIRE_FOLDER
-                in self.data_dictionary[user_id].keys()
-            ):
+            if constants._QUESTIONNAIRE_FOLDER in self.data_dictionary[user_id].keys():
                 if (
                     full_task_id
                     in self.data_dictionary[user_id][
-                        pywearable.constants._QUESTIONNAIRE_FOLDER
+                        constants._QUESTIONNAIRE_FOLDER
                     ].keys()
                 ):
                     no_user_id = False
@@ -989,7 +977,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
 
         files = self.get_files_from_timerange(
             participant_id,
-            pywearable.constants._QUESTIONNAIRE_FOLDER,
+            constants._QUESTIONNAIRE_FOLDER,
             start_date=None,
             end_date=None,
             is_questionnaire=True,
@@ -1003,7 +991,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         path_to_folder = (
             self.data_path
             / participant_id
-            / pywearable.constants._QUESTIONNAIRE_FOLDER
+            / constants._QUESTIONNAIRE_FOLDER
             / full_task_id
         )
 
@@ -1019,22 +1007,18 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         # For each row, we need to get the question and all the options
         option_cols = []
         for col in questions_df.columns:
-            regex_match = re.search(
-                pywearable.constants._QUESTIONNAIRE_QUESTION_NAME_REGEX, col
-            )
+            regex_match = re.search(constants._QUESTIONNAIRE_QUESTION_NAME_REGEX, col)
             if regex_match:
                 option_cols.append(col)
         for idx, row in questions_df.iterrows():
-            question_id = f"{row[pywearable.constants._QUESTIONNAIRE_SECTION_INDEX_COL]}_{row[pywearable.constants._QUESTIONNAIRE_QUESTION_INDEX_COL]}"
+            question_id = f"{row[constants._QUESTIONNAIRE_SECTION_INDEX_COL]}_{row[constants._QUESTIONNAIRE_QUESTION_INDEX_COL]}"
             questions_dict[question_id] = {
-                "type": row[pywearable.constants._QUESTIONNAIRE_QUESTION_TYPE_COL],
-                "description": row[
-                    pywearable.constants._QUESTIONNAIRE_QUESTION_DESCRIPTION_COL
-                ],
+                "type": row[constants._QUESTIONNAIRE_QUESTION_TYPE_COL],
+                "description": row[constants._QUESTIONNAIRE_QUESTION_DESCRIPTION_COL],
             }
             if (
-                row[pywearable.constants._QUESTIONNAIRE_QUESTION_TYPE_COL]
-                == pywearable.constants._QUESTIONNAIRE_QUESTION_TYPE_TEXT_VALUE
+                row[constants._QUESTIONNAIRE_QUESTION_TYPE_COL]
+                == constants._QUESTIONNAIRE_QUESTION_TYPE_TEXT_VALUE
             ):
                 continue
             question_options = []
@@ -1071,7 +1055,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            pywearable.constants._GARMIN_CONNECT_HEART_RATE_FOLDER,
+            constants._GARMIN_CONNECT_HEART_RATE_FOLDER,
             start_date,
             end_date,
         )
@@ -1104,14 +1088,14 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         # We need to load both sleep and daily pulse ox
         daily_data = self.get_data_from_datetime(
             user_id,
-            pywearable.constants._GARMIN_CONNECT_DAILY_PULSE_OX_FOLDER,
+            constants._GARMIN_CONNECT_DAILY_PULSE_OX_FOLDER,
             start_date,
             end_date,
         ).reset_index(drop=True)
         # Add sleep label to sleep pulse ox
         sleep_data = self.get_data_from_datetime(
             user_id,
-            pywearable.constants._GARMIN_CONNECT_SLEEP_PULSE_OX_FOLDER,
+            constants._GARMIN_CONNECT_SLEEP_PULSE_OX_FOLDER,
             start_date,
             end_date,
         ).reset_index(drop=True)
@@ -1124,12 +1108,12 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
                 [
                     x
                     for x in sleep_data.columns
-                    if (not x in ([pywearable.constants._ISODATE_COL, "sleep"]))
+                    if (not x in ([constants._ISODATE_COL, "sleep"]))
                 ],
                 axis=1,
             )
             merged_data = daily_data.merge(
-                sleep_data, on=pywearable.constants._ISODATE_COL, how="left"
+                sleep_data, on=constants._ISODATE_COL, how="left"
             )
             merged_data.loc[merged_data.sleep != 1, "sleep"] = 0
             return merged_data
@@ -1169,7 +1153,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         # We need to load both sleep and daily respiration
         daily_data = self.get_data_from_datetime(
             user_id,
-            pywearable.constants._GARMIN_CONNECT_DAILY_RESPIRATION_FOLDER,
+            constants._GARMIN_CONNECT_DAILY_RESPIRATION_FOLDER,
             start_date,
             end_date,
         ).reset_index(drop=True)
@@ -1177,7 +1161,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         # Get sleep data
         sleep_data = self.get_data_from_datetime(
             user_id,
-            pywearable.constants._GARMIN_CONNECT_SLEEP_RESPIRATION_FOLDER,
+            constants._GARMIN_CONNECT_SLEEP_RESPIRATION_FOLDER,
             start_date,
             end_date,
         ).reset_index(drop=True)
@@ -1191,25 +1175,23 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
             sleep_summary = sleep_summary.loc[
                 :,
                 [
-                    pywearable.constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL,
-                    pywearable.constants._SLEEP_SUMMARY_CALENDAR_DATE_COL,
+                    constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL,
+                    constants._SLEEP_SUMMARY_CALENDAR_DATE_COL,
                 ],
             ]
 
         if len(sleep_data) > 0:
             sleep_data = sleep_data[
-                sleep_data[
-                    pywearable.constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL
-                ].isin(
+                sleep_data[constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL].isin(
                     sleep_summary[
-                        pywearable.constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL
+                        constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL
                     ].unique()
                 )
             ].reset_index(drop=True)
             sleep_data = pd.merge(
                 left=sleep_data,
                 right=sleep_summary,
-                on=pywearable.constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL,
+                on=constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL,
                 how="outer",
             )
 
@@ -1222,9 +1204,9 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
                         not x
                         in (
                             [
-                                pywearable.constants._ISODATE_COL,
-                                pywearable.constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL,
-                                pywearable.constants._SLEEP_SUMMARY_CALENDAR_DATE_COL,
+                                constants._ISODATE_COL,
+                                constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL,
+                                constants._SLEEP_SUMMARY_CALENDAR_DATE_COL,
                                 "sleep",
                             ]
                         )
@@ -1235,7 +1217,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
             # Merge dataframes
             # We need to merge the dataframes because the daily_data already contain sleep_data
             merged_data = daily_data.merge(
-                sleep_data, on=pywearable.constants._ISODATE_COL, how="left"
+                sleep_data, on=constants._ISODATE_COL, how="left"
             )
             merged_data.loc[merged_data.sleep != 1, "sleep"] = 0
             return merged_data
@@ -1243,7 +1225,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
             daily_data.loc[:, "sleep"] = 0
             return daily_data
 
-    def load_garmin_connect_sleep_stage(
+    def load_sleep_stage(
         self,
         user_id: str,
         start_date: Union[str, datetime.date, datetime.date] = None,
@@ -1270,13 +1252,13 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            pywearable.constants._GARMIN_CONNECT_SLEEP_STAGE_FOLDER,
+            constants._GARMIN_CONNECT_SLEEP_STAGE_FOLDER,
             start_date,
             end_date,
         )
         return data
 
-    def load_garmin_connect_sleep_summary(
+    def load_sleep_summary(
         self,
         user_id: str,
         start_date: Union[str, datetime.date, datetime.date] = None,
@@ -1324,16 +1306,14 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
 
         data = self.get_data_from_datetime(
             user_id,
-            pywearable.constants._GARMIN_CONNECT_SLEEP_SUMMARY_FOLDER,
+            constants._GARMIN_CONNECT_SLEEP_SUMMARY_FOLDER,
             new_start_date,
             new_end_date,
         )
 
         if len(data) > 0:
-            data[
-                pywearable.constants._SLEEP_SUMMARY_CALENDAR_DATE_COL
-            ] = pd.to_datetime(
-                data[pywearable.constants._SLEEP_SUMMARY_CALENDAR_DATE_COL],
+            data[constants._CALENDAR_DATE_COL] = pd.to_datetime(
+                data[constants._CALENDAR_DATE_COL],
                 format="%Y-%m-%d",
             ).dt.date
 
@@ -1350,14 +1330,14 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
                     data.sort_values(
                         by=(
                             [
-                                pywearable.constants._SLEEP_SUMMARY_CALENDAR_DATE_COL,
+                                constants._CALENDAR_DATE_COL,
                                 "validationMap",
-                                pywearable.constants._SLEEP_SUMMARY_DURATION_IN_MS_COL,
+                                constants._SLEEP_SUMMARY_DURATION_IN_MS_COL,
                             ]
                         ),
                         ascending=True,
                     )
-                    .groupby(pywearable.constants._SLEEP_SUMMARY_CALENDAR_DATE_COL)
+                    .groupby(constants._CALENDAR_DATE_COL)
                     .tail(1)
                 )
                 data = data.drop(["validationMap"], axis=1)
@@ -1368,29 +1348,13 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
                 start_date = None if (start_date is None) else start_date.date()
                 end_date = None if (end_date is None) else end_date.date()
                 if (start_date is None) and (not (end_date is None)):
-                    return data[
-                        (
-                            data[pywearable.constants._SLEEP_SUMMARY_CALENDAR_DATE_COL]
-                            <= end_date
-                        )
-                    ]
+                    return data[(data[constants._CALENDAR_DATE_COL] <= end_date)]
                 elif (not (start_date is None)) and (end_date is None):
-                    return data[
-                        (
-                            data[pywearable.constants._SLEEP_SUMMARY_CALENDAR_DATE_COL]
-                            >= start_date
-                        )
-                    ]
+                    return data[(data[constants._CALENDAR_DATE_COL] >= start_date)]
                 else:
                     return data[
-                        (
-                            data[pywearable.constants._SLEEP_SUMMARY_CALENDAR_DATE_COL]
-                            >= start_date
-                        )
-                        & (
-                            data[pywearable.constants._SLEEP_SUMMARY_CALENDAR_DATE_COL]
-                            <= end_date
-                        )
+                        (data[constants._CALENDAR_DATE_COL] >= start_date)
+                        & (data[constants._CALENDAR_DATE_COL] <= end_date)
                     ]
         else:
             return pd.DataFrame()
@@ -1422,7 +1386,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            pywearable.constants._GARMIN_CONNECT_STRESS_FOLDER,
+            constants._GARMIN_CONNECT_STRESS_FOLDER,
             start_date,
             end_date,
         )
@@ -1455,7 +1419,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            pywearable.constants._GARMIN_DEVICE_HEART_RATE_FOLDER,
+            constants._GARMIN_DEVICE_HEART_RATE_FOLDER,
             start_date,
             end_date,
         )
@@ -1488,7 +1452,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            pywearable.constants._GARMIN_DEVICE_PULSE_OX_FOLDER,
+            constants._GARMIN_DEVICE_PULSE_OX_FOLDER,
             start_date,
             end_date,
         )
@@ -1521,7 +1485,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            pywearable.constants._GARMIN_DEVICE_RESPIRATION_FOLDER,
+            constants._GARMIN_DEVICE_RESPIRATION_FOLDER,
             start_date,
             end_date,
         )
@@ -1554,7 +1518,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            pywearable.constants._GARMIN_DEVICE_STEP_FOLDER,
+            constants._GARMIN_DEVICE_STEP_FOLDER,
             start_date,
             end_date,
         )
@@ -1587,7 +1551,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            pywearable.constants._GARMIN_DEVICE_STRESS_FOLDER,
+            constants._GARMIN_DEVICE_STRESS_FOLDER,
             start_date,
             end_date,
         )
@@ -1620,7 +1584,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            pywearable.constants._GARMIN_DEVICE_BBI_FOLDER,
+            constants._GARMIN_DEVICE_BBI_FOLDER,
             start_date,
             end_date,
         )
@@ -1653,7 +1617,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            pywearable.constants._GARMIN_CONNECT_BODY_COMPOSITION_FOLDER,
+            constants._GARMIN_CONNECT_BODY_COMPOSITION_FOLDER,
             start_date,
             end_date,
         )
@@ -1688,7 +1652,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         new_end_date = end_date + datetime.timedelta(days=1)
         data = self.get_data_from_datetime(
             user_id,
-            pywearable.constants._GARMIN_CONNECT_DAILY_SUMMARY_FOLDER,
+            constants._GARMIN_CONNECT_DAILY_SUMMARY_FOLDER,
             new_start_date,
             new_end_date,
         )
@@ -1699,22 +1663,14 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
             year=end_date.year, month=end_date.month, day=end_date.day
         )
         if len(data) > 0:
-            data[
-                pywearable.constants._DAILY_SUMMARY_CALENDAR_DATE_COL
-            ] = pd.to_datetime(
-                data[pywearable.constants._DAILY_SUMMARY_CALENDAR_DATE_COL],
+            data[constants._DAILY_SUMMARY_CALENDAR_DATE_COL] = pd.to_datetime(
+                data[constants._DAILY_SUMMARY_CALENDAR_DATE_COL],
                 format="%Y-%m-%d",
             )
 
             data = data[
-                (
-                    data[pywearable.constants._DAILY_SUMMARY_CALENDAR_DATE_COL]
-                    >= start_date
-                )
-                & (
-                    data[pywearable.constants._DAILY_SUMMARY_CALENDAR_DATE_COL]
-                    <= end_date
-                )
+                (data[constants._DAILY_SUMMARY_CALENDAR_DATE_COL] >= start_date)
+                & (data[constants._DAILY_SUMMARY_CALENDAR_DATE_COL] <= end_date)
             ]
 
         return data
@@ -1746,7 +1702,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            pywearable.constants._GARMIN_CONNECT_EPOCH_FOLDER,
+            constants._GARMIN_CONNECT_EPOCH_FOLDER,
             start_date,
             end_date,
         )
@@ -1785,7 +1741,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            pywearable.constants._TODO_FOLDER,
+            constants._TODO_FOLDER,
             start_date,
             end_date,
             is_todo=True,
@@ -1826,7 +1782,7 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            metric=pywearable.constants._QUESTIONNAIRE_FOLDER,
+            metric=constants._QUESTIONNAIRE_FOLDER,
             start_date=start_date,
             end_date=end_date,
             is_questionnaire=True,
@@ -1888,19 +1844,17 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         if len(sleep_summaries) == 0:
             return {}
 
-        sleep_start_time = sleep_summaries.iloc[0][pywearable.constants._ISODATE_COL]
+        sleep_start_time = sleep_summaries.iloc[0][constants._ISODATE_COL]
 
         sleep_end_time = pd.to_datetime(
             (
-                sleep_summaries.iloc[-1][pywearable.constants._UNIXTIMESTAMP_IN_MS_COL]
+                sleep_summaries.iloc[-1][constants._UNIXTIMESTAMP_IN_MS_COL]
                 + sleep_summaries.iloc[-1][
-                    pywearable.constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL
+                    constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL
                 ]
+                + sleep_summaries.iloc[-1][constants._SLEEP_SUMMARY_DURATION_IN_MS_COL]
                 + sleep_summaries.iloc[-1][
-                    pywearable.constants._SLEEP_SUMMARY_DURATION_IN_MS_COL
-                ]
-                + sleep_summaries.iloc[-1][
-                    pywearable.constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL
+                    constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL
                 ]
             ),
             unit="ms",
@@ -1918,40 +1872,30 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
         # Keep only sleep stages with correct sleep summaries
         sleep_stages = (
             sleep_stages[
-                sleep_stages[
-                    pywearable.constants._SLEEP_STAGE_SLEEP_SUMMARY_ID_COL
-                ].isin(
+                sleep_stages[constants._SLEEP_STAGE_SLEEP_SUMMARY_ID_COL].isin(
                     sleep_summaries[
-                        pywearable.constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL
+                        constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL
                     ].unique()
                 )
             ]
-            .sort_values(by=[pywearable.constants._UNIXTIMESTAMP_IN_MS_COL])
+            .sort_values(by=[constants._UNIXTIMESTAMP_IN_MS_COL])
             .reset_index(drop=True)
         )
 
         # set index on sleep summaries
         sleep_summaries = sleep_summaries.set_index(
-            pywearable.constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL
+            constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL
         )
         hypnograms = {}
         for sleep_summary_id, sleep_summary in sleep_summaries.iterrows():
-            calendar_day = sleep_summary[
-                pywearable.constants._SLEEP_SUMMARY_CALENDAR_DATE_COL
-            ]
-            sleep_start_time = sleep_summary[pywearable.constants._ISODATE_COL]
+            calendar_day = sleep_summary[constants._SLEEP_SUMMARY_CALENDAR_DATE_COL]
+            sleep_start_time = sleep_summary[constants._ISODATE_COL]
             sleep_end_time = pd.to_datetime(
                 (
-                    sleep_summary[pywearable.constants._UNIXTIMESTAMP_IN_MS_COL]
-                    + sleep_summary[
-                        pywearable.constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL
-                    ]
-                    + sleep_summary[
-                        pywearable.constants._SLEEP_SUMMARY_DURATION_IN_MS_COL
-                    ]
-                    + sleep_summary[
-                        pywearable.constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL
-                    ]
+                    sleep_summary[constants._UNIXTIMESTAMP_IN_MS_COL]
+                    + sleep_summary[constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL]
+                    + sleep_summary[constants._SLEEP_SUMMARY_DURATION_IN_MS_COL]
+                    + sleep_summary[constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL]
                 ),
                 unit="ms",
                 utc=True,
@@ -1968,46 +1912,46 @@ class LabfrontLoader(pywearable.loader.base.BaseLoader):
             ]
 
             daily_sleep_stages = sleep_stages.loc[
-                sleep_stages[pywearable.constants._SLEEP_STAGE_SLEEP_SUMMARY_ID_COL]
+                sleep_stages[constants._SLEEP_STAGE_SLEEP_SUMMARY_ID_COL]
                 == sleep_summary_id
             ]
 
             hypnogram = pd.DataFrame(
-                data={pywearable.constants._ISODATE_COL: time_delta_intervals}
+                data={constants._ISODATE_COL: time_delta_intervals}
             )
 
             hypnogram = hypnogram.merge(
                 daily_sleep_stages.loc[
                     :,
                     [
-                        pywearable.constants._ISODATE_COL,
-                        pywearable.constants._SLEEP_STAGE_SLEEP_TYPE_COL,
+                        constants._ISODATE_COL,
+                        constants._SLEEP_STAGE_SLEEP_TYPE_COL,
                     ],
                 ],
                 how="left",
-                on=pywearable.constants._ISODATE_COL,
+                on=constants._ISODATE_COL,
             )
 
-            hypnogram[pywearable.constants._SLEEP_STAGE_SLEEP_TYPE_COL] = hypnogram.loc[
-                :, pywearable.constants._SLEEP_STAGE_SLEEP_TYPE_COL
+            hypnogram[constants._SLEEP_STAGE_SLEEP_TYPE_COL] = hypnogram.loc[
+                :, constants._SLEEP_STAGE_SLEEP_TYPE_COL
             ].ffill()
             if map_hypnogram:
-                hypnogram[pywearable.constants._SLEEP_STAGE_SLEEP_TYPE_COL] = hypnogram[
-                    pywearable.constants._SLEEP_STAGE_SLEEP_TYPE_COL
+                hypnogram[constants._SLEEP_STAGE_SLEEP_TYPE_COL] = hypnogram[
+                    constants._SLEEP_STAGE_SLEEP_TYPE_COL
                 ].map(
                     {
-                        pywearable.constants._SLEEP_STAGE_REM_STAGE_VALUE: pywearable.constants._SLEEP_STAGE_REM_STAGE_MAPPED_VALUE,
-                        pywearable.constants._SLEEP_STAGE_AWAKE_STAGE_VALUE: pywearable.constants._SLEEP_STAGE_AWAKE_STAGE_MAPPED_VALUE,
-                        pywearable.constants._SLEEP_STAGE_DEEP_STAGE_VALUE: pywearable.constants._SLEEP_STAGE_DEEP_STAGE_MAPPED_VALUE,
-                        pywearable.constants._SLEEP_STAGE_LIGHT_STAGE_VALUE: pywearable.constants._SLEEP_STAGE_LIGHT_STAGE_MAPPED_VALUE,
-                        pywearable.constants._SLEEP_STAGE_UNMEASURABLE_STAGE_VALUE: pywearable.constants._SLEEP_STAGE_UNMEASURABLE_STAGE_MAPPED_VALUE,
+                        constants._SLEEP_STAGE_REM_STAGE_VALUE: constants._SLEEP_STAGE_REM_STAGE_MAPPED_VALUE,
+                        constants._SLEEP_STAGE_AWAKE_STAGE_VALUE: constants._SLEEP_STAGE_AWAKE_STAGE_MAPPED_VALUE,
+                        constants._SLEEP_STAGE_DEEP_STAGE_VALUE: constants._SLEEP_STAGE_DEEP_STAGE_MAPPED_VALUE,
+                        constants._SLEEP_STAGE_LIGHT_STAGE_VALUE: constants._SLEEP_STAGE_LIGHT_STAGE_MAPPED_VALUE,
+                        constants._SLEEP_STAGE_UNMEASURABLE_STAGE_VALUE: constants._SLEEP_STAGE_UNMEASURABLE_STAGE_MAPPED_VALUE,
                     }
                 )
             hypnograms[calendar_day] = {}
             hypnograms[calendar_day]["start_time"] = sleep_start_time.to_pydatetime()
             hypnograms[calendar_day]["end_time"] = sleep_end_time.to_pydatetime()
             hypnograms[calendar_day]["values"] = hypnogram[
-                pywearable.constants._SLEEP_STAGE_SLEEP_TYPE_COL
+                constants._SLEEP_STAGE_SLEEP_TYPE_COL
             ].values
 
         return hypnograms
