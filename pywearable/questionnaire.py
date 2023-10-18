@@ -1,10 +1,11 @@
 import pandas as pd
 
-from . import constants, loader
+from . import constants
+from .loader.base import BaseLoader
 
 
 def process_questionnaire(
-    labfront_loader: loader.LabfrontLoader, questionnaire: str, verbose: bool = False
+    loader: BaseLoader, questionnaire: str, verbose: bool = False
 ) -> pd.DataFrame:
     """Process questionnaire to extract answers.
 
@@ -22,7 +23,7 @@ def process_questionnaire(
 
     Parameters
     ----------
-    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+    loader : :class:`pylabfront.loader.LabfrontLoader`
         An instance of a :class:`pylabfront.loader.LabfrontLoader`.
     questionnaire : str
         Unique identifier for the questionnaire to be analyzed.
@@ -37,11 +38,11 @@ def process_questionnaire(
         information.
     """
     questionnaire_df = pd.DataFrame()
-    questionnaire_questions = labfront_loader.get_questionnaire_questions(questionnaire)
+    questionnaire_questions = loader.get_questionnaire_questions(questionnaire)
 
-    for participant in labfront_loader.get_full_ids():
+    for participant in loader.get_full_ids():
         try:
-            questionnaire_data = labfront_loader.load_questionnaire(
+            questionnaire_data = loader.load_questionnaire(
                 participant, questionnaire_name=questionnaire
             )
         except KeyError:

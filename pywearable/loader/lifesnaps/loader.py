@@ -27,6 +27,16 @@ _METRIC_DICT = {
 
 
 class LifeSnapsLoader(BaseLoader):
+    """Loader for LifeSnaps dataset.
+
+    Parameters
+    ----------
+    host : str
+        Host for pymongo DB instance.
+    port: int
+        Port of the pymongo DB instance.
+    """
+
     def __init__(self, host: str = "localhost", port: int = 27017):
         self.host = host
         self.port = port

@@ -8,17 +8,15 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
-import pywearable.constants
-import pywearable.utils as utils
-
-from . import loader
+from . import constants, utils
+from .loader.base import BaseLoader
 
 _RESPIRATION_DAY = "DAY"
 _RESPIRATION_NIGHT = "NIGHT"
 
 
 def get_breaths_per_minute(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     day_or_night: Union[str, None] = None,
     user_id: Union[str, list] = "all",
     start_date: datetime.datetime = None,
@@ -62,7 +60,7 @@ def get_breaths_per_minute(
         Dictionary with participant id as primary key, calendar days as secondary keys, and average breaths per minute as value.
     """
 
-    user_id = utils.get_user_ids(labfront_loader, user_id)
+    user_id = utils.get_user_ids(loader, user_id)
 
     data_dict = {}
     if average:
@@ -70,15 +68,12 @@ def get_breaths_per_minute(
 
     for user in user_id:
         try:
-            respiratory_data = labfront_loader.load_garmin_connect_respiration(
+            respiratory_data = loader.load_garmin_connect_respiration(
                 user, start_date=start_date, end_date=end_date
             )
             if remove_zero:
                 respiratory_data = respiratory_data[
-                    respiratory_data[
-                        pywearable.constants._RESPIRATION_BREATHS_PER_MINUTE_COL
-                    ]
-                    > 0
+                    respiratory_data[constants._RESPIRATION_BREATHS_PER_MINUTE_COL] > 0
                 ]
             if day_or_night == _RESPIRATION_DAY:
                 respiratory_data = respiratory_data[respiratory_data.sleep == 0]
@@ -88,11 +83,11 @@ def get_breaths_per_minute(
             if len(respiratory_data) > 0:
                 if day_or_night == _RESPIRATION_DAY:
                     respiratory_data["Date"] = respiratory_data[
-                        labfront_loader.date_column
+                        constants._ISODATE_COL
                     ].dt.date
                     data_dict[user] = (
                         respiratory_data.groupby("Date")[
-                            pywearable.constants._RESPIRATION_BREATHS_PER_MINUTE_COL
+                            constants._RESPIRATION_BREATHS_PER_MINUTE_COL
                         ]
                         .mean()
                         .to_dict()
@@ -100,8 +95,8 @@ def get_breaths_per_minute(
                 else:
                     data_dict[user] = (
                         respiratory_data.groupby(
-                            pywearable.constants._RESPIRATION_CALENDAR_DATE_COL
-                        )[pywearable.constants._RESPIRATION_BREATHS_PER_MINUTE_COL]
+                            constants._RESPIRATION_CALENDAR_DATE_COL
+                        )[constants._RESPIRATION_BREATHS_PER_MINUTE_COL]
                         .mean()
                         .to_dict()
                     )
@@ -130,7 +125,7 @@ def get_breaths_per_minute(
 
 
 def get_rest_breaths_per_minute(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, None] = None,
     end_date: Union[datetime.datetime, datetime.date, None] = None,
@@ -142,7 +137,7 @@ def get_rest_breaths_per_minute(
 
     Parameters
     ----------
-        loader: :class:`pylabfront.loader.LabfrontLoader`
+        loader: :class:`pywearable.loader.base.BaseLoader`
             Instance of `LabfrontLoader`.
         user_id: :class:`str` or :class:`list`, optional
             ID of the user for which breaths per minute must be computed, by default "all".
@@ -179,7 +174,7 @@ def get_rest_breaths_per_minute(
 
 
 def get_waking_breaths_per_minute(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, None] = None,
     end_date: Union[datetime.datetime, datetime.date, None] = None,

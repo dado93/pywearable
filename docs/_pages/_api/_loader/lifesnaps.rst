@@ -1,5 +1,5 @@
-Labfront Loader
-===============
+LifeSnaps Loader
+================
 
-.. automodule:: pywearable.loader.labfront.loader
+.. automodule:: pywearable.loader.lifesnaps.loader
    :members:

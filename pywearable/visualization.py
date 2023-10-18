@@ -25,11 +25,13 @@ import pywearable.sleep as sleep
 import pywearable.stress as stress
 import pywearable.utils as utils
 
+from .loader.base import BaseLoader
+
 date_form = DateFormatter("%m-%d")
 
 
 def get_steps_line_graph_and_stats(
-    loader: pywearable.loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: str,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -152,7 +154,7 @@ def get_steps_line_graph_and_stats(
 
 
 def get_cardiac_line_graph_and_stats(
-    loader: pywearable.loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: str,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -285,7 +287,7 @@ def get_cardiac_line_graph_and_stats(
 
 
 def get_rest_spo2_graph(
-    loader: pywearable.loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: str,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -419,7 +421,7 @@ def get_rest_spo2_graph(
 
 
 def get_stress_grid_and_stats(
-    loader: pywearable.loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: str,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -511,7 +513,7 @@ def get_stress_grid_and_stats(
 
 
 def get_respiration_line_graph_and_stats(
-    loader: pywearable.loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: str,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -629,7 +631,7 @@ def get_respiration_line_graph_and_stats(
 
 
 def get_sleep_grid_and_stats(
-    loader: pywearable.loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: str,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -738,7 +740,7 @@ def get_sleep_grid_and_stats(
 
 
 def get_sleep_summary_graph(
-    loader: pywearable.loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: str,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
