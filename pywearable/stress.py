@@ -74,7 +74,7 @@ def get_body_battery(
 
 
 def get_stress(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -117,7 +117,7 @@ def get_stress(
 
 
 def get_daily_stress_statistics(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -181,7 +181,9 @@ def get_daily_stress_statistics(
     return data_dict
 
 
-def get_average_stress_weekday(loader, start_date=None, end_date=None, user_id="all"):
+def get_average_stress_weekday(
+    loader: BaseLoader, start_date=None, end_date=None, user_id="all"
+):
     """Gets the average daily stress in working days (Mon-Fri)
 
     Args:
@@ -324,7 +326,9 @@ def get_daily_stress_metric(
     return data_dict
 
 
-def get_rest_duration(loader, start_date=None, end_date=None, user_id="all"):
+def get_rest_duration(
+    loader: BaseLoader, start_date=None, end_date=None, user_id="all"
+):
     """Get duration of daily rest stress in ms.
 
     This function returns the absolute time spent in rest stress level (0-25)
@@ -356,7 +360,9 @@ def get_rest_duration(loader, start_date=None, end_date=None, user_id="all"):
     return get_daily_stress_metric(loader, "rest", start_date, end_date, user_id)
 
 
-def get_low_stress_duration(loader, start_date=None, end_date=None, user_id="all"):
+def get_low_stress_duration(
+    loader: BaseLoader, start_date=None, end_date=None, user_id="all"
+):
     """Get duration of daily low stress in ms.
 
     This function returns the absolute time spent in low stress level (25-50)
@@ -388,7 +394,9 @@ def get_low_stress_duration(loader, start_date=None, end_date=None, user_id="all
     return get_daily_stress_metric(loader, "low", start_date, end_date, user_id)
 
 
-def get_medium_stress_duration(loader, start_date=None, end_date=None, user_id="all"):
+def get_medium_stress_duration(
+    loader: BaseLoader, start_date=None, end_date=None, user_id="all"
+):
     """Get duration of daily medium stress in ms.
 
     This function returns the absolute time spent in medium stress level (50-75)
@@ -420,7 +428,9 @@ def get_medium_stress_duration(loader, start_date=None, end_date=None, user_id="
     return get_daily_stress_metric(loader, "medium", start_date, end_date, user_id)
 
 
-def get_high_stress_duration(loader, start_date=None, end_date=None, user_id="all"):
+def get_high_stress_duration(
+    loader: BaseLoader, start_date=None, end_date=None, user_id="all"
+):
     """Get duration of daily high stress in ms.
 
     This function returns the absolute time spent in high stress level (75-100)
@@ -453,7 +463,7 @@ def get_high_stress_duration(loader, start_date=None, end_date=None, user_id="al
 
 
 def get_unreliable_stress_duration(
-    loader, start_date=None, end_date=None, user_id="all"
+    loader: BaseLoader, start_date=None, end_date=None, user_id="all"
 ):
     """Get duration of unreliable daily stress measures in ms.
 
@@ -486,7 +496,7 @@ def get_unreliable_stress_duration(
     return get_daily_stress_metric(loader, "unreliable", start_date, end_date, user_id)
 
 
-def get_stress_score(loader, start_date=None, end_date=None, user_id="all"):
+def get_stress_score(loader: BaseLoader, start_date=None, end_date=None, user_id="all"):
     """Get a qualifier that summarizes the daily amount of stress.
 
     This function returns a score for the daily amount of stress
@@ -519,7 +529,7 @@ def get_stress_score(loader, start_date=None, end_date=None, user_id="all"):
 
 
 def get_sleep_battery_recovery(
-    labfront_loader: loader.LabfrontLoader,
+    labfront_loader: BaseLoader,
     start_date=None,
     end_date=None,
     user_id="all",
@@ -586,7 +596,7 @@ def get_sleep_battery_recovery(
     return data_dict
 
 
-def get_min_body_battery(loader, start_date, end_date, user_id="all"):
+def get_min_body_battery(loader: BaseLoader, start_date, end_date, user_id="all"):
     """Get minimum daily body battery.
 
     This function returns the minimum recorded daily body battery
@@ -634,7 +644,7 @@ def get_min_body_battery(loader, start_date, end_date, user_id="all"):
     return data_dict
 
 
-def get_max_body_battery(loader, start_date, end_date, user_id="all"):
+def get_max_body_battery(loader: BaseLoader, start_date, end_date, user_id="all"):
     """Get maximum daily body battery.
 
     This function returns the maximum recorded daily body battery
@@ -683,7 +693,7 @@ def get_max_body_battery(loader, start_date, end_date, user_id="all"):
 
 
 def get_daily_average_stress(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -706,7 +716,7 @@ def get_daily_average_stress(
 
 
 def get_waking_body_battery(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -743,7 +753,7 @@ def get_waking_body_battery(
 
 
 def get_body_battery_starting_sleep(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
