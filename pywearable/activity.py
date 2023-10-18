@@ -9,16 +9,15 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
-import pywearable.utils as utils
-
-from . import constants, loader
+from . import constants, utils
+from .loader.base import BaseLoader
 
 _MS_TO_MINUTES_CONVERSION = 1000 * 60
 _ACTIVITY_TIME_IN_MINUTES = "activeTimeInMinutes"
 
 
 def get_activity_series(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     activity: str,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -59,14 +58,14 @@ def get_activity_series(
     """
     activity_dict = {}
 
-    user_ids = utils.get_user_ids(labfront_loader, user_id)
+    user_ids = utils.get_user_ids(loader, user_id)
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
     if end_date is None:
         end_date = datetime.datetime.now()
     for id in user_ids:
         try:
-            df = labfront_loader.load_garmin_connect_epoch(
+            df = loader.load_garmin_connect_epoch(
                 id,
                 start_date,
                 end_date - datetime.timedelta(minutes=15),  # TODO Do we need to do it?
@@ -86,7 +85,7 @@ def get_activity_series(
 
 
 def get_active_activity_series(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     user_id: Union[str, list] = "all",
@@ -115,7 +114,7 @@ def get_active_activity_series(
 
     Parameters
     ----------
-    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+    loader : :class:`pylabfront.loader.LabfrontLoader`
         Initialized instance of :class:`pylabfront.loader.LabfrontLoader`, required in order to properly load data.
     start_date : :class:`datetime.datetime`, optional
         Start date from which should be extracted, by default None.
@@ -136,7 +135,7 @@ def get_active_activity_series(
         Each value is a time series of the desired activity level between start_date and end_date.
     """
     return get_activity_series(
-        labfront_loader,
+        loader,
         constants._EPOCH_ACTIVITY_ACTIVE_VALUE,
         start_date,
         end_date,
@@ -145,7 +144,7 @@ def get_active_activity_series(
 
 
 def get_highly_active_activity_series(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     user_id: Union[str, list] = "all",
@@ -178,7 +177,7 @@ def get_highly_active_activity_series(
         Each value is a time series of the desired activity level between start_date and end_date.
     """
     return get_activity_series(
-        labfront_loader,
+        loader,
         constants._EPOCH_ACTIVITY_HIGHLY_ACTIVE_VALUE,
         start_date,
         end_date,
@@ -187,7 +186,7 @@ def get_highly_active_activity_series(
 
 
 def get_sedentary_activity_series(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     user_id: Union[str, list] = "all",
@@ -199,7 +198,7 @@ def get_sedentary_activity_series(
 
     Parameters
     ----------
-    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+    loader : :class:`pylabfront.loader.LabfrontLoader`
         Initialized instance of :class:`pylabfront.loader.LabfrontLoader`, required in order to properly load data.
     start_date : :class:`datetime.datetime`, optional
         Start date from which should be extracted, by default None.
@@ -220,7 +219,7 @@ def get_sedentary_activity_series(
         Each value is a time series of the desired activity level between start_date and end_date.
     """
     return get_activity_series(
-        labfront_loader,
+        loader,
         constants._EPOCH_ACTIVITY_SEDENTARY_VALUE,
         start_date,
         end_date,
@@ -229,7 +228,7 @@ def get_sedentary_activity_series(
 
 
 def get_steps_series(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     user_id: Union[str, list] = "all",
@@ -283,14 +282,14 @@ def get_steps_series(
 
     steps_dict = {}
 
-    user_ids = utils.get_user_ids(labfront_loader, user_id)
+    user_ids = utils.get_user_ids(loader, user_id)
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
     if end_date is None:
         end_date = datetime.datetime.now()
     for id in user_ids:
         try:
-            df = labfront_loader.load_garmin_connect_epoch(
+            df = loader.load_garmin_connect_epoch(
                 id, start_date, end_date - datetime.timedelta(minutes=15)
             )
             steps_dict[id] = df.groupby(constants._ISODATE_COL)[
@@ -303,7 +302,7 @@ def get_steps_series(
 
 
 def get_distance_series(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     user_id: Union[str, list] = "all",
@@ -337,14 +336,14 @@ def get_distance_series(
     """
     distance_dict = {}
 
-    user_ids = utils.get_user_ids(labfront_loader, user_id)
+    user_ids = utils.get_user_ids(loader, user_id)
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
     if end_date is None:
         end_date = datetime.datetime.now()
     for id in user_ids:
         try:
-            df = labfront_loader.load_garmin_connect_epoch(
+            df = loader.load_garmin_connect_epoch(
                 id, start_date, end_date - datetime.timedelta(minutes=15)
             )
             distance_dict[id] = df.groupby(constants._ISODATE_COL)[
@@ -357,7 +356,7 @@ def get_distance_series(
 
 
 def get_daily_steps(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     user_id: Union[str, list] = "all",
@@ -396,11 +395,11 @@ def get_daily_steps(
 
     data_dict = {}
 
-    user_ids = utils.get_user_ids(labfront_loader, user_id)
+    user_ids = utils.get_user_ids(loader, user_id)
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
     for id in user_ids:
-        participant_daily_summary = labfront_loader.load_garmin_connect_daily_summary(
+        participant_daily_summary = loader.load_garmin_connect_daily_summary(
             id, start_date, end_date
         )
         if len(participant_daily_summary) > 0:
@@ -429,7 +428,7 @@ def get_daily_steps(
 
 
 def get_daily_distance(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     user_id: Union[str, list] = "all",
@@ -442,7 +441,7 @@ def get_daily_distance(
 
     Parameters
     ----------
-    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+    loader : :class:`pylabfront.loader.LabfrontLoader`
         Instance of :class:`pylabfront.loader.LabfrontLoader`, required for data loading.
     start_date : datetime.datetime or datetime.date or str or None, optional
         Start date for data loading, by default None
@@ -460,13 +459,13 @@ def get_daily_distance(
     """
     data_dict = {}
 
-    user_ids = utils.get_user_ids(labfront_loader, user_id)
+    user_ids = utils.get_user_ids(loader, user_id)
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
     if end_date is None:
         end_date = datetime.datetime.now()
     for id in user_ids:
-        participant_epochs = labfront_loader.load_garmin_connect_epoch(
+        participant_epochs = loader.load_garmin_connect_epoch(
             id,
             start_date,
             end_date
@@ -505,7 +504,7 @@ def get_daily_distance(
 
 
 def get_daily_steps_goal(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     user_id: Union[str, list] = "all",
@@ -533,11 +532,11 @@ def get_daily_steps_goal(
     """
     data_dict = {}
 
-    user_ids = utils.get_user_ids(labfront_loader, user_id)
+    user_ids = utils.get_user_ids(loader, user_id)
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
     for id in user_ids:
-        participant_daily_summary = labfront_loader.load_garmin_connect_daily_summary(
+        participant_daily_summary = loader.load_garmin_connect_daily_summary(
             id, start_date, end_date
         )
         if len(participant_daily_summary) > 0:
@@ -559,7 +558,7 @@ def get_daily_steps_goal(
 
 
 def get_daily_intensity_minutes(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     user_id: Union[str, list] = "all",
@@ -591,13 +590,13 @@ def get_daily_intensity_minutes(
     """
     data_dict = {}
 
-    user_id = utils.get_user_ids(labfront_loader, user_id)
+    user_id = utils.get_user_ids(loader, user_id)
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
     if end_date is None:
         end_date = datetime.datetime.now()
     for user in user_id:
-        participant_daily_summaries = labfront_loader.load_garmin_connect_daily_summary(
+        participant_daily_summaries = loader.load_garmin_connect_daily_summary(
             user, start_date, end_date + datetime.timedelta(hours=23, minutes=45)
         )
         if len(participant_daily_summaries) > 0:
@@ -650,7 +649,7 @@ def get_daily_intensity_minutes(
 
 
 def get_average_daily_activity_minutes(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     user_id: Union[str, list] = "all",
@@ -665,7 +664,7 @@ def get_average_daily_activity_minutes(
 
 
         pylabfront.activity.get_average_daily_activity_minutes(
-            labfront_loader,
+            loader,
             start_date,
             end_date,
             user_id,
@@ -679,7 +678,7 @@ def get_average_daily_activity_minutes(
 
     Parameters
     ----------
-    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+    loader : :class:`pylabfront.loader.LabfrontLoader`
         Instance of :class:`pylabfront.loader.LabfrontLoader` for data loading.
     start_date : datetime.datetime or datetime.date or str or None, optional
         Start date for data retrieval, by default None
@@ -698,7 +697,7 @@ def get_average_daily_activity_minutes(
 
     activities_dict = {}
 
-    user_ids = utils.get_user_ids(labfront_loader, user_id)
+    user_ids = utils.get_user_ids(loader, user_id)
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
     if end_date is None:
@@ -706,7 +705,7 @@ def get_average_daily_activity_minutes(
     for id in user_ids:
         try:
             # get data for the period desired
-            df = labfront_loader.load_garmin_connect_epoch(
+            df = loader.load_garmin_connect_epoch(
                 id, start_date, end_date - datetime.timedelta(minutes=15)
             )
             if len(df) == 0:
@@ -755,7 +754,7 @@ def get_average_daily_activity_minutes(
 
 
 def get_average_daily_sedentary_minutes(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     user_id: Union[str, list] = "all",
@@ -771,7 +770,7 @@ def get_average_daily_sedentary_minutes(
 
     Parameters
     ----------
-    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+    loader : :class:`pylabfront.loader.LabfrontLoader`
         Initialized instance of :class:`pylabfront.loader.LabfrontLoader` required for data loading.
     start_date : datetime.datetime or datetime.date or str or None, optional
         Start date for data retrieval, by default None
@@ -789,7 +788,7 @@ def get_average_daily_sedentary_minutes(
     """
 
     activities_dict = get_average_daily_activity_minutes(
-        labfront_loader, start_date, end_date, user_id, return_as_ratio
+        loader, start_date, end_date, user_id, return_as_ratio
     )
     sedentary_dict = {}
 
@@ -806,7 +805,7 @@ def get_average_daily_sedentary_minutes(
 
 
 def get_average_daily_active_minutes(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     user_id: Union[str, list] = "all",
@@ -822,7 +821,7 @@ def get_average_daily_active_minutes(
 
     Parameters
     ----------
-    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+    loader : :class:`pylabfront.loader.LabfrontLoader`
         Initialized instance of :class:`pylabfront.loader.LabfrontLoader` required for data loading.
     start_date : datetime.datetime or datetime.date or str or None, optional
         Start date for data retrieval, by default None
@@ -840,7 +839,7 @@ def get_average_daily_active_minutes(
     """
 
     activities_dict = get_average_daily_activity_minutes(
-        labfront_loader, start_date, end_date, user_id, return_as_ratio
+        loader, start_date, end_date, user_id, return_as_ratio
     )
     active_dict = {}
 
@@ -857,7 +856,7 @@ def get_average_daily_active_minutes(
 
 
 def get_average_daily_highly_active_minutes(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     user_id: Union[str, list] = "all",
@@ -873,7 +872,7 @@ def get_average_daily_highly_active_minutes(
 
     Parameters
     ----------
-    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+    loader : :class:`pylabfront.loader.LabfrontLoader`
         Initialized instance of :class:`pylabfront.loader.LabfrontLoader` required for data loading.
     start_date : datetime.datetime or datetime.date or str or None, optional
         Start date for data retrieval, by default None
@@ -890,7 +889,7 @@ def get_average_daily_highly_active_minutes(
         Dictionary with user id as key, and highly active minutes as value.
     """
     activities_dict = get_average_daily_activity_minutes(
-        labfront_loader, start_date, end_date, user_id, return_as_ratio
+        loader, start_date, end_date, user_id, return_as_ratio
     )
     highly_active_dict = {}
 
@@ -907,7 +906,7 @@ def get_average_daily_highly_active_minutes(
 
 
 def get_average_weekly_activities(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     user_id: Union[str, list] = "all",
@@ -923,7 +922,7 @@ def get_average_weekly_activities(
 
     Parameters
     ----------
-    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+    loader : :class:`pylabfront.loader.LabfrontLoader`
         Instance of :class:`pylabfront.loader.LabfrontLoader`.
     start_date : datetime.datetime or datetime.date or str or None, optional
         Start date for data retrieval, by default None
@@ -942,7 +941,7 @@ def get_average_weekly_activities(
 
     weekday_activities_dict = {}
 
-    user_ids = utils.get_user_ids(labfront_loader, user_id)
+    user_ids = utils.get_user_ids(loader, user_id)
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
     if end_date is None:
@@ -950,7 +949,7 @@ def get_average_weekly_activities(
     for id in user_ids:
         try:
             # get data for that period
-            df = labfront_loader.load_garmin_connect_epoch(
+            df = loader.load_garmin_connect_epoch(
                 id, start_date, end_date - datetime.timedelta(minutes=15)
             )
             if len(df) == 0:
@@ -1018,7 +1017,7 @@ def get_average_weekly_activities(
 
 
 def get_average_weekday_sedentary_minutes(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     user_id: Union[str, list] = "all",
@@ -1031,7 +1030,7 @@ def get_average_weekday_sedentary_minutes(
 
     Parameters
     ----------
-    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+    loader : :class:`pylabfront.loader.LabfrontLoader`
         Instance of :class:`pylabfront.loader.LabfrontLoader`.
     start_date : datetime.datetime or datetime.date or str or None, optional
         Start date for data retrieval, by default None
@@ -1052,7 +1051,7 @@ def get_average_weekday_sedentary_minutes(
     avg_sedentary_dict = {}
 
     for k, v in get_average_weekly_activities(
-        labfront_loader, start_date, end_date, user_id, return_as_ratio
+        loader, start_date, end_date, user_id, return_as_ratio
     ).items():
         if v is None:
             avg_sedentary_dict[k] = None
@@ -1069,7 +1068,7 @@ def get_average_weekday_sedentary_minutes(
 
 
 def get_average_weekday_active_minutes(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     user_id: Union[str, list] = "all",
@@ -1082,7 +1081,7 @@ def get_average_weekday_active_minutes(
 
     Parameters
     ----------
-    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+    loader : :class:`pylabfront.loader.LabfrontLoader`
         Instance of :class:`pylabfront.loader.LabfrontLoader`.
     start_date : datetime.datetime or datetime.date or str or None, optional
         Start date for data retrieval, by default None
@@ -1103,7 +1102,7 @@ def get_average_weekday_active_minutes(
     avg_active_dict = {}
 
     for k, v in get_average_weekly_activities(
-        labfront_loader, start_date, end_date, user_id, return_as_ratio
+        loader, start_date, end_date, user_id, return_as_ratio
     ).items():
         if v is None:
             avg_active_dict[k] = None
@@ -1120,7 +1119,7 @@ def get_average_weekday_active_minutes(
 
 
 def get_average_weekday_highly_active_minutes(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     user_id: Union[str, list] = "all",
@@ -1133,7 +1132,7 @@ def get_average_weekday_highly_active_minutes(
 
     Parameters
     ----------
-    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+    loader : :class:`pylabfront.loader.LabfrontLoader`
         Instance of :class:`pylabfront.loader.LabfrontLoader`.
     start_date : datetime.datetime or datetime.date or str or None, optional
         Start date for data retrieval, by default None
@@ -1154,7 +1153,7 @@ def get_average_weekday_highly_active_minutes(
     avg_highly_active_dict = {}
 
     for k, v in get_average_weekly_activities(
-        labfront_loader, start_date, end_date, user_id, return_as_ratio
+        loader, start_date, end_date, user_id, return_as_ratio
     ).items():
         if v is None:
             avg_highly_active_dict[k] = None
@@ -1171,7 +1170,7 @@ def get_average_weekday_highly_active_minutes(
 
 
 def get_average_weekend_sedentary_minutes(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     user_id: Union[str, list] = "all",
@@ -1184,7 +1183,7 @@ def get_average_weekend_sedentary_minutes(
 
     Parameters
     ----------
-    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+    loader : :class:`pylabfront.loader.LabfrontLoader`
         Instance of :class:`pylabfront.loader.LabfrontLoader`.
     start_date : datetime.datetime or datetime.date or str or None, optional
         Start date for data retrieval, by default None
@@ -1205,7 +1204,7 @@ def get_average_weekend_sedentary_minutes(
     avg_sedentary_dict = {}
 
     for k, v in get_average_weekly_activities(
-        labfront_loader, start_date, end_date, user_id, return_as_ratio
+        loader, start_date, end_date, user_id, return_as_ratio
     ).items():
         if v is None:
             avg_sedentary_dict[k] = None
@@ -1222,7 +1221,7 @@ def get_average_weekend_sedentary_minutes(
 
 
 def get_average_weekend_active_minutes(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     user_id: Union[str, list] = "all",
@@ -1235,7 +1234,7 @@ def get_average_weekend_active_minutes(
 
     Parameters
     ----------
-    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+    loader : :class:`pylabfront.loader.LabfrontLoader`
         Instance of :class:`pylabfront.loader.LabfrontLoader`.
     start_date : datetime.datetime or datetime.date or str or None, optional
         Start date for data retrieval, by default None
@@ -1256,7 +1255,7 @@ def get_average_weekend_active_minutes(
     avg_active_dict = {}
 
     for k, v in get_average_weekly_activities(
-        labfront_loader, start_date, end_date, user_id, return_as_ratio
+        loader, start_date, end_date, user_id, return_as_ratio
     ).items():
         if v is None:
             avg_active_dict[k] = None
@@ -1273,7 +1272,7 @@ def get_average_weekend_active_minutes(
 
 
 def get_average_weekend_highly_active_minutes(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     user_id: Union[str, list] = "all",
@@ -1286,7 +1285,7 @@ def get_average_weekend_highly_active_minutes(
 
     Parameters
     ----------
-    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+    loader : :class:`pylabfront.loader.LabfrontLoader`
         Instance of :class:`pylabfront.loader.LabfrontLoader`.
     start_date : datetime.datetime or datetime.date or str or None, optional
         Start date for data retrieval, by default None
@@ -1307,7 +1306,7 @@ def get_average_weekend_highly_active_minutes(
     avg_highly_active_dict = {}
 
     for k, v in get_average_weekly_activities(
-        labfront_loader, start_date, end_date, user_id, return_as_ratio
+        loader, start_date, end_date, user_id, return_as_ratio
     ).items():
         if v is None:
             avg_highly_active_dict[k] = None

@@ -13,7 +13,7 @@ import pandas as pd
 import pywearable.sleep as sleep
 import pywearable.utils as utils
 
-from . import loader
+from .loader.base import BaseLoader
 
 _LABFRONT_ISO_DATE_KEY = "isoDate"
 _LABFRONT_BODY_BATTERY_KEY = "bodyBattery"
@@ -32,7 +32,7 @@ _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL = "calendarDate"
 
 
 def get_body_battery(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,

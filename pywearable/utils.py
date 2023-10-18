@@ -68,10 +68,10 @@ def get_user_ids(loader: "BaseLoader", user_id: Union[str, list]):
 
     Parameters
     ----------
-    labfront_loader : :class:`loader.LabfrontLoader`
+    loader : :class:`loader.base.BaseLoader`
         An instance of a data loader
     user_id : :class:`str` or :class:`list`
-        The id(s) of the user(s9) of interest
+        The id(s) of the user(s) of interest
 
     Returns
     -------
@@ -79,10 +79,9 @@ def get_user_ids(loader: "BaseLoader", user_id: Union[str, list]):
         List of all the full user ids of interest.
     """
     if user_id == "all":
-        user_id = loader.get_full_ids()
+        user_id = loader.get_user_ids()
 
     elif isinstance(user_id, str):
-        user_id = loader.get_full_id(user_id)
         user_id = [user_id]
 
     elif not isinstance(user_id, list):

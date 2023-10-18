@@ -9,7 +9,8 @@ from typing import Union
 
 import pandas as pd
 
-from . import constants, loader, utils
+from . import constants, utils
+from .loader.base import BaseLoader
 
 _LABFRONT_TASK_SCHEDULE_KEY = "taskScheduleRepeat"
 _LABFRONT_TODO_STRING = "todo"
@@ -18,7 +19,7 @@ _MS_TO_HOURS_CONVERSION = 1000 * 60 * 60
 
 
 def get_questionnaire_dict(
-    labfront_loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -73,28 +74,26 @@ def get_questionnaire_dict(
 
     adherence_dict = {}
 
-    user_id = utils.get_user_ids(labfront_loader, user_id)
+    user_id = utils.get_user_ids(loader, user_id)
 
     if questionnaire == "all":
-        questionnaire = labfront_loader.get_available_questionnaires()
+        questionnaire = loader.get_available_questionnaires()
     elif isinstance(questionnaire, str):
-        questionnaire = [labfront_loader.get_task_full_id(questionnaire)]
+        questionnaire = [loader.get_task_full_id(questionnaire)]
 
     if not (isinstance(user_id, list) and isinstance(questionnaire, list)):
         raise TypeError("user id and questionnaire_names have to be lists.")
 
-    inv_map = {v: k for k, v in labfront_loader.tasks_dict.items()}
+    inv_map = {v: k for k, v in loader.tasks_dict.items()}
 
     for user in user_id:
         adherence_dict[user] = {}
-        participant_questionnaires = labfront_loader.get_available_questionnaires(
-            [user]
-        )
+        participant_questionnaires = loader.get_available_questionnaires([user])
         for quest in questionnaire:
             questionnaire_name = inv_map[quest]
             adherence_dict[user][questionnaire_name] = {}
             if quest in participant_questionnaires:
-                questionnaire_df = labfront_loader.load_questionnaire(
+                questionnaire_df = loader.load_questionnaire(
                     user_id=user,
                     start_date=start_date,
                     end_date=end_date,
@@ -112,8 +111,8 @@ def get_questionnaire_dict(
                 adherence_dict[user][questionnaire_name]["n_filled"] = count
                 is_repeatable = utils.is_task_repeatable(
                     (
-                        labfront_loader.data_path
-                        / labfront_loader.get_full_id(user)
+                        loader.data_path
+                        / loader.get_full_id(user)
                         / constants._QUESTIONNAIRE_FOLDER
                         / quest
                     )
@@ -126,11 +125,11 @@ def get_questionnaire_dict(
                 # need to understand if the questionnaire is repeatable
                 # we do this by iterating through all users
                 is_repeatable = None
-                for full_user in labfront_loader.get_full_ids():
+                for full_user in loader.get_full_ids():
                     try:
                         is_repeatable = utils.is_task_repeatable(
                             (
-                                labfront_loader.data_path
+                                loader.data_path
                                 / full_user
                                 / constants._QUESTIONNAIRE_FOLDER
                                 / quest
@@ -148,12 +147,12 @@ def get_questionnaire_dict(
 
 
 def get_questionnaire_adherence(
-    loader : loader.LabfrontLoader,
-    number_of_days : int,
-    user_id : Union[str, list] = "all",
-    start_date : Union[datetime.datetime, datetime.date, str, None] = None,
-    end_date : Union[datetime.datetime, datetime.date, str, None] = None,
-    questionnaire_names = "all",
+    loader: BaseLoader,
+    number_of_days: int,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    questionnaire_names="all",
     safe_delta=6,
     return_percentage=True,
 ):
@@ -238,7 +237,7 @@ def get_questionnaire_adherence(
 
 
 def get_todo_dict(
-    loader,
+    loader: BaseLoader,
     start_date=None,
     end_date=None,
     user_id="all",
@@ -310,7 +309,7 @@ def get_todo_dict(
 
 
 def get_todo_adherence(
-    loader,
+    loader: BaseLoader,
     number_of_days,
     start_date=None,
     end_date=None,
@@ -371,7 +370,12 @@ def get_todo_adherence(
 
 
 def get_metric_adherence(
-    loader, loader_metric_fn, expected_fs, start_date=None, end_date=None, user_id="all"
+    loader: BaseLoader,
+    loader_metric_fn,
+    expected_fs,
+    start_date=None,
+    end_date=None,
+    user_id="all",
 ):
     """Given an expected sampling frequency for a metric, returns the percentage of adherence for that metric"""
     # TODO MOSTLY, for now it's only for one user at a time
@@ -387,7 +391,9 @@ def get_metric_adherence(
     )
 
 
-def get_garmin_device_adherence(loader, start_date=None, end_date=None, user_id="all"):
+def get_garmin_device_adherence(
+    loader: BaseLoader, start_date=None, end_date=None, user_id="all"
+):
     data_dict = {}
     user_id = utils.get_user_ids(loader, user_id)
 
@@ -404,7 +410,11 @@ def get_garmin_device_adherence(loader, start_date=None, end_date=None, user_id=
 
 
 def get_night_adherence(
-    loader, start_date=None, end_date=None, user_id="all", return_percentage=False
+    loader: BaseLoader,
+    start_date=None,
+    end_date=None,
+    user_id="all",
+    return_percentage=False,
 ):
     """Get adherence in terms of amount of sleeping data gathered
 
@@ -437,12 +447,10 @@ def get_night_adherence(
 
     for user in user_id:
         try:
-            sleep_df = loader.load_garmin_connect_sleep_summary(
-                user, start_date, end_date
-            )
+            sleep_df = loader.load_sleep_summary(user, start_date, end_date)
             # just to be sure we check that there's only one row per day
             sleep_summaries = len(
-                sleep_df.groupby(_LABFRONT_GARMIN_CONNECT_CALENDAR_DAY_COL).tail(1)
+                sleep_df.groupby(constants._CALENDAR_DATE_COL).tail(1)
             )
             num_nights = (end_date - start_date).days
             if return_percentage:
