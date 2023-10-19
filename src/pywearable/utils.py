@@ -315,6 +315,17 @@ def mean_time(times):
     m, s = divmod(m, 60)
     return "%02i:%02i" % (h, m)
 
+def min_time(times):
+    pass
+
+
+def max_time(times):
+    pass
+
+
+def std_time(times):
+    pass
+
 
 def filter_bbi(
     bbi,

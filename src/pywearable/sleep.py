@@ -1467,7 +1467,7 @@ def get_sleep_timestamps(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ):
     """Get the timestamps of the beginning and the end of sleep occurrences.
 
@@ -1484,8 +1484,14 @@ def get_sleep_timestamps(
         Start date for data retrieval, by default None
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None.
-    average : :class:`bool`, optional
-        Whether to calculate the average sleep and awake time of the user, by default False.
+    kind : :class:`str` or None, optional
+        Whether to perform a transform of the sleep statistic over days, by default None.
+        If `None`, then the sleep statistic is returned with a value for each day, otherwise
+        a transformation is applied. Valid options are:
+            - 'mean'
+            - 'min'
+            - 'max'
+            - 'std'
 
     Returns
     -------
@@ -1513,14 +1519,26 @@ def get_sleep_timestamps(
                 ),
                 df[constants._CALENDAR_DATE_COL],
             ).to_dict()
-            if average:
+            if not (kind is None):
                 sleep_times = [timestamp[0] for timestamp in data_dict[user].values()]
                 wake_times = [timestamp[1] for timestamp in data_dict[user].values()]
                 sleep_times = [item.strftime("%H:%M") for item in sleep_times]
                 wake_times = [item.strftime("%H:%M") for item in wake_times]
-                mean_sleep_time = utils.mean_time(sleep_times)
-                mean_wake_time = utils.mean_time(wake_times)
-                data_dict[user] = (mean_sleep_time, mean_wake_time)
+                if kind == "mean":
+                    transformed_sleep_time = utils.mean_time(sleep_times)
+                    transformed_wake_time = utils.mean_time(wake_times)
+                elif kind == "std":
+                    transformed_sleep_time = utils.std_time(sleep_times)
+                    transformed_wake_time = utils.std_time(wake_times)
+                elif kind == "min":
+                    transformed_sleep_time = utils.min_time(sleep_times)
+                    transformed_wake_time = utils.min_time(wake_times)
+                elif kind == "max":
+                    transformed_sleep_time = utils.max_time(sleep_times)
+                    transformed_wake_time = utils.max_time(wake_times)
+                else:
+                    raise ValueError(f"{kind} must be either mean, std, min, or max")
+                data_dict[user] = (transformed_sleep_time, transformed_wake_time)
         else:
             data_dict[user] = None
 
@@ -2548,7 +2566,8 @@ def _compute_sleep_onset_latency(
         )
     latencies = _compute_latencies(sleep_summary, sleep_stages)
     # Remove awake latency
-    latencies = latencies.drop([constants._SLEEP_STAGE_AWAKE_STAGE_VALUE], axis=1)
+    if constants._SLEEP_STAGE_AWAKE_STAGE_VALUE in latencies.columns:
+        latencies = latencies.drop([constants._SLEEP_STAGE_AWAKE_STAGE_VALUE], axis=1)
     return latencies.min(axis=1)
 
 
@@ -2795,7 +2814,7 @@ def get_sleep_statistic(
     metric: str,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ) -> dict:
     """Get sleep statistic from sleep data.
 
@@ -2839,8 +2858,14 @@ def get_sleep_statistic(
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None
-    average : :class:`bool`, optional
-        Whether to average the sleep statistic over days, or to return the value for each day, by default False
+    kind : :class:`str` or None, optional
+        Whether to perform a transform of the sleep statistic over days, by default None.
+        If `None`, then the sleep statistic is returned with a value for each day, otherwise
+        a transformation is applied. Valid options are:
+            - 'mean'
+            - 'min'
+            - 'max'
+            - 'std'
 
     Returns
     -------
@@ -2852,13 +2877,13 @@ def get_sleep_statistic(
         calendar days over which the average was computed.
     """
     data_dict = {}
-    if average:
-        average_dict = {}
+    if not (kind is None):
+        transformed_dict = {}
     user_id = utils.get_user_ids(loader, user_id)
 
     for user in user_id:
         # Load sleep summary data
-        sleep_summary = loader.load_connect_sleep_summary(
+        sleep_summary = loader.load_sleep_summary(
             user, start_date, end_date, same_day_filter=True
         )
         if len(sleep_summary) > 0:
@@ -2905,22 +2930,35 @@ def get_sleep_statistic(
                 metric_data[metric].values,
                 index=metric_data[constants._CALENDAR_DATE_COL],
             ).to_dict()
-            if average:
+            if not (kind is None):
                 sleep_data_df = pd.DataFrame.from_dict(data_dict[user], orient="index")
-                average_dict[user] = {}
+                transformed_dict[user] = {}
                 if len(sleep_data_df[~sleep_data_df[0].isna()]) > 0:
-                    average_dict[user][metric] = np.nanmean(
-                        np.array(list(data_dict[user].values()))
-                    )
+                    if kind == "mean":
+                        transformed_dict[user][metric] = np.nanmean(
+                            np.array(list(data_dict[user].values()))
+                        )
+                    elif kind == "std":
+                        transformed_dict[user][metric] = np.nanstd(
+                            np.array(list(data_dict[user].values()))
+                        )
+                    elif kind == "min":
+                        transformed_dict[user][metric] = np.nanmin(
+                            np.array(list(data_dict[user].values()))
+                        )
+                    elif kind == "max":
+                        transformed_dict[user][metric] = np.nanmax(
+                            np.array(list(data_dict[user].values()))
+                        )
                 else:
-                    average_dict[user][metric] = np.nan
-                average_dict[user]["days"] = [
+                    transformed_dict[user][metric] = np.nan
+                transformed_dict[user]["days"] = [
                     datetime.datetime.strftime(x, "%Y-%m-%d")
                     for x in sleep_data_df.index
                 ]
 
-    if average:
-        return average_dict
+    if not (kind is None):
+        return transformed_dict
     else:
         return data_dict
 
@@ -2930,7 +2968,7 @@ def get_sleep_statistics(
     user_id: Union[str, list],
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ) -> dict:
     """Get sleep statistics from sleep data.
 
@@ -2942,16 +2980,7 @@ def get_sleep_statistics(
 
     Example::
 
-        import pylabfront.loader
-        import pylabfront.sleep
-        import datetime
-
-        loader = pylabfront.loader.LabfrontLoader()
-        start_date = datetime.date(2023, 9, 9)
-        end_date = datetime.date.today()
-        user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
-
-        pylabfront.sleep.get_sleep_statistics(loader, user_id, start_date, end_date)
+        pywearable.sleep.get_sleep_statistics(loader, user_id, start_date, end_date, kind=None)
 
         >> {
                 'f457c562-2159-431c-8866-dfa9a917d9b8':
@@ -2986,7 +3015,7 @@ def get_sleep_statistics(
                     }
             }
 
-        pylabfront.sleep.get_sleep_statistics(loader, user_id, start_date, end_date, average=True)
+        pywearable.sleep.get_sleep_statistics(loader, user_id, start_date, end_date, kind='mean')
         >>  {
                 'f457c562-2159-431c-8866-dfa9a917d9b8':
                     {
@@ -3036,21 +3065,27 @@ def get_sleep_statistics(
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None
-    average : :class:`bool`, optional
-        Whether to average the sleep statistic over days, or to return the value for each day, by default False
+    kind : :class:`str` or None, optional
+        Whether to perform a transform of the sleep statistic over days, by default None.
+        If `None`, then the sleep statistic is returned with a value for each day, otherwise
+        a transformation is applied. Valid options are:
+            - 'mean'
+            - 'min'
+            - 'max'
+            - 'std'
 
     Returns
     -------
     dict
-        If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
         calendar days (as :class:`datetime.date`) as keys and sleep statistic key:value pairs.
-        If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with
+        If ``kind`` is not ``None``, dictionary with ``user_id`` as key, and a nested dictionary with
         ``values`` as key of another nested dictionary with key:value pairs for each sleep statistic,
-        and a ``days`` key that contains an array of all calendar days over which the average was computed.
+        and a ``days`` key that contains an array of all calendar days over which the transformation was computed.
     """
     data_dict = {}
-    if average:
-        average_dict = {}
+    if not (kind is None):
+        transformed_dict = {}
     user_id = utils.get_user_ids(loader, user_id)
 
     for user in user_id:
@@ -3102,7 +3137,9 @@ def get_sleep_statistics(
             sleep_summary[_SLEEP_METRIC_NREM_DURATION] = _compute_nrem_duration(
                 sleep_summary
             )
-
+            sleep_summary[_SLEEP_METRIC_SLEEP_SCORE] = _compute_sleep_score(
+                sleep_summary
+            )
             # Metrics for sleep stages
             # SOL -
             # Load sleep stages from start to end of sleep summaries
@@ -3189,16 +3226,21 @@ def get_sleep_statistics(
                     _SLEEP_METRIC_NREM_PERCENTAGE,
                     _SLEEP_METRIC_SE,
                     _SLEEP_METRIC_SME,
+                    _SLEEP_METRIC_SLEEP_SCORE,
                 ],
             ]
             data_dict[user] = user_sleep_metrics_df.to_dict("index")
 
-            if average:
-                average_dict[user] = {}
-                average_dict[user]["values"] = user_sleep_metrics_df.mean().to_dict()
-                average_dict[user]["days"] = [x for x in user_sleep_metrics_df.index]
+            if not (kind is None):
+                transformed_dict[user] = {}
+                transformed_dict[user]["values"] = user_sleep_metrics_df.apply(
+                    kind
+                ).to_dict()
+                transformed_dict[user]["days"] = [
+                    x for x in user_sleep_metrics_df.index
+                ]
 
-    if average:
-        return average_dict
+    if not (kind is None):
+        return transformed_dict
     else:
         return data_dict
