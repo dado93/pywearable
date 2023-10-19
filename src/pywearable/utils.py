@@ -55,8 +55,27 @@ def check_date(
 
 
 def check_start_and_end_dates(
-    start_date: datetime.datetime, end_date: datetime.datetime
+    start_date: Union[datetime.datetime, None], end_date: Union[datetime.datetime, None]
 ) -> bool:
+    """Check if dates are in correct order.
+
+    This function checks if ``start_date`` is
+    lower or equal than ``end_date`` and returns
+    `True` if this is the case, `False` otherwise.
+
+    Parameters
+    ----------
+    start_date : :class:`datetime.datetime` or None
+        Start date that needs to be checked.
+    end_date : :class:`datetime.datetime` or None
+        End date that needs to be checked.
+
+    Returns
+    -------
+    bool
+        `True` if ``start_date`` is equal or lower than ``end_date``,
+        `False` otherwise.
+    """
     if not ((start_date is None) and (end_date is None)):
         if end_date < start_date:
             return False

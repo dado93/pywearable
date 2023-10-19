@@ -10,9 +10,7 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
-import pywearable.sleep as sleep
-import pywearable.utils as utils
-
+from . import sleep, utils
 from .loader.base import BaseLoader
 
 _LABFRONT_ISO_DATE_KEY = "isoDate"

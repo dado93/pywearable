@@ -194,21 +194,28 @@ class LifeSnapsLoader(BaseLoader):
             sleep_summary_df[constants._TIMEZONEOFFSET_IN_MS_COL] = 0
             sleep_summary_df = sleep_summary_df.rename(
                 columns={
-                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_START_TIME_KEY: constants._ISODATE_COL
+                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_START_TIME_KEY: constants._ISODATE_COL,
+                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DATE_OF_SLEEP_KEY: constants._CALENDAR_DATE_COL,
+                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LOG_ID_KEY: constants._SLEEP_SUMMARY_ID_COL,
+                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DURATION_KEY: constants._SLEEP_SUMMARY_DURATION_IN_MS_COL,
                 }
             )
+            # TODO Change formula to convert from datetime to Unix Timestamp using pandas suggested
             sleep_summary_df[constants._UNIXTIMESTAMP_IN_MS_COL] = sleep_summary_df[
                 constants._ISODATE_COL
             ].apply(lambda x: int(x.timestamp() * 1000))
             sleep_summary_df = sleep_summary_df.sort_values(
-                by=lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DATE_OF_SLEEP_KEY
-            ).reset_index(drop=True)
+                by=lifesnaps_constants._CALENDAR_DATE_COL, ignore_index=True
+            )
             for idx, col in enumerate(
                 [
-                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LOG_ID_KEY,
-                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DATE_OF_SLEEP_KEY,
+                    constants._SLEEP_SUMMARY_ID_COL,
+                    constants._TIMEZONEOFFSET_IN_MS_COL,
+                    constants._UNIXTIMESTAMP_IN_MS_COL,
+                    constants._ISODATE_COL,
+                    constants._CALENDAR_DATE_COL,
+                    constants._DURATION_IN_MS_COL,
                     lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_END_TIME_KEY,
-                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DURATION_KEY,
                 ]
             ):
                 sleep_summary_df.insert(

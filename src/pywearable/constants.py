@@ -41,7 +41,9 @@ _TODO_FOLDER = "todo"
 _ISODATE_COL = "isoDate"
 _UNIXTIMESTAMP_IN_MS_COL = "unixTimestampInMs"
 _TIMEZONEOFFSET_IN_MS_COL = "timezoneOffsetInMs"
-
+_CALENDAR_DATE_COL = "calendarDate"
+_SLEEP_SUMMARY_ID_COL = "sleepSummaryId"
+_DURATION_IN_MS_COL = "durationInMs"
 
 _GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL = "timezoneOffsetInMs"
 _GARMIN_DEVICE_TIMEZONEOFFSET_IN_MS_COL = "timezone"
@@ -49,7 +51,6 @@ _FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL = "firstSampleUnixTimestampInMs"
 _LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL = "lastSampleUnixTimestampInMs"
 
 # Sleep summary columns #
-_CALENDAR_DATE_COL = "calendarDate"
 _SLEEP_SUMMARY_OVERALL_SLEEP_SCORE_COL = "overallSleepScore"
 _SLEEP_SUMMARY_DURATION_IN_MS_COL = "durationInMs"
 _SLEEP_SUMMARY_DEEP_SLEEP_DURATION_IN_MS_COL = "deepSleepDurationInMs"

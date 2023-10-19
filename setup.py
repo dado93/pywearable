@@ -1,5 +1,5 @@
 try:
-    from setuptools import setup
+    from setuptools import find_packages, setup
 except ImportError:
     from distutils.core import setup
 
@@ -11,7 +11,8 @@ config = {
     "author_email": "davide.marzorati.93@gmail.com",
     "version": "0.1",
     "install_requires": ["pandas"],
-    "packages": ["pywearable"],
+    "packages": find_packages("src"),
+    "package_dir": {"": "src"},
     "scripts": [],
     "name": "pywearable",
     "python_requires": ">=3.9.0",
