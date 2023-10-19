@@ -89,7 +89,7 @@ def get_time_in_bed(
 
     Parameters
     ----------
-    loader : :class:`pylabfront.loader.LabfrontLoader`
+    pywearable.loader.base.BaseLoader():`pywearable.loader.base.BaseLoader`
         An instance of a data loader.
     user_id : :class:`str` or :class:`list`, optional
         The id(s) for which TIB must be retrieved, by default "all"
@@ -130,11 +130,11 @@ def get_sleep_period_time(
 
     Example::
 
-        import pylabfront.loader
-        import pylabfront.sleep
+        import pywearable.loader.base.BaseLoader
+        import pywearable.sleep
         import datetime
 
-        loader = pylabfront.loader.LabfrontLoader()
+        loader = pywearable.loader.base.BaseLoader()
         start_date = datetime.date(2023, 9, 9)
         end_date = datetime.date.today()
         user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
@@ -168,7 +168,7 @@ def get_sleep_period_time(
 
     Parameters
     ----------
-    loader : :class:`pylabfront.loader.LabfrontLoader`
+    pywearable.loader.base.BaseLoader():`pywearable.loader.base.BaseLoader()`
         An instance of a data loader.
     user_id : :class:`str` or :class:`list`, optional
         The id(s) for which SPT must be retrieved, by default "all".
@@ -210,11 +210,11 @@ def get_total_sleep_time(
 
     Example::
 
-        import pylabfront.loader
-        import pylabfront.sleep
+        import pywearable.loader.base.BaseLoader
+        import pywearable.sleep
         import datetime
 
-        loader = pylabfront.loader.LabfrontLoader()
+        loader = pywearable.loader.base.BaseLoader()
         start_date = datetime.date(2023, 9, 9)
         end_date = datetime.date.today()
         user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
@@ -291,11 +291,11 @@ def get_sleep_efficiency(
 
     Example::
 
-        import pylabfront.loader
-        import pylabfront.sleep
+        import pywearable.loader.base.BaseLoader
+        import pywearable.sleep
         import datetime
 
-        loader = pylabfront.loader.LabfrontLoader()
+        loader = pywearable.loader.base.BaseLoader()
         start_date = datetime.date(2023, 9, 9)
         end_date = datetime.date.today()
         user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
@@ -329,7 +329,7 @@ def get_sleep_efficiency(
 
     Parameters
     ----------
-    loader : :class:`loader.LabfrontLoader`
+    loader : :class:`pywearable.loader.base.BaseLoader`
         An instance of a data loader.
     user_id : :class:`str` or :class:`list`, optional
         The id(s) for which SE must be retrieved, by default "all"
@@ -374,11 +374,11 @@ def get_sleep_maintenance_efficiency(
 
     Example::
 
-        import pylabfront.loader
-        import pylabfront.sleep
+        import pywearable.loader.base.BaseLoader
+        import pywearable.sleep
         import datetime
 
-        loader = pylabfront.loader.LabfrontLoader()
+        loader = pywearable.loader.base.BaseLoader()
         start_date = datetime.date(2023, 9, 9)
         end_date = datetime.date.today()
         user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
@@ -412,7 +412,7 @@ def get_sleep_maintenance_efficiency(
 
     Parameters
     ----------
-    loader : :class:`loader.LabfrontLoader`
+    loader : :class:`pywearable.loader.base.BaseLoader`
         An instance of a data loader.
     user_id : :class:`str` or :class:`list`, optional
         The id(s) for which SME must be retrieved, by default "all"
@@ -454,11 +454,11 @@ def get_n1_latency(
 
     Example::
 
-        import pylabfront.loader
-        import pylabfront.sleep
+        import pywearable.loader.base.BaseLoader
+        import pywearable.sleep
         import datetime
 
-        loader = pylabfront.loader.LabfrontLoader()
+        loader = pywearable.loader.base.BaseLoader()
         start_date = datetime.date(2023, 9, 9)
         end_date = datetime.date.today()
         user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
@@ -492,7 +492,7 @@ def get_n1_latency(
 
     Parameters
     ----------
-    loader : :class:`loader.LabfrontLoader`
+    loader : :class:`pywearable.loader.base.BaseLoader`
         An instance of a data loader.
     user_id : :class:`str` or :class:`list`, optional
         The id(s) for which N1 sleep latency must be retrieved, by default "all"
@@ -536,11 +536,11 @@ def get_n2_latency(
 
     Example::
 
-        import pylabfront.loader
-        import pylabfront.sleep
+        import pywearable.loader.base.BaseLoader
+        import pywearable.sleep
         import datetime
 
-        loader = pylabfront.loader.LabfrontLoader()
+        loader = pywearable.loader.base.BaseLoader()
         start_date = datetime.date(2023, 9, 9)
         end_date = datetime.date.today()
         user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
@@ -574,7 +574,7 @@ def get_n2_latency(
 
     Parameters
     ----------
-    loader : :class:`loader.LabfrontLoader`
+    loader : :class:`pywearable.loader.base.BaseLoader`
         An instance of a data loader.
     user_id : :class:`str` or :class:`list`, optional
         The id(s) for which N2 sleep latency must be retrieved, by default "all"
@@ -615,11 +615,11 @@ def get_n3_latency(
 
     Example::
 
-        import pylabfront.loader
-        import pylabfront.sleep
+        import pywearable.loader.base.BaseLoader
+        import pywearable.sleep
         import datetime
 
-        loader = pylabfront.loader.LabfrontLoader()
+        loader = pywearable.loader.base.BaseLoader()
         start_date = datetime.date(2023, 9, 9)
         end_date = datetime.date.today()
         user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
@@ -653,7 +653,7 @@ def get_n3_latency(
 
     Parameters
     ----------
-    loader : :class:`loader.LabfrontLoader`
+    loader : :class:`pywearable.loader.base.BaseLoader`
         An instance of a data loader.
     user_id : :class:`str` or :class:`list`, optional
         The id(s) for which N3 sleep latency must be retrieved, by default "all"
@@ -694,11 +694,11 @@ def get_rem_latency(
 
     Example::
 
-        import pylabfront.loader
-        import pylabfront.sleep
+        import pywearable.loader.base.BaseLoader
+        import pywearable.sleep
         import datetime
 
-        loader = pylabfront.loader.LabfrontLoader()
+        loader = pywearable.loader.base.BaseLoader()
         start_date = datetime.date(2023, 9, 9)
         end_date = datetime.date.today()
         user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
@@ -732,7 +732,7 @@ def get_rem_latency(
 
     Parameters
     ----------
-    loader : :class:`loader.LabfrontLoader`
+    loader : :class:`pywearable.loader.base.BaseLoader`
         An instance of a data loader.
     user_id : :class:`str` or :class:`list`, optional
         The id(s) for which REM sleep latency must be retrieved, by default "all"
@@ -774,11 +774,11 @@ def get_n1_duration(
 
     Example::
 
-        import pylabfront.loader
-        import pylabfront.sleep
+        import pywearable.loader.base.BaseLoader
+        import pywearable.sleep
         import datetime
 
-        loader = pylabfront.loader.LabfrontLoader()
+        loader = pywearable.loader.base.BaseLoader()
         start_date = datetime.date(2023, 9, 9)
         end_date = datetime.date.today()
         user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
@@ -812,8 +812,8 @@ def get_n1_duration(
 
     Parameters
     ----------
-    loader : :class:`loader.LabfrontLoader`
-        Initialized instance of :class:`loader.LabfrontLoader`, required in order to properly load data.
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        Initialized instance of :class:`pywearable.loader.base.BaseLoader`, required in order to properly load data.
     user_id : :class:`str` or :class:`list`, optional
         IDs of the users for which N1 sleep data have to be extracted, by default "all"
     start_date : :class:`datetime.datetime`, optional
@@ -862,11 +862,11 @@ def get_n2_duration(
 
     Example::
 
-        import pylabfront.loader
-        import pylabfront.sleep
+        import pywearable.loader.base.BaseLoader
+        import pywearable.sleep
         import datetime
 
-        loader = pylabfront.loader.LabfrontLoader()
+        loader = pywearable.loader.base.BaseLoader()
         start_date = datetime.date(2023, 9, 9)
         end_date = datetime.date.today()
         user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
@@ -900,8 +900,8 @@ def get_n2_duration(
 
     Parameters
     ----------
-    loader : :class:`loader.LabfrontLoader`
-        Initialized instance of :class:`loader.LabfrontLoader`, required in order to properly load data.
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        Initialized instance of :class:`pywearable.loader.base.BaseLoader`, required in order to properly load data.
     user_id : :class:`str` or :class:`list`, optional
         IDs of the users for which N2 sleep data have to be extracted, by default "all"
     start_date : :class:`datetime.datetime`, optional
@@ -948,11 +948,11 @@ def get_n3_duration(
 
     Example::
 
-        import pylabfront.loader
-        import pylabfront.sleep
+        import pywearable.loader.base.BaseLoader
+        import pywearable.sleep
         import datetime
 
-        loader = pylabfront.loader.LabfrontLoader()
+        loader = pywearable.loader.base.BaseLoader()
         start_date = datetime.date(2023, 9, 9)
         end_date = datetime.date.today()
         user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
@@ -986,8 +986,8 @@ def get_n3_duration(
 
     Parameters
     ----------
-    loader : :class:`loader.LabfrontLoader`
-        Initialized instance of :class:`loader.LabfrontLoader`, required in order to properly load data.
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        Initialized instance of :class:`pywearable.loader.base.BaseLoader`, required in order to properly load data.
     user_id : :class:`str` or :class:`list`, optional
         IDs of the users for which N3 sleep data have to be extracted, by default "all"
     start_date : :class:`datetime.datetime`, optional
@@ -1034,11 +1034,11 @@ def get_rem_duration(
 
     Example::
 
-        import pylabfront.loader
-        import pylabfront.sleep
+        import pywearable.loader.base.BaseLoader
+        import pywearable.sleep
         import datetime
 
-        loader = pylabfront.loader.LabfrontLoader()
+        loader = pywearable.loader.base.BaseLoader()
         start_date = datetime.date(2023, 9, 9)
         end_date = datetime.date.today()
         user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
@@ -1072,8 +1072,8 @@ def get_rem_duration(
 
     Parameters
     ----------
-    loader : :class:`loader.LabfrontLoader`
-        Initialized instance of :class:`loader.LabfrontLoader`, required in order to properly load data.
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        Initialized instance of :class:`pywearable.loader.base.BaseLoader`, required in order to properly load data.
     user_id : :class:`str` or :class:`list`, optional
         IDs of the users for which REM sleep data have to be extracted, by default "all"
     start_date : :class:`datetime.datetime`, optional
@@ -1120,11 +1120,11 @@ def get_nrem_duration(
 
     Example::
 
-        import pylabfront.loader
-        import pylabfront.sleep
+        import pywearable.loader.base.BaseLoader
+        import pywearable.sleep
         import datetime
 
-        loader = pylabfront.loader.LabfrontLoader()
+        loader = pywearable.loader.base.BaseLoader()
         start_date = datetime.date(2023, 9, 9)
         end_date = datetime.date.today()
         user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
@@ -1158,8 +1158,8 @@ def get_nrem_duration(
 
     Parameters
     ----------
-    loader : :class:`loader.LabfrontLoader`
-        Initialized instance of :class:`loader.LabfrontLoader`, required in order to properly load data.
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        Initialized instance of :class:`pywearable.loader.base.BaseLoader`, required in order to properly load data.
     user_id : :class:`str` or :class:`list`, optional
         IDs of the users for which NREM sleep data have to be extracted, by default "all"
     start_date : :class:`datetime.datetime`, optional
@@ -1206,11 +1206,11 @@ def get_awake_duration(
 
     Example::
 
-        import pylabfront.loader
-        import pylabfront.sleep
+        import pywearable.loader.base.BaseLoader
+        import pywearable.sleep
         import datetime
 
-        loader = pylabfront.loader.LabfrontLoader()
+        loader = pywearable.loader.base.BaseLoader()
         start_date = datetime.date(2023, 9, 9)
         end_date = datetime.date.today()
         user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
@@ -1244,8 +1244,8 @@ def get_awake_duration(
 
     Parameters
     ----------
-    loader : :class:`loader.LabfrontLoader`
-        Initialized instance of :class:`loader.LabfrontLoader`, required in order to properly load data.
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        Initialized instance of :class:`pywearable.loader.base.BaseLoader`, required in order to properly load data.
     user_id : :class:`str` or :class:`list`, optional
         IDs of the users for which awake data have to be extracted, by default "all"
     start_date : :class:`datetime.datetime`, optional
@@ -1292,11 +1292,11 @@ def get_unmeasurable_duration(
 
     Example::
 
-        import pylabfront.loader
-        import pylabfront.sleep
+        import pywearable.loader.base.BaseLoader
+        import pywearable.sleep
         import datetime
 
-        loader = pylabfront.loader.LabfrontLoader()
+        loader = pywearable.loader.base.BaseLoader()
         start_date = datetime.date(2023, 9, 9)
         end_date = datetime.date.today()
         user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
@@ -1330,8 +1330,8 @@ def get_unmeasurable_duration(
 
     Parameters
     ----------
-    loader : :class:`loader.LabfrontLoader`
-        Initialized instance of :class:`loader.LabfrontLoader`, required in order to properly load data.
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        Initialized instance of :class:`pywearable.loader.base.BaseLoader`, required in order to properly load data.
     user_id : :class:`str` or :class:`list`, optional
         IDs of the users for which unmeasurable sleep data have to be extracted, by default "all"
     start_date : :class:`datetime.datetime`, optional
@@ -3057,7 +3057,7 @@ def get_sleep_statistics(
 
     Parameters
     ----------
-    loader : :class:`pylabfront.loader.LabfrontLoader`
+    loader : :class:`pywearable.loader.base.BaseLoader()`
         An instance of a data loader.
     user_id : :class:`str` or :class:`list`
         The id(s) for which the sleep statistic must be computed.
