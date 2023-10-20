@@ -11,8 +11,9 @@ from typing import Tuple, Union
 import dateutil.parser
 import pandas as pd
 
-from .. import constants, utils
-from .base import BaseLoader
+from ... import constants, utils
+from ..base import BaseLoader
+from . import constants as labfront_constants
 
 
 class LabfrontLoader(BaseLoader):
@@ -311,33 +312,6 @@ class LabfrontLoader(BaseLoader):
         else:
             return sorted(list(todos))
 
-    # """Create a dictionary with start and end times for all files for all users.
-    #
-    #    This function creates and returns a dictionary with start and
-    #    end unix times for all the files that are present in Labfront
-    #    data folder for all the participants.
-    #    This is useful to easily determine, based on an
-    #    input time and date, which files need to be loaded.
-    #    The returned dictionary has the following structure::
-    #
-    #        {
-    #            'participant-01': {
-    #                'garmin-connect-pulse-ox':
-    #                {
-    #                    '000000_garmin-connect-pulse-ox_sample-participant-01_6732ab82.csv':
-    #                    {
-    #                        'firstSampleUnixTimestampInMs': 1672740900000
-    #                        'lastSampleUnixTimestampInMs': 1675248720000
-    #                    }
-    #                }
-    #            }
-    #        }
-    #
-    #
-    #    Returns
-    #    -------
-    #        class:`dict`: Dictionary with start and end times for all files.
-    # """
     def get_time_dictionary(self) -> Tuple[list, list]:
         """_summary_
 
@@ -1617,13 +1591,13 @@ class LabfrontLoader(BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            constants._GARMIN_CONNECT_BODY_COMPOSITION_FOLDER,
+            labfront_constants._GARMIN_CONNECT_BODY_COMPOSITION_FOLDER,
             start_date,
             end_date,
         )
         return data
 
-    def load_garmin_connect_daily_summary(
+    def load_daily_summary(
         self,
         user_id: str,
         start_date: Union[str, datetime.date, datetime.date] = None,
@@ -1648,11 +1622,17 @@ class LabfrontLoader(BaseLoader):
         pd.DataFrame
             Dataframe containing Garmin Connect daily summary data.
         """
-        new_start_date = start_date - datetime.timedelta(days=1)
-        new_end_date = end_date + datetime.timedelta(days=1)
+        if not start_date is None:
+            new_start_date = start_date - datetime.timedelta(days=1)
+        else:
+            new_start_date = None
+        if not end_date is None:
+            new_end_date = end_date + datetime.timedelta(days=1)
+        else:
+            new_end_date = None
         data = self.get_data_from_datetime(
             user_id,
-            constants._GARMIN_CONNECT_DAILY_SUMMARY_FOLDER,
+            labfront_constants._GARMIN_CONNECT_DAILY_SUMMARY_FOLDER,
             new_start_date,
             new_end_date,
         )
@@ -1663,14 +1643,14 @@ class LabfrontLoader(BaseLoader):
             year=end_date.year, month=end_date.month, day=end_date.day
         )
         if len(data) > 0:
-            data[constants._DAILY_SUMMARY_CALENDAR_DATE_COL] = pd.to_datetime(
-                data[constants._DAILY_SUMMARY_CALENDAR_DATE_COL],
+            data[constants._CALENDAR_DATE_COL] = pd.to_datetime(
+                data[constants._CALENDAR_DATE_COL],
                 format="%Y-%m-%d",
             )
 
             data = data[
-                (data[constants._DAILY_SUMMARY_CALENDAR_DATE_COL] >= start_date)
-                & (data[constants._DAILY_SUMMARY_CALENDAR_DATE_COL] <= end_date)
+                (data[constants._CALENDAR_DATE_COL] >= start_date)
+                & (data[constants._CALENDAR_DATE_COL] <= end_date)
             ]
 
         return data
