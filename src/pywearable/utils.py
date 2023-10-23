@@ -313,14 +313,137 @@ def mean_time(times):
         mean_seconds += day
     h, m = divmod(mean_seconds, 3600)
     m, s = divmod(m, 60)
+    if (h == 24) and (m == 0):
+        h = 0
     return "%02i:%02i" % (h, m)
 
-def min_time(times):
-    pass
+
+def get_earliest_bedtime(times: list) -> str:
+    """Get earliest bedtime from list of bedtimes.
+
+    This function returns the earliest bedtime
+    from a list of bedtimes. The way in which this function
+    returns the earliest bedtime is by computing the
+    time difference between the bedtimes and
+    "12:00". The time with the lowest difference from 12 o'clock
+    (considering times occurring after "00:00" with +1 day) is
+    considered as the earliest bedtime.
+
+    Parameters
+    ----------
+    times : :class:`list`
+        List of times from which the earliest bedtime must be determined.
+
+    Returns
+    -------
+    :class:`str`
+        Earliest bedtime in HH:MM format.
+    """
+    dt_times = [
+        datetime.time(int(t.split(":")[0]), int(t.split(":")[1])) for t in times
+    ]
+    converted_dt_times = [
+        datetime.datetime.combine(datetime.date.today(), dt_time)
+        for dt_time in dt_times
+    ]
+    converted_dt_times = [
+        dt_time + datetime.timedelta(days=1)
+        if (dt_time.hour >= 0 and dt_time.hour < 12)
+        else dt_time
+        for dt_time in converted_dt_times
+    ]
+
+    dt_diff = np.array(
+        [
+            (
+                dt_time
+                - datetime.datetime.combine(datetime.date.today(), datetime.time(12, 0))
+            ).total_seconds()
+            for dt_time in converted_dt_times
+        ]
+    )
+    return times[dt_diff.argmin()]
 
 
-def max_time(times):
-    pass
+def get_earliest_wakeup_time(times: list) -> str:
+    dt_times = [
+        datetime.time(int(t.split(":")[0]), int(t.split(":")[1])) for t in times
+    ]
+    converted_dt_times = [
+        datetime.datetime.combine(datetime.date.today(), dt_time)
+        for dt_time in dt_times
+    ]
+    converted_dt_times = [
+        dt_time - datetime.timedelta(days=1)
+        if (dt_time.hour >= 12 and dt_time.hour <= 23)
+        else dt_time
+        for dt_time in converted_dt_times
+    ]
+
+    dt_diff = np.array(
+        [
+            (
+                datetime.datetime.combine(datetime.date.today(), datetime.time(12, 0))
+                - dt_time
+            ).total_seconds()
+            for dt_time in converted_dt_times
+        ]
+    )
+    return times[dt_diff.argmax()]
+
+
+def get_latest_bedtime(times: list) -> str:
+    dt_times = [
+        datetime.time(int(t.split(":")[0]), int(t.split(":")[1])) for t in times
+    ]
+    converted_dt_times = [
+        datetime.datetime.combine(datetime.date.today(), dt_time)
+        for dt_time in dt_times
+    ]
+    converted_dt_times = [
+        dt_time + datetime.timedelta(days=1)
+        if (dt_time.hour >= 0 and dt_time.hour < 12)
+        else dt_time
+        for dt_time in converted_dt_times
+    ]
+
+    dt_diff = np.array(
+        [
+            (
+                dt_time
+                - datetime.datetime.combine(datetime.date.today(), datetime.time(12, 0))
+            ).total_seconds()
+            for dt_time in converted_dt_times
+        ]
+    )
+    return times[dt_diff.argmax()]
+
+
+def get_latest_wakeup_time(times: list) -> str:
+    dt_times = [
+        datetime.time(int(t.split(":")[0]), int(t.split(":")[1])) for t in times
+    ]
+    converted_dt_times = [
+        datetime.datetime.combine(datetime.date.today(), dt_time)
+        for dt_time in dt_times
+    ]
+    converted_dt_times = [
+        dt_time - datetime.timedelta(days=1)
+        if (dt_time.hour >= 12 and dt_time.hour <= 23)
+        else dt_time
+        for dt_time in converted_dt_times
+    ]
+
+    dt_diff = np.array(
+        [
+            (
+                datetime.datetime.combine(datetime.date.today(), datetime.time(12, 0))
+                - dt_time
+            ).total_seconds()
+            for dt_time in converted_dt_times
+        ]
+    )
+    return times[dt_diff.argmin()]
 
 
 def std_time(times):

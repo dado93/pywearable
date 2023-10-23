@@ -399,9 +399,7 @@ def get_daily_steps(
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
     for id in user_ids:
-        participant_daily_summary = loader.load_garmin_connect_daily_summary(
-            id, start_date, end_date
-        )
+        participant_daily_summary = loader.load_daily_summary(id, start_date, end_date)
         if len(participant_daily_summary) > 0:
             participant_daily_summary = participant_daily_summary.groupby(
                 constants._DAILY_SUMMARY_CALENDAR_DATE_COL
@@ -536,9 +534,7 @@ def get_daily_steps_goal(
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
     for id in user_ids:
-        participant_daily_summary = loader.load_garmin_connect_daily_summary(
-            id, start_date, end_date
-        )
+        participant_daily_summary = loader.load_daily_summary(id, start_date, end_date)
         if len(participant_daily_summary) > 0:
             participant_daily_summary = participant_daily_summary.groupby(
                 constants._DAILY_SUMMARY_CALENDAR_DATE_COL
@@ -596,7 +592,7 @@ def get_daily_intensity_minutes(
     if end_date is None:
         end_date = datetime.datetime.now()
     for user in user_id:
-        participant_daily_summaries = loader.load_garmin_connect_daily_summary(
+        participant_daily_summaries = loader.load_daily_summary(
             user, start_date, end_date + datetime.timedelta(hours=23, minutes=45)
         )
         if len(participant_daily_summaries) > 0:

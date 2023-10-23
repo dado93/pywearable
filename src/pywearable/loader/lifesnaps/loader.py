@@ -197,7 +197,7 @@ class LifeSnapsLoader(BaseLoader):
                     lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_START_TIME_KEY: constants._ISODATE_COL,
                     lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DATE_OF_SLEEP_KEY: constants._CALENDAR_DATE_COL,
                     lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LOG_ID_KEY: constants._SLEEP_SUMMARY_ID_COL,
-                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DURATION_KEY: constants._SLEEP_SUMMARY_DURATION_IN_MS_COL,
+                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DURATION_KEY: constants._DURATION_IN_MS_COL,
                 }
             )
             # TODO Change formula to convert from datetime to Unix Timestamp using pandas suggested

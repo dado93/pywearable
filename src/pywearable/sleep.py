@@ -37,6 +37,7 @@ _SLEEP_METRIC_REM_PERCENTAGE = "%REM"
 _SLEEP_METRIC_SE = "SE"
 _SLEEP_METRIC_SME = "SME"
 _SLEEP_METRIC_SLEEP_SCORE = "SCORE"
+_SLEEP_METRIC_AWAKENINGS = "Awakenings"
 
 
 def get_time_in_bed(
@@ -1488,10 +1489,10 @@ def get_sleep_timestamps(
         Whether to perform a transform of the sleep statistic over days, by default None.
         If `None`, then the sleep statistic is returned with a value for each day, otherwise
         a transformation is applied. Valid options are:
+
             - 'mean'
             - 'min'
             - 'max'
-            - 'std'
 
     Returns
     -------
@@ -1527,17 +1528,14 @@ def get_sleep_timestamps(
                 if kind == "mean":
                     transformed_sleep_time = utils.mean_time(sleep_times)
                     transformed_wake_time = utils.mean_time(wake_times)
-                elif kind == "std":
-                    transformed_sleep_time = utils.std_time(sleep_times)
-                    transformed_wake_time = utils.std_time(wake_times)
                 elif kind == "min":
-                    transformed_sleep_time = utils.min_time(sleep_times)
-                    transformed_wake_time = utils.min_time(wake_times)
+                    transformed_sleep_time = utils.get_earliest_bedtime(sleep_times)
+                    transformed_wake_time = utils.get_earliest_wakeup_time(wake_times)
                 elif kind == "max":
-                    transformed_sleep_time = utils.max_time(sleep_times)
-                    transformed_wake_time = utils.max_time(wake_times)
+                    transformed_sleep_time = utils.get_latest_bedtime(sleep_times)
+                    transformed_wake_time = utils.get_latest_wakeup_time(wake_times)
                 else:
-                    raise ValueError(f"{kind} must be either mean, std, min, or max")
+                    raise ValueError(f"Kind {kind} is not one of mean, min, or max")
                 data_dict[user] = (transformed_sleep_time, transformed_wake_time)
         else:
             data_dict[user] = None
@@ -1645,43 +1643,9 @@ def get_awakenings(
         If `average` is set to True, the average and the dates used for its calculation are returned as values.
     """
 
-    user_id = utils.get_user_ids(loader, user_id)
-
-    data_dict = {}
-    if average:
-        average_dict = {}
-
-    for user in user_id:
-        data_dict[user] = {}
-        if average:
-            average_dict[user] = {}
-        try:
-            df = loader.load_sleep_summary(user, start_date, end_date)
-            nights_available = df[constants._CALENDAR_DATE_COL]
-            for night in nights_available:
-                hypnogram = loader.load_hypnogram(user, night, night)[night]["values"]
-
-                # TODO do we need hyonogram? Can't we use sleep stages?
-
-                # check if there a difference in stage between successive observations (first one defaults to no change)
-                stages_diff = np.concatenate([[0], hypnogram[1:] - hypnogram[:-1]])
-                # if there has been a negative change and the current stage is awake, then count it as awakening
-                num_awakenings = np.logical_and(hypnogram == 0, stages_diff < 0).sum()
-                data_dict[user][night] = num_awakenings
-            if average:
-                average_dict[user]["AWAKENINGS"] = np.nanmean(
-                    list(data_dict[user].values())
-                )
-                average_dict[user]["days"] = [
-                    datetime.datetime.strftime(night, "%Y-%m-%d")
-                    for night in nights_available
-                ]
-        except:
-            data_dict[user] = None
-
-    if average:
-        return average_dict
-    return data_dict
+    return get_sleep_statistic(
+        loader, user_id, _SLEEP_METRIC_AWAKENINGS, start_date, end_date, average
+    )
 
 
 def get_cpd(
@@ -2780,6 +2744,52 @@ def _compute_latencies(
     return latencies
 
 
+def _compute_awakenings(
+    sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame
+) -> pd.Series:
+    """Retrieves awakenings counts score from sleep stages.
+
+    This function retrieves the count of awakenings
+    events occured per night.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pandas.DataFrame`
+        Sleep summary data.
+    sleep_stages : :class:`pandas.DataFrame`
+        Sleep stages.
+
+    Returns
+    -------
+    pd.Series
+        Count of awakenings.
+
+    Raises
+    ------
+    ValueError
+        If parameters are not of :class:`pandas.DataFrame` .
+    """
+    if not isinstance(sleep_summary, pd.DataFrame):
+        raise ValueError(
+            f"sleep_summary must be a pd.DataFrame. {type(sleep_summary)} is not a valid type."
+        )
+    filtered_sleep_stages = sleep_stages[
+        sleep_stages[constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL].isin(
+            sleep_summary.index
+        )
+    ].reset_index(drop=True)
+    awakenings = (
+        filtered_sleep_stages[
+            filtered_sleep_stages[constants._SLEEP_STAGE_SLEEP_TYPE_COL]
+            == constants._SLEEP_STAGE_AWAKE_STAGE_VALUE
+        ]
+        .groupby(constants._SLEEP_SUMMARY_ID_COL)[constants._SLEEP_STAGE_SLEEP_TYPE_COL]
+        .count()
+    )
+    print(awakenings)
+    return awakenings
+
+
 _SLEEP_STATISTICS_DICT = {
     _SLEEP_METRIC_TIB: _compute_time_in_bed,
     _SLEEP_METRIC_TST: _compute_total_sleep_time,
@@ -2805,6 +2815,7 @@ _SLEEP_STATISTICS_DICT = {
     _SLEEP_METRIC_N3_LATENCY: _compute_n3_latency,
     _SLEEP_METRIC_REM_LATENCY: _compute_rem_latency,
     _SLEEP_METRIC_SLEEP_SCORE: _compute_sleep_score,
+    _SLEEP_METRIC_AWAKENINGS: _compute_awakenings,
 }
 
 
@@ -2847,10 +2858,11 @@ def get_sleep_statistic(
         - Sleep Efficiency (``metric="SE"``)
         - Sleep Maintenance Efficiency (``metric="SME"``)
         - Sleep Score (``metric="SCORE"``)
+        - Number of Awakenings (``metric="Awakenings"``)
 
     Parameters
     ----------
-    loader : :class:`pylabfront.loader.DataLoader`
+    loader : :class:`pywearable.loader.base.BaseLoader`
         An instance of a data loader.
     user_id : :class:`str` or :class:`list`
         The id(s) for which the sleep statistic must be computed.
@@ -2862,6 +2874,7 @@ def get_sleep_statistic(
         Whether to perform a transform of the sleep statistic over days, by default None.
         If `None`, then the sleep statistic is returned with a value for each day, otherwise
         a transformation is applied. Valid options are:
+
             - 'mean'
             - 'min'
             - 'max'
@@ -3069,6 +3082,7 @@ def get_sleep_statistics(
         Whether to perform a transform of the sleep statistic over days, by default None.
         If `None`, then the sleep statistic is returned with a value for each day, otherwise
         a transformation is applied. Valid options are:
+
             - 'mean'
             - 'min'
             - 'max'
@@ -3127,7 +3141,9 @@ def get_sleep_statistics(
             sleep_summary[_SLEEP_METRIC_N1_DURATION] = _compute_n1_duration(
                 sleep_summary
             )
-            sleep_summary[_SLEEP_METRIC_N2_DURATION] = np.nan
+            sleep_summary[_SLEEP_METRIC_N2_DURATION] = _compute_n2_duration(
+                sleep_summary
+            )
             sleep_summary[_SLEEP_METRIC_N3_DURATION] = _compute_n3_duration(
                 sleep_summary
             )
@@ -3135,6 +3151,9 @@ def get_sleep_statistics(
                 sleep_summary
             )
             sleep_summary[_SLEEP_METRIC_NREM_DURATION] = _compute_nrem_duration(
+                sleep_summary
+            )
+            sleep_summary[_SLEEP_METRIC_AWAKE_DURATION] = _compute_awake_duration(
                 sleep_summary
             )
             sleep_summary[_SLEEP_METRIC_SLEEP_SCORE] = _compute_sleep_score(
@@ -3180,6 +3199,9 @@ def get_sleep_statistics(
             sleep_summary[_SLEEP_METRIC_SOL] = _compute_sleep_onset_latency(
                 sleep_summary, sleep_stages
             )
+            sleep_summary[_SLEEP_METRIC_AWAKENINGS] = _compute_awakenings(
+                sleep_summary, sleep_stages
+            )
             latencies = _compute_latencies(sleep_summary, sleep_stages)
             if constants._SLEEP_STAGE_LIGHT_STAGE_VALUE in latencies.columns:
                 sleep_summary[_SLEEP_METRIC_N1_LATENCY] = latencies[
@@ -3215,6 +3237,7 @@ def get_sleep_statistics(
                     _SLEEP_METRIC_N3_DURATION,
                     _SLEEP_METRIC_REM_DURATION,
                     _SLEEP_METRIC_NREM_DURATION,
+                    _SLEEP_METRIC_AWAKE_DURATION,
                     _SLEEP_METRIC_N1_LATENCY,
                     _SLEEP_METRIC_N2_LATENCY,
                     _SLEEP_METRIC_N3_LATENCY,
@@ -3227,6 +3250,7 @@ def get_sleep_statistics(
                     _SLEEP_METRIC_SE,
                     _SLEEP_METRIC_SME,
                     _SLEEP_METRIC_SLEEP_SCORE,
+                    _SLEEP_METRIC_AWAKENINGS,
                 ],
             ]
             data_dict[user] = user_sleep_metrics_df.to_dict("index")

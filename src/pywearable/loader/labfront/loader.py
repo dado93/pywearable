@@ -226,7 +226,9 @@ class LabfrontLoader(BaseLoader):
         for participant_id in participant_ids:
             participant_id = self.get_full_id(participant_id)
             participant_path = (
-                self.data_path / participant_id / constants._QUESTIONNAIRE_FOLDER
+                self.data_path
+                / participant_id
+                / labfront_constants._QUESTIONNAIRE_FOLDER
             )
             if participant_path.exists():
                 participant_questionnaires = set(
@@ -286,7 +288,9 @@ class LabfrontLoader(BaseLoader):
 
         for participant_id in participant_ids:
             participant_id = self.get_full_id(participant_id)
-            participant_path = self.data_path / participant_id / constants._TODO_FOLDER
+            participant_path = (
+                self.data_path / participant_id / labfront_constants._TODO_FOLDER
+            )
             if participant_path.exists():
                 participant_todos = set(
                     [
@@ -390,7 +394,10 @@ class LabfrontLoader(BaseLoader):
                                     if csv_file.is_file() and str(csv_file).endswith(
                                         "csv"
                                     ):
-                                        if constants._TODO_FOLDER == metric_data.name:
+                                        if (
+                                            labfront_constants._TODO_FOLDER
+                                            == metric_data.name
+                                        ):
                                             is_questionnaire_or_to_do = False
                                         else:
                                             is_questionnaire_or_to_do = True
@@ -740,14 +747,14 @@ class LabfrontLoader(BaseLoader):
             path_to_folder = (
                 self.data_path
                 / participant_id
-                / constants._QUESTIONNAIRE_FOLDER
+                / labfront_constants._QUESTIONNAIRE_FOLDER
                 / task_name
             )
         elif is_todo:
             path_to_folder = (
                 self.data_path
                 / participant_id
-                / constants._QUESTIONNAIRE_FOLDER
+                / labfront_constants._QUESTIONNAIRE_FOLDER
                 / task_name
             )
         else:
@@ -760,7 +767,7 @@ class LabfrontLoader(BaseLoader):
         data = pd.read_csv(path_to_folder / files[0], skiprows=n_rows_to_skip)
         for f in files[1:]:
             tmp = pd.read_csv(path_to_folder / f, skiprows=n_rows_to_skip)
-            if constants._GARMIN_CONNECT_BASE_FOLDER in metric:
+            if labfront_constants._GARMIN_CONNECT_BASE_FOLDER in metric:
                 tmp = tmp.drop(
                     [
                         constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL,
@@ -769,7 +776,7 @@ class LabfrontLoader(BaseLoader):
                     axis=1,
                 )
             data = pd.concat([data, tmp], ignore_index=True)
-        if constants._GARMIN_CONNECT_BASE_FOLDER in metric:
+        if labfront_constants._GARMIN_CONNECT_BASE_FOLDER in metric:
             # Convert to datetime according to isoformat
             data[constants._ISODATE_COL] = (
                 data[constants._UNIXTIMESTAMP_IN_MS_COL]
@@ -934,11 +941,14 @@ class LabfrontLoader(BaseLoader):
         no_user_id = True
         full_task_id = self.get_task_full_id(questionnaire_name)
         for user_id in self.data_dictionary.keys():
-            if constants._QUESTIONNAIRE_FOLDER in self.data_dictionary[user_id].keys():
+            if (
+                labfront_constants._QUESTIONNAIRE_FOLDER
+                in self.data_dictionary[user_id].keys()
+            ):
                 if (
                     full_task_id
                     in self.data_dictionary[user_id][
-                        constants._QUESTIONNAIRE_FOLDER
+                        labfront_constants._QUESTIONNAIRE_FOLDER
                     ].keys()
                 ):
                     no_user_id = False
@@ -951,7 +961,7 @@ class LabfrontLoader(BaseLoader):
 
         files = self.get_files_from_timerange(
             participant_id,
-            constants._QUESTIONNAIRE_FOLDER,
+            labfront_constants._QUESTIONNAIRE_FOLDER,
             start_date=None,
             end_date=None,
             is_questionnaire=True,
@@ -965,7 +975,7 @@ class LabfrontLoader(BaseLoader):
         path_to_folder = (
             self.data_path
             / participant_id
-            / constants._QUESTIONNAIRE_FOLDER
+            / labfront_constants._QUESTIONNAIRE_FOLDER
             / full_task_id
         )
 
@@ -1029,7 +1039,7 @@ class LabfrontLoader(BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            constants._GARMIN_CONNECT_HEART_RATE_FOLDER,
+            labfront_constants._GARMIN_CONNECT_HEART_RATE_FOLDER,
             start_date,
             end_date,
         )
@@ -1062,14 +1072,14 @@ class LabfrontLoader(BaseLoader):
         # We need to load both sleep and daily pulse ox
         daily_data = self.get_data_from_datetime(
             user_id,
-            constants._GARMIN_CONNECT_DAILY_PULSE_OX_FOLDER,
+            labfront_constants._GARMIN_CONNECT_DAILY_PULSE_OX_FOLDER,
             start_date,
             end_date,
         ).reset_index(drop=True)
         # Add sleep label to sleep pulse ox
         sleep_data = self.get_data_from_datetime(
             user_id,
-            constants._GARMIN_CONNECT_SLEEP_PULSE_OX_FOLDER,
+            labfront_constants._GARMIN_CONNECT_SLEEP_PULSE_OX_FOLDER,
             start_date,
             end_date,
         ).reset_index(drop=True)
@@ -1127,7 +1137,7 @@ class LabfrontLoader(BaseLoader):
         # We need to load both sleep and daily respiration
         daily_data = self.get_data_from_datetime(
             user_id,
-            constants._GARMIN_CONNECT_DAILY_RESPIRATION_FOLDER,
+            labfront_constants._GARMIN_CONNECT_DAILY_RESPIRATION_FOLDER,
             start_date,
             end_date,
         ).reset_index(drop=True)
@@ -1135,7 +1145,7 @@ class LabfrontLoader(BaseLoader):
         # Get sleep data
         sleep_data = self.get_data_from_datetime(
             user_id,
-            constants._GARMIN_CONNECT_SLEEP_RESPIRATION_FOLDER,
+            labfront_constants._GARMIN_CONNECT_SLEEP_RESPIRATION_FOLDER,
             start_date,
             end_date,
         ).reset_index(drop=True)
@@ -1226,7 +1236,7 @@ class LabfrontLoader(BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            constants._GARMIN_CONNECT_SLEEP_STAGE_FOLDER,
+            labfront_constants._GARMIN_CONNECT_SLEEP_STAGE_FOLDER,
             start_date,
             end_date,
         )
@@ -1280,7 +1290,7 @@ class LabfrontLoader(BaseLoader):
 
         data = self.get_data_from_datetime(
             user_id,
-            constants._GARMIN_CONNECT_SLEEP_SUMMARY_FOLDER,
+            labfront_constants._GARMIN_CONNECT_SLEEP_SUMMARY_FOLDER,
             new_start_date,
             new_end_date,
         )
@@ -1360,7 +1370,7 @@ class LabfrontLoader(BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            constants._GARMIN_CONNECT_STRESS_FOLDER,
+            labfront_constants._GARMIN_CONNECT_STRESS_FOLDER,
             start_date,
             end_date,
         )
@@ -1682,7 +1692,7 @@ class LabfrontLoader(BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            constants._GARMIN_CONNECT_EPOCH_FOLDER,
+            labfront_constants._GARMIN_CONNECT_EPOCH_FOLDER,
             start_date,
             end_date,
         )
@@ -1721,7 +1731,7 @@ class LabfrontLoader(BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            constants._TODO_FOLDER,
+            labfront_constants._TODO_FOLDER,
             start_date,
             end_date,
             is_todo=True,
@@ -1762,7 +1772,7 @@ class LabfrontLoader(BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            metric=constants._QUESTIONNAIRE_FOLDER,
+            metric=labfront_constants._QUESTIONNAIRE_FOLDER,
             start_date=start_date,
             end_date=end_date,
             is_questionnaire=True,
@@ -1817,7 +1827,7 @@ class LabfrontLoader(BaseLoader):
         """
 
         # Load sleep summary and sleep stages data
-        sleep_summaries = self.load_garmin_connect_sleep_summary(
+        sleep_summaries = self.load_sleep_summary(
             user_id=user_id, start_date=start_date, end_date=end_date
         )
 
@@ -1829,9 +1839,7 @@ class LabfrontLoader(BaseLoader):
         sleep_end_time = pd.to_datetime(
             (
                 sleep_summaries.iloc[-1][constants._UNIXTIMESTAMP_IN_MS_COL]
-                + sleep_summaries.iloc[-1][
-                    constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL
-                ]
+                + sleep_summaries.iloc[-1][constants._TIMEZONEOFFSET_IN_MS_COL]
                 + sleep_summaries.iloc[-1][constants._SLEEP_SUMMARY_DURATION_IN_MS_COL]
                 + sleep_summaries.iloc[-1][
                     constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL
@@ -1843,7 +1851,7 @@ class LabfrontLoader(BaseLoader):
         sleep_start_time = sleep_start_time.to_pydatetime()
         sleep_end_time = sleep_end_time.to_pydatetime()
 
-        sleep_stages = self.load_garmin_connect_sleep_stage(
+        sleep_stages = self.load_sleep_stage(
             user_id=user_id,
             start_date=sleep_start_time,
             end_date=sleep_end_time,
@@ -1868,7 +1876,7 @@ class LabfrontLoader(BaseLoader):
         )
         hypnograms = {}
         for sleep_summary_id, sleep_summary in sleep_summaries.iterrows():
-            calendar_day = sleep_summary[constants._SLEEP_SUMMARY_CALENDAR_DATE_COL]
+            calendar_day = sleep_summary[constants._CALENDAR_DATE_COL]
             sleep_start_time = sleep_summary[constants._ISODATE_COL]
             sleep_end_time = pd.to_datetime(
                 (
