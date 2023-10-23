@@ -1,8 +1,0 @@
-Header Length,5
-Powered by Labfront
-Documentation,https://help.labfront.com/data-documentation
-projectId,projectTitle,participantId,participantInsignia,batchId,methodId,taskId,taskScheduleRepeat,taskScheduleDescription,todoId,todoName,todoDescription,firstSampleUnixTimestampInMs,lastSampleUnixTimestampInMs
-2f38ca27-bac7-476c-b735-95faf7ba3c1d,QA Template: Garmin Full Test,6732ab82-077a-4bfd-8f89-246aba683253,sample_participant_01,9a01a9a6-b720-475b-a0c9-b7312b0ed952,d2c5013a-26e5-461e-b3d0-1f6b216a7f37,8a5325fa-76ca-446f-a646-4e80aa3fb258,false,After completing Garmin pairing,cad3a487-dee7-49d8-8068-af13172cac05,Complete Garmin Setup,Press complete once you do the pairing process for Garmin (one-time todo),1675243833988,1675243833988
-
-timezone,unixTimestampInMs,isoDate
-Asia/Taipei,1675243833988,2023-02-01T17:30:33.988+08:00
