@@ -10,7 +10,7 @@ config = {
     "download_url": "https://github.com/dado93/pywearable",
     "author_email": "davide.marzorati.93@gmail.com",
     "version": "0.1",
-    "install_requires": ["pandas"],
+    "install_requires": ["hrv-analysis", "pyhrv", "pandas"],
     "packages": find_packages("src"),
     "package_dir": {"": "src"},
     "scripts": [],
