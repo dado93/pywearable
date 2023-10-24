@@ -15,6 +15,17 @@ from ... import constants, utils
 from ..base import BaseLoader
 from . import constants as labfront_constants
 
+_LABFRONT_METRICS_DICT = {
+    constants._METRIC_HEART_RATE: {
+        "garmin_health_api": labfront_constants._GARMIN_CONNECT_HEART_RATE_FOLDER,
+        "garmin_sdk": labfront_constants._GARMIN_DEVICE_HEART_RATE_FOLDER,
+    },
+    constants._METRIC_STRESS: {
+        "garmin_health_api": labfront_constants._GARMIN_CONNECT_STRESS_FOLDER,
+        "garmin_sdk": labfront_constants._GARMIN_DEVICE_HEART_RATE_FOLDER,
+    },
+}
+
 
 class LabfrontLoader(BaseLoader):
     """Loader for Labfront data.
@@ -374,14 +385,14 @@ class LabfrontLoader(BaseLoader):
                                 participant_dict[participant_folder.name][
                                     participant_metric_folder.name
                                 ][metric_data.name] = {
-                                    constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: first_ts,
-                                    constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: last_ts,
+                                    labfront_constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: first_ts,
+                                    labfront_constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: last_ts,
                                 }
                                 metrics_time_dict[participant_folder.name][
                                     participant_metric_folder.name
                                 ] = {
-                                    constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: metrics_first_ts,
-                                    constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: metrics_last_ts,
+                                    labfront_constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: metrics_first_ts,
+                                    labfront_constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: metrics_last_ts,
                                 }
                             else:
                                 if not metric_data.is_dir():
@@ -424,14 +435,14 @@ class LabfrontLoader(BaseLoader):
                                         participant_dict[participant_folder.name][
                                             participant_metric_folder.name
                                         ][metric_data.name][csv_file.name] = {
-                                            constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: first_ts,
-                                            constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: last_ts,
+                                            labfront_constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: first_ts,
+                                            labfront_constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: last_ts,
                                         }
                         metrics_time_dict[participant_folder.name][
                             participant_metric_folder.name
                         ] = {
-                            constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: metrics_first_ts,
-                            constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: metrics_last_ts,
+                            labfront_constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: metrics_first_ts,
+                            labfront_constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL: metrics_last_ts,
                         }
 
         return participant_dict, metrics_time_dict
@@ -452,7 +463,7 @@ class LabfrontLoader(BaseLoader):
             First available unix timestamp.
         """
         return self.metrics_data_dictionary[self.get_full_id(user_id)][metric][
-            constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
+            labfront_constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
         ]
 
     def get_last_unix_timestamp(self, user_id, metric):
@@ -471,7 +482,7 @@ class LabfrontLoader(BaseLoader):
             Last available unix timestamp.
         """
         return self.metrics_data_dictionary[self.get_full_id(user_id)][metric][
-            constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
+            labfront_constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
         ]
 
     def get_labfront_file_time_stats(
@@ -501,10 +512,10 @@ class LabfrontLoader(BaseLoader):
             path_to_file, nrows=1, skiprows=constants._CSV_STATS_SKIP_ROWS
         )
         first_unix_timestamp = header[
-            constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
+            labfront_constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
         ].iloc[0]
         last_unix_timestamp = header[
-            constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
+            labfront_constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
         ].iloc[0]
 
         return first_unix_timestamp, last_unix_timestamp
@@ -584,7 +595,7 @@ class LabfrontLoader(BaseLoader):
 
         # Convert dictionary to a pandas dataframe, so that we can sort it
         temp_pd = pd.DataFrame.from_dict(temp_dict, orient="index").sort_values(
-            by=constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
+            by=labfront_constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
         )
 
         if (start_date is None) and (end_date is None):
@@ -601,11 +612,11 @@ class LabfrontLoader(BaseLoader):
         if not (start_date is None):
             start_date_unix_ms = int(datetime.datetime.timestamp(start_date) * 1000)
             temp_pd["before_start_date"] = temp_pd[
-                constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
+                labfront_constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
             ].apply(lambda x: True if x < start_date_unix_ms else False)
             # Compute difference with first and last columns
             temp_pd["start_diff"] = abs(
-                temp_pd[constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL]
+                temp_pd[labfront_constants._FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL]
                 - start_date_unix_ms
             )
 
@@ -613,10 +624,10 @@ class LabfrontLoader(BaseLoader):
         if not (end_date is None):
             end_date_unix_ms = int(datetime.datetime.timestamp(end_date) * 1000)
             temp_pd["after_end_date"] = temp_pd[
-                constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
+                labfront_constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL
             ].apply(lambda x: True if x > end_date_unix_ms else False)
             temp_pd["end_diff"] = abs(
-                temp_pd[constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL]
+                temp_pd[labfront_constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL]
                 - end_date_unix_ms
             )
         print(temp_pd)
@@ -770,7 +781,7 @@ class LabfrontLoader(BaseLoader):
             if labfront_constants._GARMIN_CONNECT_BASE_FOLDER in metric:
                 tmp = tmp.drop(
                     [
-                        constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL,
+                        labfront_constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL,
                         constants._UNIXTIMESTAMP_IN_MS_COL,
                     ],
                     axis=1,
@@ -780,7 +791,7 @@ class LabfrontLoader(BaseLoader):
             # Convert to datetime according to isoformat
             data[constants._ISODATE_COL] = (
                 data[constants._UNIXTIMESTAMP_IN_MS_COL]
-                + data[constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL]
+                + data[labfront_constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL]
             )
             data[constants._ISODATE_COL] = pd.to_datetime(
                 data[constants._ISODATE_COL], unit="ms", utc=True
@@ -794,7 +805,7 @@ class LabfrontLoader(BaseLoader):
                 data[constants._UNIXTIMESTAMP_IN_MS_COL], unit="ms", utc=True
             )
             data[constants._ISODATE_COL] = data.groupby(
-                constants._GARMIN_DEVICE_TIMEZONEOFFSET_IN_MS_COL,
+                labfront_constants._GARMIN_DEVICE_TIMEZONEOFFSET_IN_MS_COL,
                 group_keys=False,
             )[constants._ISODATE_COL].apply(
                 lambda x: x.dt.tz_convert(x.name).dt.tz_localize(tz=None)
@@ -1099,7 +1110,7 @@ class LabfrontLoader(BaseLoader):
             merged_data = daily_data.merge(
                 sleep_data, on=constants._ISODATE_COL, how="left"
             )
-            merged_data.loc[merged_data.sleep != 1, "sleep"] = 0
+            merged_data.loc[merged_data["sleep"] != 1, "sleep"] = 0
             return merged_data
         else:
             return sleep_data
@@ -1151,7 +1162,7 @@ class LabfrontLoader(BaseLoader):
         ).reset_index(drop=True)
 
         # Add calendar date from sleep summary
-        sleep_summary = self.load_garmin_connect_sleep_summary(
+        sleep_summary = self.load_sleep_summary(
             user_id, start_date, end_date, same_day_filter=True
         ).reset_index(drop=True)
 
@@ -1160,7 +1171,7 @@ class LabfrontLoader(BaseLoader):
                 :,
                 [
                     constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL,
-                    constants._SLEEP_SUMMARY_CALENDAR_DATE_COL,
+                    constants._CALENDAR_DATE_COL,
                 ],
             ]
 
@@ -1190,7 +1201,7 @@ class LabfrontLoader(BaseLoader):
                             [
                                 constants._ISODATE_COL,
                                 constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL,
-                                constants._SLEEP_SUMMARY_CALENDAR_DATE_COL,
+                                constants._CALENDAR_DATE_COL,
                                 "sleep",
                             ]
                         )
@@ -1403,7 +1414,7 @@ class LabfrontLoader(BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            constants._GARMIN_DEVICE_HEART_RATE_FOLDER,
+            labfront_constants._GARMIN_DEVICE_HEART_RATE_FOLDER,
             start_date,
             end_date,
         )
@@ -1436,7 +1447,7 @@ class LabfrontLoader(BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            constants._GARMIN_DEVICE_PULSE_OX_FOLDER,
+            labfront_constants._GARMIN_DEVICE_PULSE_OX_FOLDER,
             start_date,
             end_date,
         )
@@ -1469,7 +1480,7 @@ class LabfrontLoader(BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            constants._GARMIN_DEVICE_RESPIRATION_FOLDER,
+            labfront_constants._GARMIN_DEVICE_RESPIRATION_FOLDER,
             start_date,
             end_date,
         )
@@ -1502,7 +1513,7 @@ class LabfrontLoader(BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            constants._GARMIN_DEVICE_STEP_FOLDER,
+            labfront_constants._GARMIN_DEVICE_STEP_FOLDER,
             start_date,
             end_date,
         )
@@ -1535,7 +1546,7 @@ class LabfrontLoader(BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            constants._GARMIN_DEVICE_STRESS_FOLDER,
+            labfront_constants._GARMIN_DEVICE_STRESS_FOLDER,
             start_date,
             end_date,
         )
@@ -1568,7 +1579,7 @@ class LabfrontLoader(BaseLoader):
         """
         data = self.get_data_from_datetime(
             user_id,
-            constants._GARMIN_DEVICE_BBI_FOLDER,
+            labfront_constants._GARMIN_DEVICE_BBI_FOLDER,
             start_date,
             end_date,
         )
@@ -1848,6 +1859,7 @@ class LabfrontLoader(BaseLoader):
             unit="ms",
             utc=True,
         ).tz_localize(None)
+
         sleep_start_time = sleep_start_time.to_pydatetime()
         sleep_end_time = sleep_end_time.to_pydatetime()
 
@@ -1881,7 +1893,9 @@ class LabfrontLoader(BaseLoader):
             sleep_end_time = pd.to_datetime(
                 (
                     sleep_summary[constants._UNIXTIMESTAMP_IN_MS_COL]
-                    + sleep_summary[constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL]
+                    + sleep_summary[
+                        labfront_constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL
+                    ]
                     + sleep_summary[constants._SLEEP_SUMMARY_DURATION_IN_MS_COL]
                     + sleep_summary[constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL]
                 ),
@@ -1943,3 +1957,54 @@ class LabfrontLoader(BaseLoader):
             ].values
 
         return hypnograms
+
+    def load_metric(
+        self,
+        metric: str,
+        user_id: str,
+        start_date: datetime.datetime | datetime.date | str | None = None,
+        end_date: datetime.datetime | datetime.date | str | None = None,
+        source="health_api",
+    ):
+        try:
+            labfront_metric = _LABFRONT_METRICS_DICT[metric][source]
+        except KeyError:
+            raise (f"Could not find available metric {metric} with source {source}")
+        return self.get_data_from_datetime(
+            user_id=user_id,
+            metric=metric,
+            start_date=start_date,
+            end_date=end_date,
+            is_questionnaire=False,
+            is_todo=False,
+        )
+
+    def load_heart_rate(
+        self,
+        user_id: str,
+        start_date: datetime.datetime | datetime.date | str | None = None,
+        end_date: datetime.datetime | datetime.date | str | None = None,
+        source="health_api",
+    ) -> pd.DataFrame:
+        return self.load_metric(
+            metric=constants._METRIC_HEART_RATE,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+            source=source,
+        )
+
+    def load_stress(
+        self,
+        user_id: str,
+        start_date: datetime.datetime | datetime.date | str | None = None,
+        end_date: datetime.datetime | datetime.date | str | None = None,
+        source="health_api",
+    ) -> pd.DataFrame:
+        return self.load_metric(
+            metric=constants._METRIC_STRESS,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+            source=source,
+        )

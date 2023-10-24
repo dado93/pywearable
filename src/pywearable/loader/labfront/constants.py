@@ -32,3 +32,9 @@ _GARMIN_DEVICE_STRESS_FOLDER = _GARMIN_DEVICE_FOLDER + "-stress"
 # Questionnaire and Todo - Folder names #
 _QUESTIONNAIRE_FOLDER = "questionnaire"
 _TODO_FOLDER = "todo"
+
+# Labfront-specific CSV columns
+_GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL = "timezoneOffsetInMs"
+_GARMIN_DEVICE_TIMEZONEOFFSET_IN_MS_COL = "timezone"
+_FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL = "firstSampleUnixTimestampInMs"
+_LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL = "lastSampleUnixTimestampInMs"
