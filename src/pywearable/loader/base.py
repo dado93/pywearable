@@ -24,6 +24,14 @@ class BaseLoader:
     ) -> pd.DataFrame:
         pass
 
+    def load_sleep_stage(
+        self,
+        user_id: str,
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    ) -> pd.DataFrame:
+        pass
+
     def load_heart_rate(
         self,
         user_id: str,

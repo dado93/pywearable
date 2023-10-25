@@ -1,3 +1,8 @@
+_METRIC_HEART_RATE = "heart-rate"
+_METRIC_STRESS = "stress"
+_METRIC_SLEEP_SUMMARY = "sleep-summary"
+_METRIC_SLEEP_STAGE = "sleep-stage"
+
 #################################################
 #          CSV FILES - COLUMN NAMES             #
 #################################################
@@ -9,11 +14,6 @@ _CALENDAR_DATE_COL = "calendarDate"
 _SLEEP_SUMMARY_ID_COL = "sleepSummaryId"
 _DURATION_IN_MS_COL = "durationInMs"
 
-_GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL = "timezoneOffsetInMs"
-_GARMIN_DEVICE_TIMEZONEOFFSET_IN_MS_COL = "timezone"
-_FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL = "firstSampleUnixTimestampInMs"
-_LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL = "lastSampleUnixTimestampInMs"
-
 # Sleep summary columns #
 _SLEEP_SUMMARY_OVERALL_SLEEP_SCORE_COL = "overallSleepScore"
 _SLEEP_SUMMARY_DURATION_IN_MS_COL = "durationInMs"
@@ -21,7 +21,7 @@ _SLEEP_SUMMARY_DEEP_SLEEP_DURATION_IN_MS_COL = "deepSleepDurationInMs"
 _SLEEP_SUMMARY_LIGHT_SLEEP_DURATION_IN_MS_COL = "lightSleepDurationInMs"
 _SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL = "remSleepInMs"
 _SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL = "awakeDurationInMs"
-_SLEEP_SUMMARY_UNMEASURABLE_DURATION_IN_MS_COL = "unmeasurableDurationInMs"
+_SLEEP_SUMMARY_UNMEASURABLE_DURATION_IN_MS_COL = "unmeasurableSleepInMs"
 _SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL = "sleepSummaryId"
 
 # Sleep stage columns #

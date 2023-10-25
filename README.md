@@ -1,5 +1,5 @@
 # pywearable
-[![Documentation Status](https://readthedocs.org/projects/pylabfront/badge/?version=latest)](https://pylabfront.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/pywearable/badge/?version=latest)](https://pywearable.readthedocs.io/en/latest/?badge=latest)
 
 Do you need to deal with wearable data? Then you are in the right place!
 In this repository you will find a Python package that you can use to analyse all data collected with several data sources. At the moment, we support:

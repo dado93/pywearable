@@ -1,5 +1,5 @@
 Labfront Loader
 ================
 
-.. automodule:: pywearable.loader.labfront
+.. automodule:: pywearable.loader.labfront.loader
    :members:

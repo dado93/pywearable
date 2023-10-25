@@ -12,4 +12,5 @@
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
+    "materialkv.pythonFile": "main.py",
 }

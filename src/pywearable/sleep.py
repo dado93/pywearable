@@ -45,7 +45,7 @@ def get_time_in_bed(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ) -> dict:
     """Get time in bed (TIB) sleep metric.
 
@@ -55,13 +55,19 @@ def get_time_in_bed(
 
     .. math:: TIB = N1 + N2 + N3 + REM + UNMEASURABLE + AWAKE
 
-    Depending on the value of the ``average`` parameter, this function
-    returns TIB for each calendar day (``average=False``) from ``start_date`` to
-    ``end_date`` or the average value across all days (``average=True``).
+    Depending on the value of the ``kind`` parameter, this function
+    returns TIB for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter:
+
+        - `mean`: computes the average across days
+        - `std`: computes the standard deviation across days
+        - `min`: computes the minimum value across days
+        - `max`: computes the maximum value across days
 
     Example::
 
-        pywearable.sleep.get_time_in_bed(loader, user_id, start_date, end_date)
+        pywearable.sleep.get_time_in_bed(loader, user_id, start_date, end_date, kind=None)
 
         >> {'f457c562-2159-431c-8866-dfa9a917d9b8':
             datetime.date(2023, 9, 9): 501.0,
@@ -72,7 +78,7 @@ def get_time_in_bed(
             datetime.date(2023, 9, 14): 402.0,
             datetime.date(2023, 9, 15): 469.0}
 
-        pywearable.sleep.get_time_in_bed(loader, user_id, start_date, end_date, average=True)
+        pywearable.sleep.get_time_in_bed(loader, user_id, start_date, end_date, kind='mean')
         >> {
                 'f457c562-2159-431c-8866-dfa9a917d9b8':
                     {
@@ -90,7 +96,7 @@ def get_time_in_bed(
 
     Parameters
     ----------
-    pywearable.loader.base.BaseLoader():`pywearable.loader.base.BaseLoader`
+    loader : `pywearable.loader.base.BaseLoader`
         An instance of a data loader.
     user_id : :class:`str` or :class:`list`, optional
         The id(s) for which TIB must be retrieved, by default "all"
@@ -98,20 +104,31 @@ def get_time_in_bed(
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None
-    average : :class:`bool`, optional
-        Whether to average TIB over days, or to return the value for each day, by default False
+    kind : :class:`str` or None, optional
+        Whether to transform TIB over days, or to return the value for each day, by default None.
+        Valid options are:
+
+            - `mean`
+            - `std`
+            - `min`
+            - `max`
 
     Returns
     -------
     :class:`dict`
-        If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (as :class:`datetime.date`) as keys and time in bed as values.
-        If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `TIB`
-        as key and its value, and an additional `days` keys that contains an array of all
-        calendar days over which the average was computed.
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and TIB as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `TIB`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
     """
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_TIB, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_TIB,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -125,22 +142,19 @@ def get_sleep_period_time(
     """Get sleep period time (SPT) sleep metric.
 
     This function computes sleep period time (SPT) metric as the duration from the first to
-    the last period of sleep. Depending on the value of the `average` parameter, this function
-    returns SPT for each calendar day (``average=False``) from ``start_date`` to
-    ``end_date`` or the average value across all days (``average=True``).
+    the last period of sleep. Depending on the value of the ``kind`` parameter, this function
+    returns SPT for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter:
+
+        - `mean`: computes the average across days
+        - `std`: computes the standard deviation across days
+        - `min`: computes the minimum value across days
+        - `max`: computes the maximum value across days
 
     Example::
 
-        import pywearable.loader.base.BaseLoader
-        import pywearable.sleep
-        import datetime
-
-        loader = pywearable.loader.base.BaseLoader()
-        start_date = datetime.date(2023, 9, 9)
-        end_date = datetime.date.today()
-        user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
-
-        pylabfront.sleep.get_sleep_period_time(loader, user_id, start_date, end_date)
+        pywearable.sleep.get_sleep_period_time(loader, user_id, start_date, end_date, kind=None)
 
         >> {'f457c562-2159-431c-8866-dfa9a917d9b8':
             datetime.date(2023, 9, 9): 501.0,
@@ -151,7 +165,7 @@ def get_sleep_period_time(
             datetime.date(2023, 9, 14): 402.0,
             datetime.date(2023, 9, 15): 496.0}
 
-        pylabfront.sleep.get_sleep_period_time(loader, user_id, start_date, end_date, average=True)
+        pywearable.sleep.get_sleep_period_time(loader, user_id, start_date, end_date, kind='mean')
         >> {
                 'f457c562-2159-431c-8866-dfa9a917d9b8':
                     {
@@ -169,7 +183,7 @@ def get_sleep_period_time(
 
     Parameters
     ----------
-    pywearable.loader.base.BaseLoader():`pywearable.loader.base.BaseLoader()`
+    loader : `pywearable.loader.base.BaseLoader()`
         An instance of a data loader.
     user_id : :class:`str` or :class:`list`, optional
         The id(s) for which SPT must be retrieved, by default "all".
@@ -177,17 +191,23 @@ def get_sleep_period_time(
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None
-    average : :class:`bool`, optional
-        Whether to average SPT over days, or to return the value for each day, by default False
+    kind : :class:`str` or None, optional
+        Whether to transform SPT over days, or to return the value for each day, by default None.
+        Valid options are:
+
+            - `mean`
+            - `std`
+            - `min`
+            - `max`
 
     Returns
     -------
     :class:`dict`
-        If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (as :class:`datetime.date`) as keys and sleep period time as values.
-        If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `SPT`
-        as key and its value, and an additional `days` keys that contains an array of all
-        calendar days over which the average was computed.
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and SPT as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `SPT`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
     """
     return get_sleep_statistic(
         loader, user_id, _SLEEP_METRIC_SPT, start_date, end_date, average
@@ -205,22 +225,19 @@ def get_total_sleep_time(
 
     This function computes total sleep time (TST) metric as the total duration of
     N1, N2, N3, and REM in SPT (see :func:`get_sleep_period_time`).
-    Depending on the value of the `average` parameter, this function
-    returns TST for each calendar day (``average=False``) from ``start_date`` to
-    ``end_date`` or the average value across all days (``average=True``).
+    Depending on the value of the ``kind`` parameter, this function
+    returns TST for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter:
+
+        - `mean`: computes the average across days
+        - `std`: computes the standard deviation across days
+        - `min`: computes the minimum value across days
+        - `max`: computes the maximum value across days
 
     Example::
 
-        import pywearable.loader.base.BaseLoader
-        import pywearable.sleep
-        import datetime
-
-        loader = pywearable.loader.base.BaseLoader()
-        start_date = datetime.date(2023, 9, 9)
-        end_date = datetime.date.today()
-        user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
-
-        pylabfront.sleep.get_total_sleep_time(loader, user_id, start_date, end_date)
+        pywearable.sleep.get_total_sleep_time(loader, user_id, start_date, end_date, kind=None)
 
         >> {'f457c562-2159-431c-8866-dfa9a917d9b8':
             datetime.date(2023, 9, 9): 497.0,
@@ -231,7 +248,7 @@ def get_total_sleep_time(
             datetime.date(2023, 9, 14): 402.0,
             datetime.date(2023, 9, 15): 494.0}
 
-        pylabfront.sleep.get_total_sleep_time(loader, user_id, start_date, end_date, average=True)
+        pywearable.sleep.get_total_sleep_time(loader, user_id, start_date, end_date, kind='mean')
         >> {
                 'f457c562-2159-431c-8866-dfa9a917d9b8':
                     {
@@ -257,17 +274,23 @@ def get_total_sleep_time(
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None
-    average : :class:`bool`, optional
-        Whether to average TST over days, or to return the value for each day, by default False
+    kind : :class:`str` or None, optional
+        Whether to transform TST over days, or to return the value for each day, by default None.
+        Valid options are:
+
+            - `mean`
+            - `std`
+            - `min`
+            - `max`
 
     Returns
     -------
     :class:`dict`
-        If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (as :class:`datetime.date`) as keys and total sleep time as values.
-        If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `TST`
-        as key and its value, and an additional `days` keys that contains an array of all
-        calendar days over which the average was computed.
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and TST as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `TST`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
     """
     return get_sleep_statistic(
         loader, user_id, _SLEEP_METRIC_TST, start_date, end_date, average
@@ -286,22 +309,19 @@ def get_sleep_efficiency(
     This function computes sleep efficiency (SE) metric as the ratio
     between TST (see :func:`get_total_sleep_time`) and TIB (see :func:`get_time_in_bed`).
     .. math:: SE = TST / TIB
-    Depending on the value of the ``average`` parameter, this function
-    returns SE for each calendar day (``average=False``) from ``start_date`` to
-    ``end_date`` or the average value across all days (``average=True``).
+    Depending on the value of the ``kind`` parameter, this function
+    returns SE for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter:
+
+        - `mean`: computes the average across days
+        - `std`: computes the standard deviation across days
+        - `min`: computes the minimum value across days
+        - `max`: computes the maximum value across days
 
     Example::
 
-        import pywearable.loader.base.BaseLoader
-        import pywearable.sleep
-        import datetime
-
-        loader = pywearable.loader.base.BaseLoader()
-        start_date = datetime.date(2023, 9, 9)
-        end_date = datetime.date.today()
-        user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
-
-        pylabfront.sleep.get_sleep_efficiency(loader, user_id, start_date, end_date)
+        pywearable.sleep.get_sleep_efficiency(loader, user_id, start_date, end_date, kind=None)
 
         >> {'f457c562-2159-431c-8866-dfa9a917d9b8':
             datetime.date(2023, 9, 9): 99.20159680638723,
@@ -312,7 +332,7 @@ def get_sleep_efficiency(
             datetime.date(2023, 9, 14): 100.0,
             datetime.date(2023, 9, 15): 99.59677419354838}
 
-        pylabfront.sleep.get_sleep_efficiency(loader, user_id, start_date, end_date, average=True)
+        pywearable.sleep.get_sleep_efficiency(loader, user_id, start_date, end_date, kind='mean')
         >> {
                 'f457c562-2159-431c-8866-dfa9a917d9b8':
                     {
@@ -338,17 +358,23 @@ def get_sleep_efficiency(
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None
-    average : :class:`bool`, optional
-        Whether to average SE over days, or to return the value for each day, by default False
+    kind : :class:`str` or None, optional
+        Whether to transform SE over days, or to return the value for each day, by default None.
+        Valid options are:
+
+            - `mean`
+            - `std`
+            - `min`
+            - `max`
 
     Returns
     -------
     :class:`dict`
-        If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (as :class:`datetime.date`) as keys and sleep efficiency as values.
-        If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `SE`
-        as key and its value, and an additional `days` keys that contains an array of all
-        calendar days over which the average was computed.
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and SE as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `SE`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
     """
     return get_sleep_statistic(
         loader, user_id, _SLEEP_METRIC_SE, start_date, end_date, average
@@ -455,16 +481,7 @@ def get_n1_latency(
 
     Example::
 
-        import pywearable.loader.base.BaseLoader
-        import pywearable.sleep
-        import datetime
-
-        loader = pywearable.loader.base.BaseLoader()
-        start_date = datetime.date(2023, 9, 9)
-        end_date = datetime.date.today()
-        user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
-
-        pylabfront.sleep.get_n1_latency(loader, user_id, start_date, end_date)
+        pywearable.sleep.get_n1_latency(loader, user_id, start_date, end_date)
 
         >> {'f457c562-2159-431c-8866-dfa9a917d9b8':
             datetime.date(2023, 9, 9): 0.0,
@@ -475,7 +492,7 @@ def get_n1_latency(
             datetime.date(2023, 9, 14): 0.0,
             datetime.date(2023, 9, 15): 0.0}
 
-        pylabfront.sleep.get_n1_latency(loader, user_id, start_date, end_date, average=True)
+        pywearable.sleep.get_n1_latency(loader, user_id, start_date, end_date, average=True)
         >> {
                 'f457c562-2159-431c-8866-dfa9a917d9b8':
                     {
@@ -537,16 +554,7 @@ def get_n2_latency(
 
     Example::
 
-        import pywearable.loader.base.BaseLoader
-        import pywearable.sleep
-        import datetime
-
-        loader = pywearable.loader.base.BaseLoader()
-        start_date = datetime.date(2023, 9, 9)
-        end_date = datetime.date.today()
-        user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
-
-        pylabfront.sleep.get_n2_latency(loader, user_id, start_date, end_date)
+        pywearable.sleep.get_n2_latency(loader, user_id, start_date, end_date)
 
         >> {'f457c562-2159-431c-8866-dfa9a917d9b8':
             datetime.date(2023, 9, 9): 0.0,
@@ -557,7 +565,7 @@ def get_n2_latency(
             datetime.date(2023, 9, 14): 0.0,
             datetime.date(2023, 9, 15): 0.0}
 
-        pylabfront.sleep.get_n2_latency(loader, user_id, start_date, end_date, average=True)
+        pywearable.sleep.get_n2_latency(loader, user_id, start_date, end_date, average=True)
         >> {
                 'f457c562-2159-431c-8866-dfa9a917d9b8':
                     {
@@ -1508,15 +1516,19 @@ def get_sleep_timestamps(
         # better to give a bit of rooms before and after start_date and end_date to ensure they're included
         df = loader.load_sleep_summary(user, start_date, end_date)
         if len(df) > 0:
-            df = df.groupby(constants._CALENDAR_DATE_COL).head(1)
-            df["waking_time"] = df[constants._ISODATE_COL] + (
-                df[constants._SLEEP_SUMMARY_DURATION_IN_MS_COL]
-                + df[constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL]
-            ).astype(int).apply(lambda x: datetime.timedelta(milliseconds=x))
+            df = df.groupby(constants._CALENDAR_DATE_COL).head(1)  # TODO is it needed??
+            df["waking_time"] = pd.to_datetime(
+                df[constants._UNIXTIMESTAMP_IN_MS_COL]
+                + df[constants._TIMEZONEOFFSET_IN_MS_COL]
+                + df[constants._DURATION_IN_MS_COL]
+                + df[constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL],
+                unit="ms",
+                utc=True,
+            ).dt.tz_localize(None)
             data_dict[user] = pd.Series(
                 zip(
-                    np.array(df[constants._ISODATE_COL].dt.to_pydatetime()),
-                    np.array(df["waking_time"].dt.to_pydatetime()),
+                    df[constants._ISODATE_COL],
+                    df["waking_time"],
                 ),
                 df[constants._CALENDAR_DATE_COL],
             ).to_dict()
@@ -1614,7 +1626,7 @@ def get_awakenings(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ):
     """Get the number of awakenings
 
@@ -1644,7 +1656,12 @@ def get_awakenings(
     """
 
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_AWAKENINGS, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_AWAKENINGS,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -1832,7 +1849,7 @@ def get_sleep_metric_std(
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
 ):
-    """Calculates standard deviation of a desired sleep metric
+    """Calculates standard deviation of a desired sleep metric.
 
     Given a selected metric, calculates for the period of interest
     and user of interest, its standard deviation.
@@ -2139,8 +2156,7 @@ def _compute_sleep_stage_percentage(
 
     This function computes the percentage of time in a sleep stage
     as the ratio between the time spent in it and the sum of the
-    time spent sleeping
-
+    total sleep time.
     Parameters
     ----------
     sleep_summary : :class:`pd.DataFrame`
@@ -2487,65 +2503,124 @@ def _compute_unmeasurable_duration(sleep_summary: pd.DataFrame, *args) -> pd.Ser
 def _compute_sleep_period_time(
     sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame
 ) -> pd.Series:
-    if not isinstance(sleep_summary, pd.DataFrame):
-        raise ValueError(
-            f"sleep_summary must be a pd.DataFrame. {type(sleep_summary)} is not a valid type."
-        )
-    if not isinstance(sleep_stages, pd.DataFrame):
-        raise ValueError(
-            f"sleep_stages must be a pd.DataFrame. {type(sleep_stages)} is not a valid type."
-        )
+    """Compute sleep period time.
+
+    This function computes sleep period time, that is the
+    duration from first to last period of sleep.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pd.DataFrame`
+        Sleep summaries, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_sleep_summary`.
+        The index of the ``sleep_summary`` must be set to the unique `sleepSummaryId`.
+    sleep_stages : :class:`pd.DataFrame`
+        Sleep stages, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_sleep_stage`.
+
+    Returns
+    -------
+    :class:`pd.Series`
+        Series with sleep period time as values, and sleep summary ids as index.
+    """
+    # Check inputs
+    sleep_summary = utils.check_is_df(sleep_summary, "sleep_summary")
+    sleep_stages = utils.check_is_df(sleep_stages, "sleep_stages")
+    if len(sleep_summary) == 0:
+        return pd.Series()
+    if len(sleep_stages) == 0:
+        return pd.Series(index=sleep_summary.index)
 
     def sleep_diff(group):
         start = group[constants._UNIXTIMESTAMP_IN_MS_COL]
         duration = group[constants._SLEEP_STAGE_DURATION_IN_MS_COL]
         return (start.iloc[-1] + duration.iloc[-1] - start.iloc[0]) / (1000 * 60)
 
+    # Get only sleep stages of interest
     filtered_sleep_stages = sleep_stages[
         sleep_stages[constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL].isin(
             sleep_summary.index
         )
     ].reset_index(drop=True)
-    return (
+    spt = pd.Series(
         filtered_sleep_stages[
             filtered_sleep_stages[constants._SLEEP_STAGE_SLEEP_TYPE_COL]
             != constants._SLEEP_STAGE_AWAKE_STAGE_VALUE
         ]
         .reset_index(drop=True)
         .groupby(constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL)
-        .apply(sleep_diff)
+        .apply(sleep_diff),
+        index=sleep_summary.index,
     )
+    return spt
 
 
 def _compute_sleep_onset_latency(
     sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame
 ) -> pd.Series:
-    if not isinstance(sleep_summary, pd.DataFrame):
-        raise ValueError(
-            f"sleep_summary must be a pd.DataFrame. {type(sleep_summary)} is not a valid type."
-        )
-    if not isinstance(sleep_stages, pd.DataFrame):
-        raise ValueError(
-            f"sleep_stages must be a pd.DataFrame. {type(sleep_stages)} is not a valid type."
-        )
+    """Compute sleep onset latency.
+
+    This function computes the latency to the
+    first sleep stage.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pd.DataFrame`
+        Sleep summaries, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_sleep_summary`.
+        The index of the ``sleep_summary`` must be set to the unique `sleepSummaryId`.
+    sleep_stages : :class:`pd.DataFrame`
+        Sleep stages, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_sleep_stage`.
+
+    Returns
+    -------
+    :class:`pd.Series`
+        Series with sleep onset latency.
+    """
+    sleep_summary = utils.check_is_df(sleep_summary, "sleep_summary")
+    sleep_stages = utils.check_is_df(sleep_stages, "sleep_stages")
+    if len(sleep_summary) == 0:
+        return pd.Series()
+    if len(sleep_stages) == 0:
+        return pd.Series(index=sleep_summary.index)
     latencies = _compute_latencies(sleep_summary, sleep_stages)
     # Remove awake latency
     if constants._SLEEP_STAGE_AWAKE_STAGE_VALUE in latencies.columns:
         latencies = latencies.drop([constants._SLEEP_STAGE_AWAKE_STAGE_VALUE], axis=1)
+    # Remove unmeasurable latency in case it is there
+    if constants._SLEEP_STAGE_UNMEASURABLE_STAGE_VALUE in latencies.columns:
+        latencies = latencies.drop(
+            [constants._SLEEP_STAGE_UNMEASURABLE_STAGE_VALUE], axis=1
+        )
+    # Return minimum latency
     return latencies.min(axis=1)
 
 
 def _compute_wake_after_sleep_onset(
     sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame
 ) -> pd.Series:
-    if not isinstance(sleep_summary, pd.DataFrame):
-        raise ValueError(
-            f"sleep_summary must be a pd.DataFrame. {type(sleep_summary)} is not a valid type."
-        )
-    if not isinstance(sleep_stages, pd.DataFrame):
-        raise ValueError(
-            f"sleep_stages must be a pd.DataFrame. {type(sleep_stages)} is not a valid type."
-        )
+    """Compute wake after sleep onset.
+
+    This function returns the total number of minutes
+    spent awake after the sleep onset.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pd.DataFrame`
+        Sleep summaries, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_sleep_summary`.
+        The index of the ``sleep_summary`` must be set to the unique `sleepSummaryId`.
+    sleep_stages : :class:`pd.DataFrame`
+        Sleep stages, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_sleep_stage`.
+
+    Returns
+    -------
+    :class:`pd.Series`
+        Series with wake after sleep onset data.
+    """
+    sleep_summary = utils.check_is_df(sleep_summary, "sleep_summary")
+    sleep_stages = utils.check_is_df(sleep_stages, "sleep_stages")
+    if len(sleep_summary) == 0:
+        return pd.Series()
+    if len(sleep_stages) == 0:
+        return pd.Series(index=sleep_summary.index)
+
     # Get only sleep stages belonging to the sleep summaries of interest
     filtered_sleep_stages = sleep_stages[
         sleep_stages[constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL].isin(
@@ -2574,7 +2649,8 @@ def _compute_wake_after_sleep_onset(
     filtered_sleep_stages = filtered_sleep_stages[
         ~filtered_sleep_stages.index.isin(last_sleep_stages.index)
     ]
-    return (
+    # Compute WASO with groupby operation
+    waso = pd.Series(
         filtered_sleep_stages[
             filtered_sleep_stages[constants._SLEEP_STAGE_SLEEP_TYPE_COL]
             == constants._SLEEP_STAGE_AWAKE_STAGE_VALUE
@@ -2582,8 +2658,15 @@ def _compute_wake_after_sleep_onset(
         .groupby(constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL)[
             constants._SLEEP_SUMMARY_DURATION_IN_MS_COL
         ]
-        .sum()
+        .sum(),
+        index=sleep_summary.index,
     ) / (1000 * 60)
+    # Set values to 0 for sleep summaries with no awake stages
+    waso.loc[
+        (waso.index.isin(filtered_sleep_stages[constants._SLEEP_SUMMARY_ID_COL]))
+        & (waso.isna())
+    ] = 0
+    return waso
 
 
 def _compute_n1_latency(
@@ -2594,9 +2677,10 @@ def _compute_n1_latency(
     Parameters
     ----------
     sleep_summary : :class:`pd.DataFrame`
-        A sleep summary in the format provided by :class:`pylabfront.loader.DataLoader`
+        Sleep summaries, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_sleep_summary`.
+        The index of the ``sleep_summary`` must be set to the unique `sleepSummaryId`.
     sleep_stages : :class:`pd.DataFrame`
-        Sleep stages in the format provided by :class:`pylabfront.loader.DataLoader`
+        Sleep stages, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_sleep_stage`.
 
     Returns
     -------
@@ -2604,31 +2688,32 @@ def _compute_n1_latency(
         A DataFrame with N1 Latency as value, and sleep summary ids as indexes.
     """
     latencies = _compute_latencies(sleep_summary, sleep_stages)
-    if constants._SLEEP_STAGE_LIGHT_STAGE_VALUE in latencies.columns:
-        n1_latency = latencies[constants._SLEEP_STAGE_LIGHT_STAGE_VALUE]
-    else:
-        n1_latency = pd.Series(np.nan, index=sleep_summary.index)
-    return n1_latency
+    return pd.Series(latencies[constants._SLEEP_STAGE_LIGHT_STAGE_VALUE])
 
 
 def _compute_n2_latency(
     sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame
-) -> pd.DataFrame:
+) -> pd.Series:
     """Compute N2 latency from sleep data.
 
     Parameters
     ----------
     sleep_summary : :class:`pd.DataFrame`
-        A sleep summary in the format provided by :class:`pylabfront.loader.DataLoader`
+        Sleep summaries, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_sleep_summary`.
+        The index of the ``sleep_summary`` must be set to the unique `sleepSummaryId`.
     sleep_stages : :class:`pd.DataFrame`
-        Sleep stages in the format provided by :class:`pylabfront.loader.DataLoader`
+        Sleep stages, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_sleep_stage`.
 
     Returns
     -------
-    :class:`pd.DataFrame`
-        A DataFrame with N2 Latency as value, and sleep summary ids as indexes.
+    :class:`pd.Series`
+        A series with N2 Latency as value, and sleep summary ids as indexes.
     """
-    n2_latency = pd.Series(np.nan, index=sleep_summary.index)
+    latencies = _compute_latencies(sleep_summary, sleep_stages)
+    if "N2" in latencies.columns:
+        n2_latency = pd.Series(latencies["N2"])
+    else:
+        n2_latency = pd.Series(np.nan, index=sleep_summary.index)
     return n2_latency
 
 
@@ -2640,46 +2725,40 @@ def _compute_n3_latency(
     Parameters
     ----------
     sleep_summary : :class:`pd.DataFrame`
-        A sleep summary in the format provided by :class:`pylabfront.loader.DataLoader`
+        Sleep summaries, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_sleep_summary`.
+        The index of the ``sleep_summary`` must be set to the unique `sleepSummaryId`.
     sleep_stages : :class:`pd.DataFrame`
-        Sleep stages in the format provided by :class:`pylabfront.loader.DataLoader`
+        Sleep stages, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_sleep_stage`.
 
     Returns
     -------
-    :class:`pd.DataFrame`
-        A DataFrame with N3 Latency as value, and sleep summary ids as indexes.
+    :class:`pd.Series`
+        A series with N3 Latency as value, and sleep summary ids as indexes.
     """
     latencies = _compute_latencies(sleep_summary, sleep_stages)
-    if constants._SLEEP_STAGE_DEEP_STAGE_VALUE in latencies.columns:
-        n3_latency = latencies[constants._SLEEP_STAGE_DEEP_STAGE_VALUE]
-    else:
-        n3_latency = pd.Series(np.nan, index=sleep_summary.index)
-    return n3_latency
+    return pd.Series(latencies[constants._SLEEP_STAGE_DEEP_STAGE_VALUE])
 
 
 def _compute_rem_latency(
     sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame
-) -> pd.DataFrame:
+) -> pd.Series:
     """Computes REM Latency from sleep data.
 
     Parameters
     ----------
-    sleep_summary : pd.DataFrame
-        A sleep summary in the format provided by :class:`pylabfront.loader.DataLoader`
-    sleep_stages : pd.DataFrame
-        Sleep stages in the format provided by :class:`pylabfront.loader.DataLoader`
+    sleep_summary : :class:`pd.DataFrame`
+        Sleep summaries, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_sleep_summary`.
+        The index of the ``sleep_summary`` must be set to the unique `sleepSummaryId`.
+    sleep_stages : :class:`pd.DataFrame`
+        Sleep stages, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_sleep_stage`.
 
     Returns
     -------
-    pd.DataFrame
-        A DataFrame with REM Latency as value, and sleep summary ids as indexes.
+    :class:`pd.Series`
+        A series with REM Latency as value, and sleep summary ids as index.
     """
     latencies = _compute_latencies(sleep_summary, sleep_stages)
-    if constants._SLEEP_STAGE_REM_STAGE_VALUE in latencies.columns:
-        rem_latency = latencies[constants._SLEEP_STAGE_REM_STAGE_VALUE]
-    else:
-        rem_latency = pd.Series(np.nan, index=sleep_summary.index)
-    return rem_latency
+    return pd.Series(latencies[constants._SLEEP_STAGE_REM_STAGE_VALUE])
 
 
 def _compute_latencies(
@@ -2692,10 +2771,11 @@ def _compute_latencies(
 
     Parameters
     ----------
-    sleep_summary : pd.DataFrame
-        Sleep summaries, that can be extracted using :method:`pylabfront.loader.DataLoader.load_sleep_summary`
-    sleep_stages : pd.DataFrame
-        Sleep stages, that can be extracted using :method:`pylabfront.loader.DataLoader.load_sleep_stage`
+    sleep_summary : :class:`pd.DataFrame`
+        Sleep summaries, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_sleep_summary`.
+        The index of the ``sleep_summary`` must be set to the unique `sleepSummaryId`.
+    sleep_stages : :class:`pd.DataFrame`
+        Sleep stages, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_sleep_stage`.
 
     Returns
     -------
@@ -2703,28 +2783,43 @@ def _compute_latencies(
         The returned :class:`pd.DataFrame` has as index the
         values of the ids of the sleep summary to which they
         refer to, and one column for each sleep stage:
-        awake, light, deep, and rem. If none of these sleep
-        stage is present in the `sleep_stages`, then the
-        column is not present.
+        awake, light, deep, and rem.
 
     Raises
     ------
     ValueError
         If `sleep_summary` or `sleep_stages` are not of type :class:`pd.DataFrame`
     """
-    if not isinstance(sleep_summary, pd.DataFrame):
-        raise ValueError(
-            f"sleep_summary must be a pd.DataFrame. {type(sleep_summary)} is not a valid type."
+    # Check input
+    sleep_summary = utils.check_is_df(sleep_summary, "sleep_summary")
+    sleep_stages = utils.check_is_df(sleep_stages, "sleep_stages")
+    # Check lenght of input
+    if len(sleep_summary) == 0:
+        return pd.DataFrame(
+            columns=[
+                constants._SLEEP_STAGE_AWAKE_STAGE_VALUE,
+                constants._SLEEP_STAGE_LIGHT_STAGE_VALUE,
+                constants._SLEEP_STAGE_DEEP_STAGE_VALUE,
+                constants._SLEEP_STAGE_REM_STAGE_VALUE,
+            ]
         )
-    if not isinstance(sleep_stages, pd.DataFrame):
-        raise ValueError(
-            f"sleep_stages must be a pd.DataFrame. {type(sleep_stages)} is not a valid type."
+    if len(sleep_stages) == 0:
+        return pd.DataFrame(
+            index=sleep_summary.index,
+            columns=[
+                constants._SLEEP_STAGE_AWAKE_STAGE_VALUE,
+                constants._SLEEP_STAGE_LIGHT_STAGE_VALUE,
+                constants._SLEEP_STAGE_DEEP_STAGE_VALUE,
+                constants._SLEEP_STAGE_REM_STAGE_VALUE,
+            ],
         )
+    # Get only sleep stages with valid sleepSummaryId
     filtered_sleep_stages = sleep_stages[
         sleep_stages[constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL].isin(
             sleep_summary.index
         )
     ].reset_index(drop=True)
+    # Compute latencies by groupby operation
     latencies = (
         filtered_sleep_stages.groupby(
             [
@@ -2734,13 +2829,33 @@ def _compute_latencies(
         )[constants._ISODATE_COL].first()
         - sleep_summary[constants._ISODATE_COL]
     ).dt.total_seconds() / (60)
+
+    # Pivot
     latencies = latencies.rename("latency")
     latencies = latencies.reset_index().pivot(
         columns=constants._SLEEP_STAGE_SLEEP_TYPE_COL,
         index=constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL,
         values="latency",
     )
+    # Add columns if they are not there
+    for stage in [
+        constants._SLEEP_STAGE_AWAKE_STAGE_VALUE,
+        constants._SLEEP_STAGE_LIGHT_STAGE_VALUE,
+        constants._SLEEP_STAGE_DEEP_STAGE_VALUE,
+        constants._SLEEP_STAGE_REM_STAGE_VALUE,
+    ]:
+        if stage not in latencies.columns:
+            latencies[stage] = np.nan
+
     latencies = latencies.rename_axis(None, axis=1)
+    # Add missing sleepSummary from sleep_summary index
+    latencies = pd.merge(
+        left=sleep_summary.loc[:, []],
+        right=latencies,
+        left_index=True,
+        right_index=True,
+        how="outer",
+    )
     return latencies
 
 
@@ -2755,7 +2870,7 @@ def _compute_awakenings(
     Parameters
     ----------
     sleep_summary : :class:`pandas.DataFrame`
-        Sleep summary data.
+        Sleep summary data with sleepSummaryId as index.
     sleep_stages : :class:`pandas.DataFrame`
         Sleep stages.
 
@@ -2769,24 +2884,39 @@ def _compute_awakenings(
     ValueError
         If parameters are not of :class:`pandas.DataFrame` .
     """
-    if not isinstance(sleep_summary, pd.DataFrame):
-        raise ValueError(
-            f"sleep_summary must be a pd.DataFrame. {type(sleep_summary)} is not a valid type."
-        )
+    # Check is dataframe
+    sleep_summary = utils.check_is_df(sleep_summary, "sleep_stages")
+    sleep_stages = utils.check_is_df(sleep_stages, "sleep_stages")
+    # Check that we have data
+    if len(sleep_summary) == 0:
+        return pd.Series()
+    if len(sleep_stages) == 0:
+        return pd.Series(index=sleep_summary.index)
+
+    # Get only sleep_stages with sleepSummaryId contained in sleep_summary
     filtered_sleep_stages = sleep_stages[
-        sleep_stages[constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL].isin(
-            sleep_summary.index
-        )
+        sleep_stages[constants._SLEEP_SUMMARY_ID_COL].isin(sleep_summary.index)
     ].reset_index(drop=True)
-    awakenings = (
+
+    # Check that we have sleep stages
+    if len(filtered_sleep_stages) == 0:
+        return pd.Series(index=sleep_summary.index)
+
+    # Count the number of awake sleep stages for each group of sleep stages
+    awakenings = pd.Series(
         filtered_sleep_stages[
             filtered_sleep_stages[constants._SLEEP_STAGE_SLEEP_TYPE_COL]
             == constants._SLEEP_STAGE_AWAKE_STAGE_VALUE
         ]
         .groupby(constants._SLEEP_SUMMARY_ID_COL)[constants._SLEEP_STAGE_SLEEP_TYPE_COL]
-        .count()
+        .count(),
+        index=sleep_summary.index,
     )
-    print(awakenings)
+    # Set to 0 when sleep stages are present, but no awake stage was detected
+    awakenings.loc[
+        (awakenings.index.isin(filtered_sleep_stages[constants._SLEEP_SUMMARY_ID_COL]))
+        & (awakenings.isna())
+    ] = 0
     return awakenings
 
 
@@ -2935,10 +3065,22 @@ def get_sleep_statistic(
                     metric
                 )
             )
+            metric_data = pd.merge(
+                left=sleep_summary.loc[
+                    :,
+                    [
+                        constants._CALENDAR_DATE_COL,
+                    ],
+                ],
+                right=metric_data,
+                left_index=True,
+                right_index=True,
+                how="outer",
+            )
             # Convert it to a pd.Series with calendarDate as index
-            metric_data[constants._CALENDAR_DATE_COL] = sleep_summary[
-                constants._CALENDAR_DATE_COL
-            ]
+            # metric_data[constants._CALENDAR_DATE_COL] = sleep_summary[
+            #    constants._CALENDAR_DATE_COL
+            # ]
             data_dict[user] = pd.Series(
                 metric_data[metric].values,
                 index=metric_data[constants._CALENDAR_DATE_COL],
@@ -3121,6 +3263,36 @@ def get_sleep_statistics(
             sleep_summary = sleep_summary.drop_duplicates(
                 constants._CALENDAR_DATE_COL, keep="last"
             )
+            sleep_summary_start_date = sleep_summary.iloc[0][
+                constants._ISODATE_COL
+            ].to_pydatetime()
+            sleep_summary_end_date = (
+                sleep_summary.iloc[-1]["isoDate"]
+                + datetime.timedelta(
+                    milliseconds=int(
+                        sleep_summary.iloc[-1][
+                            constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL
+                        ]
+                        + sleep_summary.iloc[-1][
+                            constants._SLEEP_SUMMARY_DURATION_IN_MS_COL
+                        ]
+                    )
+                )
+            ).to_pydatetime()
+            sleep_stages = loader.load_sleep_stage(
+                user, sleep_summary_start_date, sleep_summary_end_date
+            )
+            # Keep only those belonging to sleep summaries
+            sleep_stages = sleep_stages[
+                sleep_stages[constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL].isin(
+                    sleep_summary.index
+                )
+            ]
+            for sleep_metric in _SLEEP_STATISTICS_DICT.keys():
+                sleep_summary[sleep_metric] = _SLEEP_STATISTICS_DICT[sleep_metric](
+                    sleep_summary, sleep_stages
+                )
+            """
             # Metrics from sleep summary
             sleep_summary[_SLEEP_METRIC_TIB] = _compute_time_in_bed(sleep_summary)
             sleep_summary[_SLEEP_METRIC_TST] = _compute_total_sleep_time(sleep_summary)
@@ -3162,31 +3334,7 @@ def get_sleep_statistics(
             # Metrics for sleep stages
             # SOL -
             # Load sleep stages from start to end of sleep summaries
-            sleep_summary_start_date = sleep_summary.iloc[0][
-                constants._ISODATE_COL
-            ].to_pydatetime()
-            sleep_summary_end_date = (
-                sleep_summary.iloc[-1]["isoDate"]
-                + datetime.timedelta(
-                    milliseconds=int(
-                        sleep_summary.iloc[-1][
-                            constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL
-                        ]
-                        + sleep_summary.iloc[-1][
-                            constants._SLEEP_SUMMARY_DURATION_IN_MS_COL
-                        ]
-                    )
-                )
-            ).to_pydatetime()
-            sleep_stages = loader.load_sleep_stage(
-                user, sleep_summary_start_date, sleep_summary_end_date
-            )
-            # Keep only those belonging to sleep summaries
-            sleep_stages = sleep_stages[
-                sleep_stages[constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL].isin(
-                    sleep_summary.index
-                )
-            ]
+
             sleep_summary[_SLEEP_METRIC_SME] = _compute_sleep_maintenance_efficiency(
                 sleep_summary, sleep_stages
             )
@@ -3222,36 +3370,12 @@ def get_sleep_statistics(
                 ]
             else:
                 sleep_summary[_SLEEP_METRIC_REM_LATENCY] = np.nan
+            """
             user_sleep_metrics_df = sleep_summary.set_index(
                 sleep_summary[constants._CALENDAR_DATE_COL]
             ).loc[
                 :,
-                [
-                    _SLEEP_METRIC_TIB,
-                    _SLEEP_METRIC_SPT,
-                    _SLEEP_METRIC_WASO,
-                    _SLEEP_METRIC_SOL,
-                    _SLEEP_METRIC_TST,
-                    _SLEEP_METRIC_N1_DURATION,
-                    _SLEEP_METRIC_N2_DURATION,
-                    _SLEEP_METRIC_N3_DURATION,
-                    _SLEEP_METRIC_REM_DURATION,
-                    _SLEEP_METRIC_NREM_DURATION,
-                    _SLEEP_METRIC_AWAKE_DURATION,
-                    _SLEEP_METRIC_N1_LATENCY,
-                    _SLEEP_METRIC_N2_LATENCY,
-                    _SLEEP_METRIC_N3_LATENCY,
-                    _SLEEP_METRIC_REM_LATENCY,
-                    _SLEEP_METRIC_N1_PERCENTAGE,
-                    _SLEEP_METRIC_N2_PERCENTAGE,
-                    _SLEEP_METRIC_N3_PERCENTAGE,
-                    _SLEEP_METRIC_REM_PERCENTAGE,
-                    _SLEEP_METRIC_NREM_PERCENTAGE,
-                    _SLEEP_METRIC_SE,
-                    _SLEEP_METRIC_SME,
-                    _SLEEP_METRIC_SLEEP_SCORE,
-                    _SLEEP_METRIC_AWAKENINGS,
-                ],
+                [k for k in _SLEEP_STATISTICS_DICT.keys()],
             ]
             data_dict[user] = user_sleep_metrics_df.to_dict("index")
 

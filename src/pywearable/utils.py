@@ -82,6 +82,14 @@ def check_start_and_end_dates(
     return True
 
 
+def check_is_df(input, raise_name="input"):
+    if not isinstance(input, pd.DataFrame):
+        raise ValueError(
+            f"{raise_name} must be a pd.DataFrame. {type(input)} is not a valid type."
+        )
+    return input
+
+
 def get_user_ids(loader: "BaseLoader", user_id: Union[str, list]):
     """Returns user ids in the appropriate format required by pylabfront functions
 
