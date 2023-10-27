@@ -179,3 +179,15 @@ def test_compute_unmeasurable_duration(sleep_summary: pd.DataFrame):
     # Check sleep onset latency for given sleep summaries
     assert unmeasurable_duration.loc["x4c64722-64595538-6630"] == 0.0
     assert unmeasurable_duration.loc["x4c64722-645bf6d0-6888"] == 0.0
+
+
+def test_compute_stage_count(sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame):
+    counts = pywearable.sleep._compute_stage_count(sleep_summary, sleep_stages)
+    assert type(counts) == pd.DataFrame
+    assert counts.loc["x4c64722-64595538-6630", "light"] == 11.0
+    assert counts.loc["x4c64722-64595538-6630", "deep"] == 5.0
+    assert counts.loc["x4c64722-64595538-6630", "awake"] == 3.0
+    assert np.isnan(counts.loc["x4c64722-645ab9b4-55c8", "deep"])
+    assert counts.loc["x4c64722-645bf6d0-6888", "deep"] == 1.0
+    assert counts.loc["x4c64722-645d63f8-5c94", "light"] == 1.0
+    assert counts.loc["x4c64722-645d63f8-5c94", "rem"] == 0.0

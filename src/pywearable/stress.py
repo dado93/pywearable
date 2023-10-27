@@ -197,7 +197,7 @@ def get_average_stress_weekday(
     user_id = utils.get_user_ids(loader, user_id)
 
     for user in user_id:
-        df = loader.load_garmin_connect_daily_summary(
+        df = loader.load_daily_summary(
             user, start_date, end_date - timedelta(minutes=15)
         )
         if len(df) > 0:

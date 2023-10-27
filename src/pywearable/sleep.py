@@ -37,7 +37,11 @@ _SLEEP_METRIC_REM_PERCENTAGE = "%REM"
 _SLEEP_METRIC_SE = "SE"
 _SLEEP_METRIC_SME = "SME"
 _SLEEP_METRIC_SLEEP_SCORE = "SCORE"
-_SLEEP_METRIC_AWAKENINGS = "Awakenings"
+_SLEEP_METRIC_AWAKE_COUNT = "countAwake"
+_SLEEP_METRIC_N1_COUNT = "countN1"
+_SLEEP_METRIC_N2_COUNT = "countN2"
+_SLEEP_METRIC_N3_COUNT = "countN3"
+_SLEEP_METRIC_REM_COUNT = "countREM"
 
 
 def get_time_in_bed(
@@ -1621,7 +1625,7 @@ def get_sleep_midpoints(
     return data_dict
 
 
-def get_awakenings(
+def get_awake_count(
     loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -1631,8 +1635,66 @@ def get_awakenings(
     """Get the number of awakenings
 
     Returns the number of times the user(s) of interest woke up during the night.
-    This is checked considering the hypnogram and checking variations in sleep stages
-    and awake status detection. If ``average`` is set to True, the average number of
+    Depending on the value of the ``kind`` parameter, this function
+    returns the count of awake stages for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter:
+
+        - `mean`: computes the average across days
+        - `std`: computes the standard deviation across days
+        - `min`: computes the minimum value across days
+        - `max`: computes the maximum value across days
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    user_id : :class:`str`, optional
+        ID of the user for which awakenings are computed, by default "all".
+    start_date : :class:`datetime.datetime`, optional
+        Start date for data retrieval, by default None
+    end_date : :class:`datetime.datetime`, optional
+        End date for data retrieval, by default None
+    kind : :class:`str` or None, optional
+        Whether to transform count of awake stages over days, or to return the value for each
+        day, by default None. Valid options are:
+
+            - `mean`
+            - `std`
+            - `min`
+            - `max`
+
+    Returns
+    -------
+    :class:`dict`
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and count of awake stages as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `countAwake`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
+    """
+
+    return get_sleep_statistic(
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_AWAKE_COUNT,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
+    )
+
+
+def get_n1_count(
+    loader: BaseLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind: Union[str, None] = None,
+):
+    """Get the number of N1 sleep stages.
+
+    Returns the number of N1 sleep stages for the user(s) of interest.
+    This is checked. If ``average`` is set to True, the average number of
     awakenings per night during the period between ``start_date`` and ``end_date`` is returned.
 
     Parameters
@@ -1658,7 +1720,184 @@ def get_awakenings(
     return get_sleep_statistic(
         loader=loader,
         user_id=user_id,
-        metric=_SLEEP_METRIC_AWAKENINGS,
+        metric=_SLEEP_METRIC_N1_COUNT,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
+    )
+
+
+def get_n2_count(
+    loader: BaseLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind: Union[str, None] = None,
+):
+    """Get the number of N2 sleep stages.
+
+    Returns the number of N2 sleep stages for the user(s) of interest.
+    Depending on the value of the ``kind`` parameter, this function
+    returns the count of N2 stages for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter:
+
+        - `mean`: computes the average across days
+        - `std`: computes the standard deviation across days
+        - `min`: computes the minimum value across days
+        - `max`: computes the maximum value across days
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    user_id : :class:`str`, optional
+        ID of the user for which awakenings are computed, by default "all".
+    start_date : :class:`datetime.datetime`, optional
+        Start date for data retrieval, by default None
+    end_date : :class:`datetime.datetime`, optional
+        End date for data retrieval, by default None
+    kind : :class:`str` or None, optional
+        Whether to transform count of N2 stages over days, or to return the value for each
+        day, by default None. Valid options are:
+
+            - `mean`
+            - `std`
+            - `min`
+            - `max`
+
+    Returns
+    -------
+    :class:`dict`
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and count of N2 stages as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `countN2`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
+    """
+
+    return get_sleep_statistic(
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_N2_COUNT,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
+    )
+
+
+def get_n3_count(
+    loader: BaseLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind: Union[str, None] = None,
+):
+    """Get the number of N3 sleep stages.
+
+    Returns the number of N3 sleep stages for the user(s) of interest.
+    Depending on the value of the ``kind`` parameter, this function
+    returns the count of N3 stages for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter:
+
+        - `mean`: computes the average across days
+        - `std`: computes the standard deviation across days
+        - `min`: computes the minimum value across days
+        - `max`: computes the maximum value across days
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    user_id : :class:`str`, optional
+        ID of the user for which awakenings are computed, by default "all".
+    start_date : :class:`datetime.datetime`, optional
+        Start date for data retrieval, by default None
+    end_date : :class:`datetime.datetime`, optional
+        End date for data retrieval, by default None
+    kind : :class:`str` or None, optional
+        Whether to transform count of N3 stages over days, or to return the value for each
+        day, by default None. Valid options are:
+
+            - `mean`
+            - `std`
+            - `min`
+            - `max`
+
+    Returns
+    -------
+    :class:`dict`
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and count of N3 stages as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `countN3`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
+    """
+
+    return get_sleep_statistic(
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_N3_COUNT,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
+    )
+
+
+def get_rem_count(
+    loader: BaseLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind: Union[str, None] = None,
+):
+    """Get the number of REM sleep stages.
+
+    Returns the number of REM sleep stages for the user(s) of interest.
+    Depending on the value of the ``kind`` parameter, this function
+    returns the count of REM stages for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter:
+
+        - `mean`: computes the average across days
+        - `std`: computes the standard deviation across days
+        - `min`: computes the minimum value across days
+        - `max`: computes the maximum value across days
+
+    Parameters
+    ----------
+    loader : :class:`pylabfront.loader.Loader`
+        Initialized instance of data loader.
+    user_id : :class:`str`, optional
+        ID of the user for which awakenings are computed, by default "all".
+    start_date : :class:`datetime.datetime`, optional
+        Start date for data retrieval, by default None
+    end_date : :class:`datetime.datetime`, optional
+        End date for data retrieval, by default None
+    kind : :class:`str` or None, optional
+        Whether to transform count of REM stages over days, or to return the value for each
+        day, by default None. Valid options are:
+
+            - `mean`
+            - `std`
+            - `min`
+            - `max`
+
+    Returns
+    -------
+    :class:`dict`
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and count of REM stages as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `countREM`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
+    """
+
+    return get_sleep_statistic(
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_REM_COUNT,
         start_date=start_date,
         end_date=end_date,
         kind=kind,
@@ -2859,7 +3098,7 @@ def _compute_latencies(
     return latencies
 
 
-def _compute_awakenings(
+def _compute_awake_count(
     sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame
 ) -> pd.Series:
     """Retrieves awakenings counts score from sleep stages.
@@ -2884,14 +3123,84 @@ def _compute_awakenings(
     ValueError
         If parameters are not of :class:`pandas.DataFrame` .
     """
+    count_stage = _compute_stage_count(
+        sleep_summary=sleep_summary, sleep_stages=sleep_stages
+    )
+    if len(count_stage) == 0:
+        return pd.Series()
+    if constants._SLEEP_STAGE_AWAKE_STAGE_VALUE in count_stage.columns:
+        return count_stage[constants._SLEEP_STAGE_AWAKE_STAGE_VALUE]
+    else:
+        return pd.Series(index=sleep_summary.index)
+
+
+def _compute_n1_count(
+    sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame
+) -> pd.Series:
+    count_stage = _compute_stage_count(
+        sleep_summary=sleep_summary, sleep_stages=sleep_stages
+    )
+    if len(count_stage) == 0:
+        return pd.Series()
+    if constants._SLEEP_STAGE_LIGHT_STAGE_VALUE in count_stage.columns:
+        return count_stage[constants._SLEEP_STAGE_LIGHT_STAGE_VALUE]
+    else:
+        return pd.Series(index=sleep_summary.index)
+
+
+def _compute_n2_count(
+    sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame
+) -> pd.Series:
+    count_stage = _compute_stage_count(
+        sleep_summary=sleep_summary, sleep_stages=sleep_stages
+    )
+    if len(count_stage) == 0:
+        return pd.Series()
+    if constants._SLEEP_STAGE_N2_STAGE_VALUE in count_stage.columns:
+        return count_stage[constants._SLEEP_STAGE_N2_STAGE_VALUE]
+    else:
+        return pd.Series(index=sleep_summary.index)
+
+
+def _compute_n3_count(
+    sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame
+) -> pd.Series:
+    count_stage = _compute_stage_count(
+        sleep_summary=sleep_summary, sleep_stages=sleep_stages
+    )
+    if len(count_stage) == 0:
+        return pd.Series()
+    if constants._SLEEP_STAGE_DEEP_STAGE_VALUE in count_stage.columns:
+        return count_stage[constants._SLEEP_STAGE_DEEP_STAGE_VALUE]
+    else:
+        return pd.Series(index=sleep_summary.index)
+
+
+def _compute_rem_count(
+    sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame
+) -> pd.Series:
+    count_stage = _compute_stage_count(
+        sleep_summary=sleep_summary, sleep_stages=sleep_stages
+    )
+    if len(count_stage) == 0:
+        return pd.Series()
+    if constants._SLEEP_STAGE_REM_STAGE_VALUE in count_stage.columns:
+        return count_stage[constants._SLEEP_STAGE_REM_STAGE_VALUE]
+    else:
+        return pd.Series(index=sleep_summary.index)
+
+
+def _compute_stage_count(
+    sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame
+) -> pd.DataFrame:
     # Check is dataframe
     sleep_summary = utils.check_is_df(sleep_summary, "sleep_stages")
     sleep_stages = utils.check_is_df(sleep_stages, "sleep_stages")
     # Check that we have data
     if len(sleep_summary) == 0:
-        return pd.Series()
+        return pd.DataFrame()
     if len(sleep_stages) == 0:
-        return pd.Series(index=sleep_summary.index)
+        return pd.DataFrame(index=sleep_summary.index)
 
     # Get only sleep_stages with sleepSummaryId contained in sleep_summary
     filtered_sleep_stages = sleep_stages[
@@ -2903,21 +3212,36 @@ def _compute_awakenings(
         return pd.Series(index=sleep_summary.index)
 
     # Count the number of awake sleep stages for each group of sleep stages
-    awakenings = pd.Series(
-        filtered_sleep_stages[
-            filtered_sleep_stages[constants._SLEEP_STAGE_SLEEP_TYPE_COL]
-            == constants._SLEEP_STAGE_AWAKE_STAGE_VALUE
+    count_df = (
+        filtered_sleep_stages.groupby([constants._SLEEP_SUMMARY_ID_COL])[
+            constants._SLEEP_STAGE_SLEEP_TYPE_COL
         ]
-        .groupby(constants._SLEEP_SUMMARY_ID_COL)[constants._SLEEP_STAGE_SLEEP_TYPE_COL]
-        .count(),
-        index=sleep_summary.index,
+        .value_counts()
+        .reset_index()
+        .pivot(
+            columns=constants._SLEEP_STAGE_SLEEP_TYPE_COL,
+            index=constants._SLEEP_SUMMARY_ID_COL,
+            values="count",
+        )
     )
-    # Set to 0 when sleep stages are present, but no awake stage was detected
-    awakenings.loc[
-        (awakenings.index.isin(filtered_sleep_stages[constants._SLEEP_SUMMARY_ID_COL]))
-        & (awakenings.isna())
-    ] = 0
-    return awakenings
+    count_df = count_df.fillna(0)
+    count_df = pd.merge(
+        left=sleep_summary.loc[:, []],
+        right=count_df,
+        left_index=True,
+        right_index=True,
+        how="outer",
+    )
+    for col in [
+        constants._SLEEP_STAGE_AWAKE_STAGE_VALUE,
+        constants._SLEEP_STAGE_REM_STAGE_VALUE,
+        constants._SLEEP_STAGE_LIGHT_STAGE_VALUE,
+        constants._SLEEP_STAGE_DEEP_STAGE_VALUE,
+        constants._SLEEP_STAGE_UNMEASURABLE_STAGE_VALUE,
+    ]:
+        if not col in count_df.columns:
+            count_df[col] = np.nan
+    return count_df
 
 
 _SLEEP_STATISTICS_DICT = {
@@ -2945,7 +3269,11 @@ _SLEEP_STATISTICS_DICT = {
     _SLEEP_METRIC_N3_LATENCY: _compute_n3_latency,
     _SLEEP_METRIC_REM_LATENCY: _compute_rem_latency,
     _SLEEP_METRIC_SLEEP_SCORE: _compute_sleep_score,
-    _SLEEP_METRIC_AWAKENINGS: _compute_awakenings,
+    _SLEEP_METRIC_AWAKE_COUNT: _compute_awake_count,
+    _SLEEP_METRIC_N1_COUNT: _compute_n1_count,
+    _SLEEP_METRIC_N2_COUNT: _compute_n2_count,
+    _SLEEP_METRIC_N3_COUNT: _compute_n3_count,
+    _SLEEP_METRIC_REM_COUNT: _compute_rem_count,
 }
 
 
@@ -3292,85 +3620,6 @@ def get_sleep_statistics(
                 sleep_summary[sleep_metric] = _SLEEP_STATISTICS_DICT[sleep_metric](
                     sleep_summary, sleep_stages
                 )
-            """
-            # Metrics from sleep summary
-            sleep_summary[_SLEEP_METRIC_TIB] = _compute_time_in_bed(sleep_summary)
-            sleep_summary[_SLEEP_METRIC_TST] = _compute_total_sleep_time(sleep_summary)
-            sleep_summary[_SLEEP_METRIC_SE] = _compute_sleep_efficiency(sleep_summary)
-            sleep_summary[_SLEEP_METRIC_N1_PERCENTAGE] = _compute_n1_percentage(
-                sleep_summary
-            )
-            sleep_summary[_SLEEP_METRIC_N2_PERCENTAGE] = np.nan
-            sleep_summary[_SLEEP_METRIC_N3_PERCENTAGE] = _compute_n3_percentage(
-                sleep_summary
-            )
-            sleep_summary[_SLEEP_METRIC_REM_PERCENTAGE] = _compute_rem_percentage(
-                sleep_summary
-            )
-            sleep_summary[_SLEEP_METRIC_NREM_PERCENTAGE] = _compute_nrem_percentage(
-                sleep_summary
-            )
-            sleep_summary[_SLEEP_METRIC_N1_DURATION] = _compute_n1_duration(
-                sleep_summary
-            )
-            sleep_summary[_SLEEP_METRIC_N2_DURATION] = _compute_n2_duration(
-                sleep_summary
-            )
-            sleep_summary[_SLEEP_METRIC_N3_DURATION] = _compute_n3_duration(
-                sleep_summary
-            )
-            sleep_summary[_SLEEP_METRIC_REM_DURATION] = _compute_rem_duration(
-                sleep_summary
-            )
-            sleep_summary[_SLEEP_METRIC_NREM_DURATION] = _compute_nrem_duration(
-                sleep_summary
-            )
-            sleep_summary[_SLEEP_METRIC_AWAKE_DURATION] = _compute_awake_duration(
-                sleep_summary
-            )
-            sleep_summary[_SLEEP_METRIC_SLEEP_SCORE] = _compute_sleep_score(
-                sleep_summary
-            )
-            # Metrics for sleep stages
-            # SOL -
-            # Load sleep stages from start to end of sleep summaries
-
-            sleep_summary[_SLEEP_METRIC_SME] = _compute_sleep_maintenance_efficiency(
-                sleep_summary, sleep_stages
-            )
-            sleep_summary[_SLEEP_METRIC_SPT] = _compute_sleep_period_time(
-                sleep_summary, sleep_stages
-            )
-            sleep_summary[_SLEEP_METRIC_WASO] = _compute_wake_after_sleep_onset(
-                sleep_summary, sleep_stages
-            )
-            sleep_summary[_SLEEP_METRIC_SOL] = _compute_sleep_onset_latency(
-                sleep_summary, sleep_stages
-            )
-            sleep_summary[_SLEEP_METRIC_AWAKENINGS] = _compute_awakenings(
-                sleep_summary, sleep_stages
-            )
-            latencies = _compute_latencies(sleep_summary, sleep_stages)
-            if constants._SLEEP_STAGE_LIGHT_STAGE_VALUE in latencies.columns:
-                sleep_summary[_SLEEP_METRIC_N1_LATENCY] = latencies[
-                    constants._SLEEP_STAGE_LIGHT_STAGE_VALUE
-                ]
-            else:
-                sleep_summary[_SLEEP_METRIC_N1_LATENCY] = np.nan
-            sleep_summary[_SLEEP_METRIC_N2_LATENCY] = np.nan
-            if constants._SLEEP_STAGE_DEEP_STAGE_VALUE in latencies.columns:
-                sleep_summary[_SLEEP_METRIC_N3_LATENCY] = latencies[
-                    constants._SLEEP_STAGE_DEEP_STAGE_VALUE
-                ]
-            else:
-                sleep_summary[_SLEEP_METRIC_N3_LATENCY] = np.nan
-            if constants._SLEEP_STAGE_REM_STAGE_VALUE in latencies.columns:
-                sleep_summary[_SLEEP_METRIC_REM_LATENCY] = latencies[
-                    constants._SLEEP_STAGE_REM_STAGE_VALUE
-                ]
-            else:
-                sleep_summary[_SLEEP_METRIC_REM_LATENCY] = np.nan
-            """
             user_sleep_metrics_df = sleep_summary.set_index(
                 sleep_summary[constants._CALENDAR_DATE_COL]
             ).loc[
