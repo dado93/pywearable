@@ -1531,8 +1531,8 @@ def get_sleep_timestamps(
             ).dt.tz_localize(None)
             data_dict[user] = pd.Series(
                 zip(
-                    df[constants._ISODATE_COL],
-                    df["waking_time"],
+                    np.array(df[constants._ISODATE_COL].dt.to_pydatetime()),
+                    np.array(df["waking_time"].dt.to_pydatetime()),
                 ),
                 df[constants._CALENDAR_DATE_COL],
             ).to_dict()

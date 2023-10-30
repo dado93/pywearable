@@ -15,7 +15,7 @@ def process_questionnaire(
 
     Example :class:`pd.DataFrame`::
 
-        timezone,unixTimestampInMs,isoDate,userId,How are you?
+        timezone,unixTimestampInMs,isoDate,userId,How would you rate your sleep?, How would you rate your energy?
         Europe/Rome,1683599224781,2023-05-09 04:27:04.781,User1_4a520aea-12d9-4513-8a0c-3055d399b097,Come al solito,Peggio del solito
         Europe/Budapest,1683698097137,2023-05-10 07:54:57.137,User1_4a520aea-12d9-4513-8a0c-3055d399b097,Peggio del solito,Come al solito
         Europe/Budapest,1683784544642,2023-05-11 07:55:44.642,User1_4a520aea-12d9-4513-8a0c-3055d399b097,Come al solito,Peggio del solito

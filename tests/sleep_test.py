@@ -191,3 +191,9 @@ def test_compute_stage_count(sleep_summary: pd.DataFrame, sleep_stages: pd.DataF
     assert counts.loc["x4c64722-645bf6d0-6888", "deep"] == 1.0
     assert counts.loc["x4c64722-645d63f8-5c94", "light"] == 1.0
     assert counts.loc["x4c64722-645d63f8-5c94", "rem"] == 0.0
+
+
+def test_compute_rem_count(sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame):
+    counts = pywearable.sleep._compute_rem_count(sleep_summary, sleep_stages)
+    assert type(counts) == pd.Series
+    assert counts.loc["x4c64722-64595538-6630"] == 3.0

@@ -527,10 +527,10 @@ def get_stress_score(loader: BaseLoader, start_date=None, end_date=None, user_id
 
 
 def get_sleep_battery_recovery(
-    labfront_loader: BaseLoader,
+    loader: BaseLoader,
+    user_id="all",
     start_date=None,
     end_date=None,
-    user_id="all",
 ):
     """Get body battery recovered during sleep.
 
@@ -563,20 +563,18 @@ def get_sleep_battery_recovery(
     """
     data_dict = {}
 
-    user_id = utils.get_user_ids(labfront_loader, user_id)
+    user_id = utils.get_user_ids(loader, user_id)
 
     for user in user_id:
         data_dict[user] = {}
         sleep_timestamps = sleep.get_sleep_timestamps(
-            labfront_loader, start_date, end_date, user
+            loader=loader, user_id=user, start_date=start_date, end_date=end_date
         )[user]
         if not (sleep_timestamps is None):
             for k, v in sleep_timestamps.items():
                 sleep_onset, awake_time = v[0], v[1]
 
-                df = labfront_loader.load_garmin_connect_stress(
-                    user, sleep_onset, awake_time
-                )
+                df = loader.load_stress(user, sleep_onset, awake_time)
                 if len(df) == 0:
                     continue
 
