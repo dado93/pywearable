@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 
 from .loader.base import BaseLoader
+from . import constants
 
 _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY = "lastSampleUnixTimestampInMs"
 _LABFRONT_QUESTIONNAIRE_STRING = "questionnaire"
@@ -54,20 +55,12 @@ def check_date(
         raise ValueError(f"{type(date)} is not valid.")
 
 
-<<<<<<< HEAD:pylabfront/utils.py
-def get_user_ids(
-    labfront_loader, 
-    user_id: Union[str, list]
-) -> list:
-    """ Returns user ids in the appropriate format required by pylabfront functions
-=======
 def get_user_ids(loader: "BaseLoader", user_id: Union[str, list]):
-    """Returns user ids in the appropriate format required by pylabfront functions
->>>>>>> 2495d555b1df9466687e840018fba325d418d38e:pywearable/utils.py
+    """Returns user ids in the appropriate format required by pywearable functions
 
     Parameters
     ----------
-    labfront_loader : :class:`loader.LabfrontLoader`
+    loader : :class:`BaseLoader`
         An instance of a data loader
     user_id : :class:`str` or :class:`list`
         The id(s) of the user(s9) of interest
@@ -215,15 +208,15 @@ def find_nearest_timestamp(timestamp, timestamp_array):
 
 
 def trend_analysis(
-    data_dict,
-    start_date,
-    end_date,
-    ma_kind="normal",
-    baseline_periods=7,
-    min_periods_baseline=3,
-    normal_range_periods=30,
-    min_periods_normal_range=20,
-    std_multiplier=1,
+    data_dict : dict,
+    start_date : datetime.datetime,
+    end_date : datetime.datetime,
+    ma_kind : str ="normal",
+    baseline_periods : int = 7,
+    min_periods_baseline : int = 3,
+    normal_range_periods : int = 30,
+    min_periods_normal_range : int = 20,
+    std_multiplier : float = 1.,
 ):
     """Performs trend analysis on daily data for a pre-loaded metric.
 
@@ -347,7 +340,7 @@ def filter_bbi(
     return bbi
 
 
-def filter_out_awake_bbi(loader, user, bbi_df, date):
+def filter_out_awake_bbi(loader, user, bbi_df, date, resolution=1):
     """Filters out night bbi data relative to periods where the user was awake
 
     Parameters
@@ -360,41 +353,45 @@ def filter_out_awake_bbi(loader, user, bbi_df, date):
         DataFrame of bbi data
     date : class:`pandas.Timestamp`
         Timestamp of the date relative to the night in consideration.
+    resolution : class:`int`
+        Resolution of the hypnogram used to find awakening periods
 
     Returns
     -------
     pandas.DataFrame
     DataFrame in the same format of `bbi_df`, including only bbi data of periods when the participant is asleep.
     """
-    hypnogram = loader.load_hypnogram(user, date)
-    hypnogram["stages_diff"] = np.concatenate(
+    # we get the hypnogram for that day
+    hypnogram = loader.load_hypnogram(user_id = user,
+                                     start_date = date,
+                                     end_date= date,
+                                     resolution=resolution)[date]
+    hypnogram_start = hypnogram["start_time"]
+    hypnogram_end = hypnogram["end_time"]
+    hypnogram = hypnogram["values"]
+
+    # stage differences
+    hypnogram_diff = np.concatenate(
         [
             [0],
-            hypnogram.iloc[1:, :].stage.values - hypnogram.iloc[:-1, :].stage.values,
+            np.diff(hypnogram)
         ]
-    )
+    ) 
     # if there has been a negative change and the current stage is awake, then count it as awakening start
-    hypnogram["awakening_start"] = np.logical_and(
-        hypnogram.stage == 0, hypnogram.stages_diff < 0
-    )
+    awakening_starts = np.logical_and(hypnogram == 0, hypnogram_diff < 0)
     # if there has been a positive change and the previous stage was awake, then count it as awakening end
-    hypnogram["awakening_end"] = np.concatenate(
-        [
-            [0],
-            np.logical_and(
-                (hypnogram.iloc[:-1, :].stage == 0).values,
-                (hypnogram.iloc[1:, :].stages_diff > 0).values,
-            ),
-        ]
-    )
-    relevant_rows = hypnogram.loc[
-        np.logical_or(hypnogram.awakening_start == 1, hypnogram.awakening_end == 1)
-    ][:20]
-    awakening_starts = relevant_rows.isoDate.iloc[::2].values
-    awakening_ends = relevant_rows.isoDate.iloc[1::2].values
-    for awakening_start, awakening_end in zip(awakening_starts, awakening_ends):
+    awakening_ends = np.concatenate([[0],np.logical_and(hypnogram[:-1] == 0, hypnogram_diff[1:] > 0)])
+    # get the indexes of starts and ends
+    idx_starts = [idx for idx, start in enumerate(awakening_starts) if start]
+    idx_ends = [idx for idx, end in enumerate(awakening_ends) if end]
+    # based on the start of the sleep and the indexes of the awakenings, get the datetimes
+    datetime_starts = [hypnogram_start + datetime.timedelta(minutes=idx*resolution) for idx in idx_starts]
+    datetime_ends = [hypnogram_start + datetime.timedelta(minutes=idx*resolution) for idx in idx_ends]
+
+    # at this point we filter out the bbi DataFrame from the awakening periods
+    for start, end in zip(datetime_starts, datetime_ends):
         bbi_df = bbi_df.loc[
-            (bbi_df.index < awakening_start) | (bbi_df.index > awakening_end)
+            (bbi_df[constants._ISODATE_COL] < start) | (bbi_df[constants._ISODATE_COL] > end)
         ]
 
     return bbi_df
