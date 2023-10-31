@@ -10,6 +10,7 @@ from typing import Union
 import pandas as pd
 
 from . import constants, loader, utils
+from .loader.base import BaseLoader
 
 _LABFRONT_TASK_SCHEDULE_KEY = "taskScheduleRepeat"
 _LABFRONT_TODO_STRING = "todo"
@@ -18,7 +19,7 @@ _MS_TO_HOURS_CONVERSION = 1000 * 60 * 60
 
 
 def get_questionnaire_dict(
-    labfront_loader: loader.LabfrontLoader,
+    labfront_loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -49,8 +50,8 @@ def get_questionnaire_dict(
 
     Parameters
     ----------
-    loader : :class:`loader.LabfrontLoader`
-        Instance of :class:`loader.LabfrontLoader`.
+    loader : :class:`loader.BaseLoader`
+        Instance of :class:`loader.BaseLoader`.
     user_id : :class:`str` or :class:`list`, optional
         Id(s) of user(s) for which adherence has to be computed, by default "all"
     start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
@@ -148,7 +149,7 @@ def get_questionnaire_dict(
 
 
 def get_questionnaire_adherence(
-    loader : loader.LabfrontLoader,
+    loader : BaseLoader,
     number_of_days : int,
     user_id : Union[str, list] = "all",
     start_date : Union[datetime.datetime, datetime.date, str, None] = None,

@@ -13,7 +13,7 @@ import pandas as pd
 import pywearable.sleep as sleep
 import pywearable.utils as utils
 
-from . import loader
+from .loader.base import BaseLoader
 
 _LABFRONT_ISO_DATE_KEY = "isoDate"
 _LABFRONT_BODY_BATTERY_KEY = "bodyBattery"
@@ -32,7 +32,7 @@ _LABFRONT_GARMIN_CONNECT_SLEEP_SUMMARY_CALENDAR_DAY_COL = "calendarDate"
 
 
 def get_body_battery(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -41,7 +41,7 @@ def get_body_battery(
 
     Parameters
     ----------
-    loader : loader.LabfrontLoader
+    loader : :class:`BaseLoader`
         An instance of a data loader
     user_id : Union[str, list], optional
         The id(s) for which body battery must be retrieved, by default "all"
@@ -74,7 +74,7 @@ def get_body_battery(
 
 
 def get_stress(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -117,7 +117,7 @@ def get_stress(
 
 
 def get_daily_stress_statistics(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -519,7 +519,7 @@ def get_stress_score(loader, start_date=None, end_date=None, user_id="all"):
 
 
 def get_sleep_battery_recovery(
-    labfront_loader: loader.LabfrontLoader,
+    labfront_loader: BaseLoader,
     start_date=None,
     end_date=None,
     user_id="all",
@@ -683,7 +683,7 @@ def get_max_body_battery(loader, start_date, end_date, user_id="all"):
 
 
 def get_daily_average_stress(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -706,7 +706,7 @@ def get_daily_average_stress(
 
 
 def get_waking_body_battery(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -743,7 +743,7 @@ def get_waking_body_battery(
 
 
 def get_body_battery_starting_sleep(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,

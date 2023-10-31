@@ -11,6 +11,7 @@ import pandas as pd
 import pywearable.constants
 import pywearable.utils as utils
 
+from .loader.base import BaseLoader
 from . import loader
 
 _RESPIRATION_DAY = "DAY"
@@ -18,7 +19,7 @@ _RESPIRATION_NIGHT = "NIGHT"
 
 
 def get_breaths_per_minute(
-    labfront_loader: loader.LabfrontLoader,
+    labfront_loader: BaseLoader,
     day_or_night: Union[str, None] = None,
     user_id: Union[str, list] = "all",
     start_date: datetime.datetime = None,
@@ -130,7 +131,7 @@ def get_breaths_per_minute(
 
 
 def get_rest_breaths_per_minute(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, None] = None,
     end_date: Union[datetime.datetime, datetime.date, None] = None,
@@ -179,7 +180,7 @@ def get_rest_breaths_per_minute(
 
 
 def get_waking_breaths_per_minute(
-    loader: loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, None] = None,
     end_date: Union[datetime.datetime, datetime.date, None] = None,
