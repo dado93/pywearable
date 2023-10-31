@@ -388,7 +388,6 @@ def filter_out_awake_bbi(loader, user, bbi_df, date, resolution=1):
     datetime_starts = [hypnogram_start + datetime.timedelta(minutes=idx*resolution) for idx in idx_starts]
     datetime_ends = [hypnogram_start + datetime.timedelta(minutes=idx*resolution) for idx in idx_ends]
 
-    # at this point we filter out the bbi DataFrame from the awakening periods
     for start, end in zip(datetime_starts, datetime_ends):
         bbi_df = bbi_df.loc[
             (bbi_df[constants._ISODATE_COL] < start) | (bbi_df[constants._ISODATE_COL] > end)
