@@ -1,5 +1,9 @@
 Loader
 ======
 
-.. automodule:: pywearable.loader
-   :members:
+.. toctree::
+   :maxdepth: 1
+
+   _loader/base
+   _loader/labfront
+   _loader/lifesnaps
