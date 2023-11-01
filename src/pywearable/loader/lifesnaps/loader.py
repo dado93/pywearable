@@ -373,6 +373,33 @@ class LifeSnapsLoader(BaseLoader):
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
         include_short_data: bool = True,
     ) -> pd.DataFrame:
+        """_summary_
+
+        _extended_summary_
+
+        Parameters
+        ----------
+        user_id : Union[ObjectId, str]
+            _description_
+        start_date : Union[datetime.datetime, datetime.date, str, None], optional
+            _description_, by default None
+        end_date : Union[datetime.datetime, datetime.date, str, None], optional
+            _description_, by default None
+        include_short_data : bool, optional
+            _description_, by default True
+
+        Returns
+        -------
+        pd.DataFrame
+            _description_
+
+        Raises
+        ------
+        ValueError
+            _description_
+        ValueError
+            _description_
+        """
         # We need to load sleep data -> then levels.data and levels.shortData
         # After getting levels.shortData, we merge everything together
         # with 30 seconds resolution
@@ -459,6 +486,18 @@ class LifeSnapsLoader(BaseLoader):
             sleep_stage_df = sleep_stage_df.sort_values(
                 by=constants._UNIXTIMESTAMP_IN_MS_COL
             ).reset_index(drop=True)
+
+            sleep_stage_df[constants._SLEEP_STAGE_SLEEP_TYPE_COL] = sleep_stage_df[
+                constants._SLEEP_STAGE_SLEEP_TYPE_COL
+            ].map(
+                {
+                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_REM_VALUE: constants._SLEEP_STAGE_REM_STAGE_VALUE,
+                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_LIGHT_VALUE: constants._SLEEP_STAGE_N1_STAGE_VALUE,
+                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_DEEP_VALUE: constants._SLEEP_STAGE_N3_STAGE_VALUE,
+                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_WAKE_VALUE: constants._SLEEP_STAGE_AWAKE_STAGE_VALUE,
+                }
+            )
+
             sleep_stage_df[constants._TIMEZONEOFFSET_IN_MS_COL] = 0
         return sleep_stage_df
 
