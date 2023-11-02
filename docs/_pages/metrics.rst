@@ -242,3 +242,18 @@ An example of a sleep-stage is shown in the table below.
      - 2023-09-06T01:23:00.000+02:00
      - 4560000
      - n1
+
+steps
+=====
+
+daily-summary
+=============
+
+heart-rate
+==========
+
+respiration
+===========
+
+pulse-ox
+========
