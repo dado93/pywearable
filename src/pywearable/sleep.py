@@ -2224,7 +2224,7 @@ def _compute_total_sleep_time(sleep_summary: pd.DataFrame, *args) -> pd.Series:
     """Compute Total Sleep Time (TST) metric for sleep data.
 
     This function computes the TST as the total duration of the N1, N2, N3,
-    and REM sleep stages.
+    and REM sleep stages within sleep period time (SPT).
 
     Parameters
     ----------
@@ -2245,26 +2245,35 @@ def _compute_total_sleep_time(sleep_summary: pd.DataFrame, *args) -> pd.Series:
         raise ValueError(
             f"sleep_summary must be a pd.DataFrame. {type(sleep_summary)} is not a valid type."
         )
-
     # TST = N1+N2+N3+REM
     if (
-        (
-            constants._SLEEP_SUMMARY_DEEP_SLEEP_DURATION_IN_MS_COL
-            in sleep_summary.columns
-        )
+        (constants._SLEEP_SUMMARY_N3_SLEEP_DURATION_IN_MS_COL in sleep_summary.columns)
         and (
             constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL
             in sleep_summary.columns
         )
         and (
-            constants._SLEEP_SUMMARY_LIGHT_SLEEP_DURATION_IN_MS_COL
+            constants._SLEEP_SUMMARY_N1_SLEEP_DURATION_IN_MS_COL
+            in sleep_summary.columns
+        )
+        and (
+            constants._SLEEP_SUMMARY_N2_SLEEP_DURATION_IN_MS_COL
             in sleep_summary.columns
         )
     ):
         tst = (
-            sleep_summary[constants._SLEEP_SUMMARY_LIGHT_SLEEP_DURATION_IN_MS_COL]
-            + sleep_summary[constants._SLEEP_SUMMARY_DEEP_SLEEP_DURATION_IN_MS_COL]
-            + sleep_summary[constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL]
+            sleep_summary[constants._SLEEP_SUMMARY_N1_SLEEP_DURATION_IN_MS_COL].fillna(
+                0
+            )
+            + sleep_summary[
+                constants._SLEEP_SUMMARY_N2_SLEEP_DURATION_IN_MS_COL
+            ].fillna(0)
+            + sleep_summary[
+                constants._SLEEP_SUMMARY_N3_SLEEP_DURATION_IN_MS_COL
+            ].fillna(0)
+            + sleep_summary[
+                constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL
+            ].fillna(0)
         ) / (
             1000 * 60
         )  # convert from ms to seconds, and then to minutes
@@ -2273,7 +2282,9 @@ def _compute_total_sleep_time(sleep_summary: pd.DataFrame, *args) -> pd.Series:
     return tst
 
 
-def _compute_sleep_efficiency(sleep_summary: pd.DataFrame, *args) -> pd.Series:
+def _compute_sleep_efficiency(
+    sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame
+) -> pd.Series:
     """Compute Sleep Efficiency (SE) metric for sleep data.
 
     This function computes the SE as the ratio between Total Sleep Time (TST)
@@ -2299,34 +2310,9 @@ def _compute_sleep_efficiency(sleep_summary: pd.DataFrame, *args) -> pd.Series:
             f"sleep_summary must be a pd.DataFrame. {type(sleep_summary)} is not a valid type."
         )
     # SE = SLEEP_DURATION / (SLEEP_DURATION + AWAKE_DURATION) * 100
-    if (
-        (
-            constants._SLEEP_SUMMARY_DEEP_SLEEP_DURATION_IN_MS_COL
-            in sleep_summary.columns
-        )
-        and (
-            constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL
-            in sleep_summary.columns
-        )
-        and (
-            constants._SLEEP_SUMMARY_LIGHT_SLEEP_DURATION_IN_MS_COL
-            in sleep_summary.columns
-        )
-        and (constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL in sleep_summary.columns)
-        and (constants._SLEEP_SUMMARY_DURATION_IN_MS_COL in sleep_summary.columns)
-    ):
-        tot_duration = (
-            sleep_summary[constants._SLEEP_SUMMARY_DURATION_IN_MS_COL]
-            + sleep_summary[constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL]
-        )
-        sleep_duration = (
-            sleep_summary[constants._SLEEP_SUMMARY_DEEP_SLEEP_DURATION_IN_MS_COL]
-            + sleep_summary[constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL]
-            + sleep_summary[constants._SLEEP_SUMMARY_LIGHT_SLEEP_DURATION_IN_MS_COL]
-        )
-        se = (sleep_duration / tot_duration) * 100
-    else:
-        se = pd.Series()
+    tst = _compute_total_sleep_time(sleep_summary, sleep_stages)
+    tib = _compute_time_in_bed(sleep_summary, sleep_stages)
+    se = tst / tib * 100
     return se
 
 
@@ -2361,31 +2347,10 @@ def _compute_sleep_maintenance_efficiency(
             f"sleep_summary must be a pd.DataFrame. {type(sleep_summary)} is not a valid type."
         )
     # SME = (N1+N2+N3+REM) / (SPT) * 100
-    if (
-        (
-            constants._SLEEP_SUMMARY_DEEP_SLEEP_DURATION_IN_MS_COL
-            in sleep_summary.columns
-        )
-        and (
-            constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL
-            in sleep_summary.columns
-        )
-        and (
-            constants._SLEEP_SUMMARY_LIGHT_SLEEP_DURATION_IN_MS_COL
-            in sleep_summary.columns
-        )
-        and (constants._SLEEP_SUMMARY_DURATION_IN_MS_COL in sleep_summary.columns)
-    ):
-        sleep_duration = (
-            sleep_summary[constants._SLEEP_SUMMARY_DEEP_SLEEP_DURATION_IN_MS_COL]
-            + sleep_summary[constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL]
-            + sleep_summary[constants._SLEEP_SUMMARY_LIGHT_SLEEP_DURATION_IN_MS_COL]
-        ) / (1000 * 60)
-        spt = _compute_sleep_period_time(sleep_summary, sleep_stages)
-        se = (sleep_duration / spt) * 100
-    else:
-        se = pd.Series()
-    return se
+    tst = _compute_total_sleep_time(sleep_summary, sleep_stages)
+    spt = _compute_sleep_period_time(sleep_summary, sleep_stages)
+    sme = tst / spt * 100
+    return sme
 
 
 def _compute_sleep_stage_percentage(
@@ -2394,8 +2359,9 @@ def _compute_sleep_stage_percentage(
     """Compute the percentage of time spent in a sleep stage.
 
     This function computes the percentage of time in a sleep stage
-    as the ratio between the time spent in it and the sum of the
+    as the ratio between the time spent in it and the
     total sleep time.
+
     Parameters
     ----------
     sleep_summary : :class:`pd.DataFrame`
@@ -2420,23 +2386,24 @@ def _compute_sleep_stage_percentage(
             f"sleep_summary must be a pd.DataFrame. {type(sleep_summary)} is not a valid type."
         )
     if (
-        (
-            constants._SLEEP_SUMMARY_DEEP_SLEEP_DURATION_IN_MS_COL
-            in sleep_summary.columns
-        )
+        (constants._SLEEP_SUMMARY_N3_SLEEP_DURATION_IN_MS_COL in sleep_summary.columns)
         and (
             constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL
             in sleep_summary.columns
         )
         and (
-            constants._SLEEP_SUMMARY_LIGHT_SLEEP_DURATION_IN_MS_COL
+            constants._SLEEP_SUMMARY_N1_SLEEP_DURATION_IN_MS_COL
             in sleep_summary.columns
         )
-        and (constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL in sleep_summary.columns)
+        and (
+            constants._SLEEP_SUMMARY_N2_SLEEP_DURATION_IN_MS_COL
+            in sleep_summary.columns
+        )
     ):
         tot_duration = (
-            sleep_summary[constants._SLEEP_SUMMARY_LIGHT_SLEEP_DURATION_IN_MS_COL]
-            + sleep_summary[constants._SLEEP_SUMMARY_DEEP_SLEEP_DURATION_IN_MS_COL]
+            sleep_summary[constants._SLEEP_SUMMARY_N1_SLEEP_DURATION_IN_MS_COL]
+            + sleep_summary[constants._SLEEP_SUMMARY_N2_SLEEP_DURATION_IN_MS_COL]
+            + sleep_summary[constants._SLEEP_SUMMARY_N3_SLEEP_DURATION_IN_MS_COL]
             + sleep_summary[constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL]
         )
         if sleep_stage == "NREM":
@@ -2452,9 +2419,11 @@ def _compute_sleep_stage_percentage(
             )
         else:
             if sleep_stage == "N1":
-                col = constants._SLEEP_SUMMARY_LIGHT_SLEEP_DURATION_IN_MS_COL
+                col = constants._SLEEP_SUMMARY_N1_SLEEP_DURATION_IN_MS_COL
+            elif sleep_stage == "N2":
+                col = constants._SLEEP_SUMMARY_N2_SLEEP_DURATION_IN_MS_COL
             elif sleep_stage == "N3":
-                col = constants._SLEEP_SUMMARY_DEEP_SLEEP_DURATION_IN_MS_COL
+                col = constants._SLEEP_SUMMARY_N3_SLEEP_DURATION_IN_MS_COL
             elif sleep_stage == "REM":
                 col = constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL
             else:
@@ -2504,7 +2473,7 @@ def _compute_n2_percentage(sleep_summary: pd.DataFrame, *args) -> pd.Series:
     :class:`pd.Series`
         Percentage of time spent in N2 per night.
     """
-    return pd.Series(np.nan, sleep_summary.index)
+    return _compute_sleep_stage_percentage(sleep_summary, "N2")
 
 
 def _compute_n3_percentage(sleep_summary: pd.DataFrame, *args) -> pd.Series:
@@ -2592,7 +2561,7 @@ def _compute_sleep_stage_duration(
     ValueError
         If `sleep_summary` is not a :class:`pd.DataFrame`.
     ValueError
-        if `sleep_stage` isn't one of "N1","N3","REM","NREM","AWAKE","UNMEASURABLE".
+        if `sleep_stage` isn't one of "N1","N2", "N3","REM","NREM","AWAKE","UNMEASURABLE".
     """
     if not isinstance(sleep_summary, pd.DataFrame):
         raise ValueError(
@@ -2600,8 +2569,9 @@ def _compute_sleep_stage_duration(
         )
     if sleep_stage == "NREM":
         tot_duration = (
-            sleep_summary[constants._SLEEP_SUMMARY_LIGHT_SLEEP_DURATION_IN_MS_COL]
-            + sleep_summary[constants._SLEEP_SUMMARY_DEEP_SLEEP_DURATION_IN_MS_COL]
+            sleep_summary[constants._SLEEP_SUMMARY_N1_SLEEP_DURATION_IN_MS_COL]
+            + sleep_summary[constants._SLEEP_SUMMARY_N2_SLEEP_DURATION_IN_MS_COL]
+            + sleep_summary[constants._SLEEP_SUMMARY_N3_SLEEP_DURATION_IN_MS_COL]
             + sleep_summary[constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL]
         )
         dur = (
@@ -2610,18 +2580,20 @@ def _compute_sleep_stage_duration(
         ) / (1000 * 60)
     else:
         if sleep_stage == "N1":
-            col = constants._SLEEP_SUMMARY_LIGHT_SLEEP_DURATION_IN_MS_COL
+            col = constants._SLEEP_SUMMARY_N1_SLEEP_DURATION_IN_MS_COL
+        elif sleep_stage == "N2":
+            col = constants._SLEEP_SUMMARY_N1_SLEEP_DURATION_IN_MS_COL
         elif sleep_stage == "N3":
-            col = constants._SLEEP_SUMMARY_DEEP_SLEEP_DURATION_IN_MS_COL
+            col = constants._SLEEP_SUMMARY_N3_SLEEP_DURATION_IN_MS_COL
         elif sleep_stage == "REM":
             col = constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL
         elif sleep_stage == "AWAKE":
             col = constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL
         elif sleep_stage == "UNMEASURABLE":
-            col = constants._SLEEP_SUMMARY_UNMEASURABLE_DURATION_IN_MS_COL
+            col = constants._SLEEP_SUMMARY_UNMEASURABLE_SLEEP_DURATION_IN_MS_COL
         else:
             raise ValueError(
-                f"{sleep_stage} is not a valid value. Select among [N1, N3, REM, NREM, AWAKE, UNMEASURABLE]"
+                f"{sleep_stage} is not a valid value. Select among [N1, N2, N3, REM, NREM, AWAKE, UNMEASURABLE]"
             )
         dur = (sleep_summary[col]) / (1000 * 60)
     return dur
@@ -2656,7 +2628,7 @@ def _compute_n2_duration(sleep_summary: pd.DataFrame, *args) -> pd.Series:
     :class:`pd.Series`
         Amount of minutes spent in N2 per night.
     """
-    return pd.Series(np.nan, index=sleep_summary.index)
+    return _compute_sleep_stage_duration(sleep_summary, "N2")
 
 
 def _compute_n3_duration(sleep_summary: pd.DataFrame, *args) -> pd.Series:
@@ -2927,7 +2899,7 @@ def _compute_n1_latency(
         A DataFrame with N1 Latency as value, and sleep summary ids as indexes.
     """
     latencies = _compute_latencies(sleep_summary, sleep_stages)
-    return pd.Series(latencies[constants._SLEEP_STAGE_LIGHT_STAGE_VALUE])
+    return pd.Series(latencies[constants._SLEEP_STAGE_N1_STAGE_VALUE])
 
 
 def _compute_n2_latency(
@@ -2949,11 +2921,7 @@ def _compute_n2_latency(
         A series with N2 Latency as value, and sleep summary ids as indexes.
     """
     latencies = _compute_latencies(sleep_summary, sleep_stages)
-    if "N2" in latencies.columns:
-        n2_latency = pd.Series(latencies["N2"])
-    else:
-        n2_latency = pd.Series(np.nan, index=sleep_summary.index)
-    return n2_latency
+    return pd.Series(latencies[constants._SLEEP_STAGE_N2_STAGE_VALUE])
 
 
 def _compute_n3_latency(
@@ -2975,7 +2943,7 @@ def _compute_n3_latency(
         A series with N3 Latency as value, and sleep summary ids as indexes.
     """
     latencies = _compute_latencies(sleep_summary, sleep_stages)
-    return pd.Series(latencies[constants._SLEEP_STAGE_DEEP_STAGE_VALUE])
+    return pd.Series(latencies[constants._SLEEP_STAGE_N3_STAGE_VALUE])
 
 
 def _compute_rem_latency(
@@ -3037,8 +3005,9 @@ def _compute_latencies(
         return pd.DataFrame(
             columns=[
                 constants._SLEEP_STAGE_AWAKE_STAGE_VALUE,
-                constants._SLEEP_STAGE_LIGHT_STAGE_VALUE,
-                constants._SLEEP_STAGE_DEEP_STAGE_VALUE,
+                constants._SLEEP_STAGE_N1_STAGE_VALUE,
+                constants._SLEEP_STAGE_N2_STAGE_VALUE,
+                constants._SLEEP_STAGE_N3_STAGE_VALUE,
                 constants._SLEEP_STAGE_REM_STAGE_VALUE,
             ]
         )
@@ -3047,8 +3016,9 @@ def _compute_latencies(
             index=sleep_summary.index,
             columns=[
                 constants._SLEEP_STAGE_AWAKE_STAGE_VALUE,
-                constants._SLEEP_STAGE_LIGHT_STAGE_VALUE,
-                constants._SLEEP_STAGE_DEEP_STAGE_VALUE,
+                constants._SLEEP_STAGE_N1_STAGE_VALUE,
+                constants._SLEEP_STAGE_N2_STAGE_VALUE,
+                constants._SLEEP_STAGE_N3_STAGE_VALUE,
                 constants._SLEEP_STAGE_REM_STAGE_VALUE,
             ],
         )
@@ -3079,8 +3049,9 @@ def _compute_latencies(
     # Add columns if they are not there
     for stage in [
         constants._SLEEP_STAGE_AWAKE_STAGE_VALUE,
-        constants._SLEEP_STAGE_LIGHT_STAGE_VALUE,
-        constants._SLEEP_STAGE_DEEP_STAGE_VALUE,
+        constants._SLEEP_STAGE_N1_STAGE_VALUE,
+        constants._SLEEP_STAGE_N2_STAGE_VALUE,
+        constants._SLEEP_STAGE_N3_STAGE_VALUE,
         constants._SLEEP_STAGE_REM_STAGE_VALUE,
     ]:
         if stage not in latencies.columns:
@@ -3142,8 +3113,8 @@ def _compute_n1_count(
     )
     if len(count_stage) == 0:
         return pd.Series()
-    if constants._SLEEP_STAGE_LIGHT_STAGE_VALUE in count_stage.columns:
-        return count_stage[constants._SLEEP_STAGE_LIGHT_STAGE_VALUE]
+    if constants._SLEEP_STAGE_N1_STAGE_VALUE in count_stage.columns:
+        return count_stage[constants._SLEEP_STAGE_N1_STAGE_VALUE]
     else:
         return pd.Series(index=sleep_summary.index)
 
@@ -3170,8 +3141,8 @@ def _compute_n3_count(
     )
     if len(count_stage) == 0:
         return pd.Series()
-    if constants._SLEEP_STAGE_DEEP_STAGE_VALUE in count_stage.columns:
-        return count_stage[constants._SLEEP_STAGE_DEEP_STAGE_VALUE]
+    if constants._SLEEP_STAGE_N3_STAGE_VALUE in count_stage.columns:
+        return count_stage[constants._SLEEP_STAGE_N3_STAGE_VALUE]
     else:
         return pd.Series(index=sleep_summary.index)
 
@@ -3235,8 +3206,8 @@ def _compute_stage_count(
     for col in [
         constants._SLEEP_STAGE_AWAKE_STAGE_VALUE,
         constants._SLEEP_STAGE_REM_STAGE_VALUE,
-        constants._SLEEP_STAGE_LIGHT_STAGE_VALUE,
-        constants._SLEEP_STAGE_DEEP_STAGE_VALUE,
+        constants._SLEEP_STAGE_N1_STAGE_VALUE,
+        constants._SLEEP_STAGE_N3_STAGE_VALUE,
         constants._SLEEP_STAGE_UNMEASURABLE_STAGE_VALUE,
     ]:
         if not col in count_df.columns:

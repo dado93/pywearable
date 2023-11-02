@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Tuple, Union
 
 import dateutil.parser
+import numpy as np
 import pandas as pd
 
 from ... import constants, utils
@@ -1223,8 +1224,8 @@ class LabfrontLoader(BaseLoader):
     def load_sleep_stage(
         self,
         user_id: str,
-        start_date: Union[str, datetime.date, datetime.date] = None,
-        end_date: Union[str, datetime.date, datetime.date] = None,
+        start_date: Union[str, datetime.date, datetime.date, None] = None,
+        end_date: Union[str, datetime.date, datetime.date, None] = None,
     ) -> pd.DataFrame:
         """Load Garmin Connect sleep stage data.
 
@@ -1233,17 +1234,17 @@ class LabfrontLoader(BaseLoader):
 
         Parameters
         ----------
-        user_id : str
-            ID of the user.
-        start_date : str or datetime.date or datetime.date, optional
+        user_id : :class:`str`
+            Unique identifier for the user.
+        start_date : :class:`str` or :class:`datetime.datetime` or :class:`datetime.date` or None, optional
             Start date from which data should be retrieved, by default None
-        end_date : str or datetime.date or datetime.date, optional
+        end_date : :class:`str` or :class:`datetime.datetime` or :class:`datetime.date` or None, optional
             End date from which data should be retrieved, by default None
 
         Returns
         -------
         pd.DataFrame
-            Dataframe containing sleep stages data.
+            Dataframe with sleep stages data.
         """
         data = self.get_data_from_datetime(
             user_id,
@@ -1251,6 +1252,21 @@ class LabfrontLoader(BaseLoader):
             start_date,
             end_date,
         )
+
+        if len(data) > 0:
+            # Change sleep stage values
+            data[constants._SLEEP_STAGE_SLEEP_TYPE_COL] = data[
+                constants._SLEEP_STAGE_SLEEP_TYPE_COL
+            ].map(
+                {
+                    labfront_constants._SLEEP_STAGE_LIGHT_STAGE_VALUE: constants._SLEEP_STAGE_N1_STAGE_VALUE,
+                    labfront_constants._SLEEP_STAGE_DEEP_STAGE_VALUE: constants._SLEEP_STAGE_N3_STAGE_VALUE,
+                    labfront_constants._SLEEP_STAGE_REM_STAGE_VALUE: constants._SLEEP_STAGE_REM_STAGE_VALUE,
+                    labfront_constants._SLEEP_STAGE_AWAKE_STAGE_VALUE: constants._SLEEP_STAGE_AWAKE_STAGE_VALUE,
+                    labfront_constants._SLEEP_STAGE_UNMEASURABLE_STAGE_VALUE: constants._SLEEP_STAGE_UNMEASURABLE_STAGE_VALUE,
+                }
+            )
+
         return data
 
     def load_sleep_summary(
@@ -1336,6 +1352,37 @@ class LabfrontLoader(BaseLoader):
                     .tail(1)
                 )
                 data = data.drop(["validationMap"], axis=1)
+
+            # Rename columns based on pywearable specs
+            data = data.rename(
+                columns={
+                    labfront_constants._SLEEP_SUMMARY_LIGHT_SLEEP_DURATION_IN_MS_COL: constants._SLEEP_SUMMARY_N1_SLEEP_DURATION_IN_MS_COL,
+                    labfront_constants._SLEEP_SUMMARY_DEEP_SLEEP_DURATION_IN_MS_COL: constants._SLEEP_SUMMARY_N3_SLEEP_DURATION_IN_MS_COL,
+                    labfront_constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL: constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL,
+                    labfront_constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL: constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL,
+                    labfront_constants._SLEEP_SUMMARY_UNMEASURABLE_SLEEP_DURATION_IN_MS_COL: constants._SLEEP_SUMMARY_UNMEASURABLE_SLEEP_DURATION_IN_MS_COL,
+                }
+            )
+
+            data[constants._SLEEP_SUMMARY_N2_SLEEP_DURATION_IN_MS_COL] = np.nan
+
+            data = data.loc[
+                :,
+                [
+                    constants._SLEEP_SUMMARY_ID_COL,
+                    constants._TIMEZONEOFFSET_IN_MS_COL,
+                    constants._UNIXTIMESTAMP_IN_MS_COL,
+                    constants._ISODATE_COL,
+                    constants._DURATION_IN_MS_COL,
+                    constants._SLEEP_SUMMARY_N1_SLEEP_DURATION_IN_MS_COL,
+                    constants._SLEEP_SUMMARY_N2_SLEEP_DURATION_IN_MS_COL,
+                    constants._SLEEP_SUMMARY_N3_SLEEP_DURATION_IN_MS_COL,
+                    constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL,
+                    constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL,
+                    constants._SLEEP_SUMMARY_UNMEASURABLE_SLEEP_DURATION_IN_MS_COL,
+                    constants._SLEEP_SUMMARY_OVERALL_SLEEP_SCORE_COL,
+                ],
+            ]
 
             if (start_date is None) and (end_date is None):
                 return data
@@ -1972,7 +2019,7 @@ class LabfrontLoader(BaseLoader):
             raise (f"Could not find available metric {metric} with source {source}")
         return self.get_data_from_datetime(
             user_id=user_id,
-            metric=metric,
+            metric=labfront_metric,
             start_date=start_date,
             end_date=end_date,
             is_questionnaire=False,
