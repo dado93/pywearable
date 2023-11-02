@@ -52,6 +52,9 @@ The required fields for this metric are the following ones:
     * - n3SleepDurationInMs
       - Duration of N3 sleep stage in milliseconds
       - ``pywearable.constants._SLEEP_SUMMARY_N3_SLEEP_DURATION_IN_MS_COL``
+    * - remSleepDurationInMs
+      - Duration of REM sleep stage in milliseconds
+      - ``pywearable.constants._SLEEP_SUMMARY_N3_SLEEP_DURATION_IN_MS_COL``
     * - unmeasurableSleepDurationInMs
       - Duration of unmeasurable (i.e., artifacts, movements, ...) in milliseconds
       - ``pywearable.constants._SLEEP_SUMMARY_UNMEASURABLE_SLEEP_DURATION_IN_MS_COL``
