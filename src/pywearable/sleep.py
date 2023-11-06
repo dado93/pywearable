@@ -2401,10 +2401,18 @@ def _compute_sleep_stage_percentage(
         )
     ):
         tot_duration = (
-            sleep_summary[constants._SLEEP_SUMMARY_N1_SLEEP_DURATION_IN_MS_COL]
-            + sleep_summary[constants._SLEEP_SUMMARY_N2_SLEEP_DURATION_IN_MS_COL]
-            + sleep_summary[constants._SLEEP_SUMMARY_N3_SLEEP_DURATION_IN_MS_COL]
-            + sleep_summary[constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL]
+            sleep_summary[constants._SLEEP_SUMMARY_N1_SLEEP_DURATION_IN_MS_COL].fillna(
+                0
+            )
+            + sleep_summary[
+                constants._SLEEP_SUMMARY_N2_SLEEP_DURATION_IN_MS_COL
+            ].fillna(0)
+            + sleep_summary[
+                constants._SLEEP_SUMMARY_N3_SLEEP_DURATION_IN_MS_COL
+            ].fillna(0)
+            + sleep_summary[
+                constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL
+            ].fillna(0)
         )
         if sleep_stage == "NREM":
             perc = (
@@ -2412,7 +2420,7 @@ def _compute_sleep_stage_percentage(
                     tot_duration
                     - sleep_summary[
                         constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL
-                    ]
+                    ].fillna(0)
                 )
                 / tot_duration
                 * 100
@@ -2428,7 +2436,7 @@ def _compute_sleep_stage_percentage(
                 col = constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL
             else:
                 raise ValueError(
-                    f"{sleep_stage} is not a valid value. Select among [N1, N3, REM, NREM]"
+                    f"{sleep_stage} is not a valid value. Select among [N1, N2, N3, REM, NREM]"
                 )
             perc = (sleep_summary[col]) / tot_duration * 100
     else:
@@ -2569,20 +2577,30 @@ def _compute_sleep_stage_duration(
         )
     if sleep_stage == "NREM":
         tot_duration = (
-            sleep_summary[constants._SLEEP_SUMMARY_N1_SLEEP_DURATION_IN_MS_COL]
-            + sleep_summary[constants._SLEEP_SUMMARY_N2_SLEEP_DURATION_IN_MS_COL]
-            + sleep_summary[constants._SLEEP_SUMMARY_N3_SLEEP_DURATION_IN_MS_COL]
-            + sleep_summary[constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL]
+            sleep_summary[constants._SLEEP_SUMMARY_N1_SLEEP_DURATION_IN_MS_COL].fillna(
+                0
+            )
+            + sleep_summary[
+                constants._SLEEP_SUMMARY_N2_SLEEP_DURATION_IN_MS_COL
+            ].fillna(0)
+            + sleep_summary[
+                constants._SLEEP_SUMMARY_N3_SLEEP_DURATION_IN_MS_COL
+            ].fillna(0)
+            + sleep_summary[
+                constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL
+            ].fillna(0)
         )
         dur = (
             tot_duration
-            - sleep_summary[constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL]
+            - sleep_summary[
+                constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL
+            ].fillna(0)
         ) / (1000 * 60)
     else:
         if sleep_stage == "N1":
             col = constants._SLEEP_SUMMARY_N1_SLEEP_DURATION_IN_MS_COL
         elif sleep_stage == "N2":
-            col = constants._SLEEP_SUMMARY_N1_SLEEP_DURATION_IN_MS_COL
+            col = constants._SLEEP_SUMMARY_N2_SLEEP_DURATION_IN_MS_COL
         elif sleep_stage == "N3":
             col = constants._SLEEP_SUMMARY_N3_SLEEP_DURATION_IN_MS_COL
         elif sleep_stage == "REM":
