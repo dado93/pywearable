@@ -568,6 +568,7 @@ def get_sleep_battery_recovery(
                     continue
 
                 df = df[~df[constants._STRESS_BODY_BATTERY_COL].isna()]
+                df = df.reset_index(drop=True)
                 if len(df) == 0:
                     continue
                 df = (
