@@ -1,6 +1,7 @@
 import datetime
 from typing import Union
 
+import numpy as np
 import pandas as pd
 import pymongo
 from bson.objectid import ObjectId
@@ -64,6 +65,7 @@ class LifeSnapsLoader(BaseLoader):
         user_id: Union[ObjectId, str],
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        same_day_filter: bool = True,
     ) -> pd.DataFrame:
         """Load sleep summary data.
 
@@ -76,30 +78,32 @@ class LifeSnapsLoader(BaseLoader):
 
         Parameters
         ----------
-        user_id : ObjectId or str
+        user_id : :class:`bson.objectid.ObjectId` or :class:`str`
             Unique identifier for the user.
-        start_date : datetime.datetime or datetime.date or str or None, optional
+        start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
             Start date for data retrieval, by default None
-        end_date : datetime.datetime or datetime.date or str or None, optional
+        end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
             End date for data retrieval, by default None
+        same_day_filter: :class:`bool`
+            Whether to return only a single sleep for each calendar date, by default True
 
         Returns
         -------
-        pd.DataFrame
+        :class:`pd.DataFrame`
             DataFrame with sleep summary data.
 
         Raises
         ------
         ValueError
-            If `user_id` is not valid.
-        ValueError
-            If dates are not consistent.
+            If `user_id` is not valid or dates are not consistent.
         """
         if str(user_id) not in self.get_user_ids():
             raise ValueError(f"f{user_id} does not exist in DB.")
+        # Check users
         user_id = self._check_user_id(user_id)
         start_date = utils.check_date(start_date)
         end_date = utils.check_date(end_date)
+        # Get some constants for ease of access
         date_of_sleep_key = f"{lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_KEY}"
         date_of_sleep_key += (
             f".{lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DATE_OF_SLEEP_KEY}"
@@ -108,12 +112,14 @@ class LifeSnapsLoader(BaseLoader):
         start_sleep_key += (
             f".{lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_START_TIME_KEY}"
         )
+        # Set up filter for dates and times
         date_filter = self._get_start_and_end_date_time_filter_dict(
             start_date_key=date_of_sleep_key,
             start_date=start_date,
             end_date=end_date,
             end_date_key=None,
         )
+        # Aggregate data
         filtered_coll = self.fitbit_collection.aggregate(
             [
                 {
@@ -175,8 +181,8 @@ class LifeSnapsLoader(BaseLoader):
             ].sum()
             # Create dictionary with sleep_stage : duration column name
             stage_value_col_dict = {
-                lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_DEEP_VALUE: constants._SLEEP_SUMMARY_DEEP_SLEEP_DURATION_IN_MS_COL,
-                lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_LIGHT_VALUE: constants._SLEEP_SUMMARY_LIGHT_SLEEP_DURATION_IN_MS_COL,
+                lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_DEEP_VALUE: constants._SLEEP_SUMMARY_N3_SLEEP_DURATION_IN_MS_COL,
+                lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_LIGHT_VALUE: constants._SLEEP_SUMMARY_N1_SLEEP_DURATION_IN_MS_COL,
                 lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_REM_VALUE: constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL,
                 lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_WAKE_VALUE: constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL,
             }
@@ -188,10 +194,18 @@ class LifeSnapsLoader(BaseLoader):
                     )
                 else:
                     temp_df[stage_value_col_dict[sleep_stage]] = 0
-            temp_df[constants._SLEEP_SUMMARY_UNMEASURABLE_DURATION_IN_MS_COL] = 0
+
             sleep_summary_df = pd.concat((sleep_summary_df, temp_df), ignore_index=True)
         if len(sleep_summary_df) > 0:
+            # Set up columns according to pywearable format
             sleep_summary_df[constants._TIMEZONEOFFSET_IN_MS_COL] = 0
+            sleep_summary_df[
+                constants._SLEEP_SUMMARY_UNMEASURABLE_SLEEP_DURATION_IN_MS_COL
+            ] = 0
+            sleep_summary_df[
+                constants._SLEEP_SUMMARY_N2_SLEEP_DURATION_IN_MS_COL
+            ] = np.nan
+
             sleep_summary_df = sleep_summary_df.rename(
                 columns={
                     lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_START_TIME_KEY: constants._ISODATE_COL,
@@ -200,14 +214,43 @@ class LifeSnapsLoader(BaseLoader):
                     lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DURATION_KEY: constants._DURATION_IN_MS_COL,
                 }
             )
-            # TODO Change formula to convert from datetime to Unix Timestamp using pandas suggested
-            sleep_summary_df[constants._UNIXTIMESTAMP_IN_MS_COL] = sleep_summary_df[
-                constants._ISODATE_COL
-            ].apply(lambda x: int(x.timestamp() * 1000))
+
+            sleep_summary_df[constants._DURATION_IN_MS_COL] = (
+                sleep_summary_df[constants._DURATION_IN_MS_COL]
+                - sleep_summary_df[constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL]
+            )
+
+            sleep_summary_df[constants._UNIXTIMESTAMP_IN_MS_COL] = (
+                sleep_summary_df[constants._ISODATE_COL] - pd.Timestamp("1970-01-01")
+            ) // pd.Timedelta("1ms")
+
             sleep_summary_df = sleep_summary_df.sort_values(
                 by=lifesnaps_constants._CALENDAR_DATE_COL, ignore_index=True
             )
-            for idx, col in enumerate(
+
+            if same_day_filter:
+                # Keep only sleep summary with main sleep as True
+                sleep_summary_df = sleep_summary_df[
+                    sleep_summary_df[
+                        lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_MAIN_SLEEP_KEY
+                    ]
+                    == True
+                ].reset_index(drop=True)
+                # Keep sleep summary with longest duration
+                sleep_summary_df = sleep_summary_df.sort_values(
+                    [constants._CALENDAR_DATE_COL, constants._DURATION_IN_MS_COL],
+                    ascending=True,
+                    ignore_index=True,
+                )
+                sleep_summary_df = sleep_summary_df.drop_duplicates(
+                    subset=[constants._CALENDAR_DATE_COL],
+                    keep="last",
+                    ignore_index=True,
+                )
+
+            # Reorder sleep summary columns
+            sleep_summary_df = sleep_summary_df.loc[
+                :,
                 [
                     constants._SLEEP_SUMMARY_ID_COL,
                     constants._TIMEZONEOFFSET_IN_MS_COL,
@@ -215,14 +258,14 @@ class LifeSnapsLoader(BaseLoader):
                     constants._ISODATE_COL,
                     constants._CALENDAR_DATE_COL,
                     constants._DURATION_IN_MS_COL,
-                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_END_TIME_KEY,
-                ]
-            ):
-                sleep_summary_df.insert(
-                    idx,
-                    col,
-                    sleep_summary_df.pop(col),
-                )
+                    constants._SLEEP_SUMMARY_N1_SLEEP_DURATION_IN_MS_COL,
+                    constants._SLEEP_SUMMARY_N2_SLEEP_DURATION_IN_MS_COL,
+                    constants._SLEEP_SUMMARY_N3_SLEEP_DURATION_IN_MS_COL,
+                    constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL,
+                    constants._SLEEP_SUMMARY_UNMEASURABLE_SLEEP_DURATION_IN_MS_COL,
+                    constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL,
+                ],
+            ]
         return sleep_summary_df
 
     def _merge_sleep_data_and_sleep_short_data(self, sleep_entry: dict) -> pd.DataFrame:
@@ -373,6 +416,33 @@ class LifeSnapsLoader(BaseLoader):
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
         include_short_data: bool = True,
     ) -> pd.DataFrame:
+        """Load sleep stage data.
+
+        This function loads sleep stage data for a given user
+        and timeframe. If ``include_short_data`` is `True`, then
+        also sleep stages with a duration lower than 30 seconds
+        are returned.
+
+
+        Parameters
+        ----------
+        user_id : :class:`bson.objectid.ObjectId` or :class:`str`
+            Unique identifier for the user.
+        start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+            Start date for data retrieval, by default None
+        end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+            End date for data retrieval, by default None
+
+        Returns
+        -------
+        :class:`pd.DataFrame`
+            DataFrame with sleep stages data.
+
+        Raises
+        ------
+        ValueError
+            If user or dates are invalid.
+        """
         # We need to load sleep data -> then levels.data and levels.shortData
         # After getting levels.shortData, we merge everything together
         # with 30 seconds resolution
@@ -441,25 +511,60 @@ class LifeSnapsLoader(BaseLoader):
                 (sleep_stage_df, sleep_data_df), ignore_index=True
             )
         if len(sleep_stage_df) > 0:
+            # Get isodate column
             sleep_stage_df[constants._ISODATE_COL] = pd.to_datetime(
                 sleep_stage_df[
                     lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_DATETIME_KEY
                 ],
                 utc=True,
             ).dt.tz_localize(None)
+
             sleep_stage_df = sleep_stage_df.drop(
                 [
                     lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_DATETIME_KEY
                 ],
                 axis=1,
             )
-            sleep_stage_df[constants._UNIXTIMESTAMP_IN_MS_COL] = sleep_stage_df[
-                constants._ISODATE_COL
-            ].apply(lambda x: int(x.timestamp() * 1000))
+            # Get unix timestamp in milliseconds
+            sleep_stage_df[constants._UNIXTIMESTAMP_IN_MS_COL] = (
+                sleep_stage_df[constants._ISODATE_COL] - pd.Timestamp("1970-01-01")
+            ) // pd.Timedelta("1ms")
+
             sleep_stage_df = sleep_stage_df.sort_values(
                 by=constants._UNIXTIMESTAMP_IN_MS_COL
             ).reset_index(drop=True)
+
+            sleep_stage_df = sleep_stage_df.rename(
+                columns={
+                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LOG_ID_KEY: constants._SLEEP_SUMMARY_ID_COL,
+                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_SECONDS_KEY: constants._DURATION_IN_MS_COL,
+                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_LEVEL_KEY: constants._SLEEP_STAGE_SLEEP_TYPE_COL,
+                }
+            )
             sleep_stage_df[constants._TIMEZONEOFFSET_IN_MS_COL] = 0
+            # Convert duration to milliseconds
+            sleep_stage_df[constants._DURATION_IN_MS_COL] *= 1000
+            sleep_stage_df[constants._SLEEP_STAGE_SLEEP_TYPE_COL] = sleep_stage_df[
+                constants._SLEEP_STAGE_SLEEP_TYPE_COL
+            ].map(
+                {
+                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_REM_VALUE: constants._SLEEP_STAGE_REM_STAGE_VALUE,
+                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_LIGHT_VALUE: constants._SLEEP_STAGE_N1_STAGE_VALUE,
+                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_DEEP_VALUE: constants._SLEEP_STAGE_N3_STAGE_VALUE,
+                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_WAKE_VALUE: constants._SLEEP_STAGE_AWAKE_STAGE_VALUE,
+                }
+            )
+            sleep_stage_df = sleep_stage_df.loc[
+                :,
+                [
+                    constants._SLEEP_SUMMARY_ID_COL,
+                    constants._TIMEZONEOFFSET_IN_MS_COL,
+                    constants._UNIXTIMESTAMP_IN_MS_COL,
+                    constants._ISODATE_COL,
+                    constants._DURATION_IN_MS_COL,
+                    constants._SLEEP_STAGE_SLEEP_TYPE_COL,
+                ],
+            ]
         return sleep_stage_df
 
     def load_metric(

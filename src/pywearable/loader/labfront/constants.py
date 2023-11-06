@@ -38,3 +38,21 @@ _GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL = "timezoneOffsetInMs"
 _GARMIN_DEVICE_TIMEZONEOFFSET_IN_MS_COL = "timezone"
 _FIRST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL = "firstSampleUnixTimestampInMs"
 _LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL = "lastSampleUnixTimestampInMs"
+
+##################################################
+#            Sleep Summary Columns               #
+##################################################
+_SLEEP_SUMMARY_DEEP_SLEEP_DURATION_IN_MS_COL = "deepSleepDurationInMs"
+_SLEEP_SUMMARY_LIGHT_SLEEP_DURATION_IN_MS_COL = "lightSleepDurationInMs"
+_SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL = "remSleepInMs"
+_SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL = "awakeDurationInMs"
+_SLEEP_SUMMARY_UNMEASURABLE_SLEEP_DURATION_IN_MS_COL = "unmeasurableSleepInMs"
+
+##################################################
+#         Sleep Stages - Type values             #
+##################################################
+_SLEEP_STAGE_LIGHT_STAGE_VALUE = "light"
+_SLEEP_STAGE_DEEP_STAGE_VALUE = "deep"
+_SLEEP_STAGE_REM_STAGE_VALUE = "rem"
+_SLEEP_STAGE_AWAKE_STAGE_VALUE = "awake"
+_SLEEP_STAGE_UNMEASURABLE_STAGE_VALUE = "unmeasurable"
