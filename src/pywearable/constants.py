@@ -31,6 +31,10 @@ _SLEEP_STAGE_SLEEP_TYPE_COL = "type"
 _SLEEP_STAGE_DURATION_IN_MS_COL = "durationInMs"
 _SLEEP_STAGE_SLEEP_SUMMARY_ID_COL = "sleepSummaryId"
 
+# Stress columns #
+_STRESS_STRESS_LEVEL_COL = "stressLevel"
+_STRESS_BODY_BATTERY_COL = "bodyBattery"
+
 # Daily summary columns #
 _DAILY_SUMMARY_CALENDAR_DATE_COL = "calendarDate"
 _DAILY_SUMMARY_STEPS_COL = "steps"
@@ -38,6 +42,14 @@ _DAILY_SUMMARY_DISTANCE_COL = "distanceInMeters"
 _DAILY_SUMMARY_STEPS_GOAL_COL = "stepsGoal"
 _DAILY_SUMMARY_MODERATE_INTENSITY_COL = "moderateIntensityDurationInMs"
 _DAILY_SUMMARY_VIGOROUS_INTENSITY_COL = "vigorousIntensityDurationInMs"
+_DAILY_SUMMARY_AVG_STRESS_IN_STRESS_LVL_COL = "averageStressInStressLevel"
+_DAILY_SUMMARY_MAX_STRESS_IN_STRESS_LVL_COL = "maxStressInStressLevel"
+_DAILY_SUMMARY_REST_STRESS_DURATION_IN_MS_COL = "restStressDurationInMs"
+_DAILY_SUMMARY_LOW_STRESS_DURATION_IN_MS_COL = "lowStressDurationInMs"
+_DAILY_SUMMARY_MEDIUM_STRESS_DURATION_IN_MS_COL = "mediumStressDurationInMs"
+_DAILY_SUMMARY_HIGH_STRESS_DURATION_IN_MS_COL = "highStressDurationInMs"
+_DAILY_SUMMARY_UNRELIABLE_STRESS_DURATION_IN_MS_COL = "activityStressDurationInMs"
+_DAILY_SUMMARY_STRESS_SCORE_COL = "stressQualifier"
 
 # Respiratory data columns #
 _RESPIRATION_BREATHS_PER_MINUTE_COL = "breathsPerMinute"
