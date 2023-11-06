@@ -17,9 +17,9 @@ def sleep_summary():
         StringIO(
             """sleepSummaryId,calendarDate,timezoneOffsetInMs,unixTimestampInMs,isoDate,durationInMs,unmeasurableSleepDurationInMs,n3SleepDurationInMs,n1SleepDurationInMs,remSleepDurationInMs,awakeDurationInMs,n2SleepDurationInMs,overallSleepScore
 x4c64722-64595538-6630,2023-05-09,7200000,1683576120000,2023-05-08T22:02:00.000+02:00,26160000,0,3900000,15480000,6780000,780000,,88
-x4c64722-645ab9b4-55c8,2023-05-10,7200000,1683667380000,2023-05-09T23:23:00.000+02:00,21960000,0,3420000,12780000,5760000,120000,,79
-x4c64722-645bf6d0-6888,2023-05-11,7200000,1683748560000,2023-05-10T21:56:00.000+02:00,26760000,0,6420000,12060000,8280000,480000,,91
-x4c64722-645d63f8-5c94,2023-05-12,7200000,1683842040000,2023-05-11T23:54:00.000+02:00,23700000,0,4260000,9600000,9240000,600000,,70
+x4c64722-645ab9b4-55c8,2023-05-10,7200000,1683667380000,2023-05-09T23:23:00.000+02:00,21960000,,,,,,,
+x4c64722-645bf6d0-6888,2023-05-11,7200000,1683748560000,2023-05-10T21:56:00.000+02:00,26760000,0,0,26760000,0,0,,40
+x4c64722-645d63f8-5c94,2023-05-12,7200000,1683842040000,2023-05-11T23:54:00.000+02:00,23700000,0,0,23700000,0,600000,,70
             """
         ),
         index_col=0,
@@ -60,9 +60,9 @@ x4c64722-64595538-6630,7200000,1683596040000,2023-05-09T03:34:00.000+02:00,28200
 x4c64722-64595538-6630,7200000,1683598860000,2023-05-09T04:21:00.000+02:00,960000,n1
 x4c64722-64595538-6630,7200000,1683599820000,2023-05-09T04:37:00.000+02:00,60000,awake
 x4c64722-64595538-6630,7200000,1683599880000,2023-05-09T04:38:00.000+02:00,3180000,n1
-x4c64722-645bf6d0-6888,7200000,1683748560000,2023-05-10T21:56:00.000+02:00,3180000,n3
+x4c64722-645bf6d0-6888,7200000,1683748560000,2023-05-10T21:56:00.000+02:00,26760000,n3
 x4c64722-645d63f8-5c94,7200000,1683842040000,2023-05-11T23:54:00.000+02:00,600000,awake
-x4c64722-645d63f8-5c94,7200000,1683842640000,2023-05-12T00:04:00.000+02:00,3000000,n1
+x4c64722-645d63f8-5c94,7200000,1683842640000,2023-05-12T00:04:00.000+02:00,23700000,n1
         """
         )
     )
@@ -81,7 +81,7 @@ def test_compute_sleep_score(sleep_summary):
     pandas.testing.assert_series_equal(
         sleep_score,
         pd.Series(
-            [88.0, 79.0, 91.0, 70.0],
+            [88.0, np.nan, 40.0, 70.0],
             index=[
                 "x4c64722-64595538-6630",
                 "x4c64722-645ab9b4-55c8",
@@ -133,10 +133,19 @@ def test_compute_sleep_maintenance_efficiency(sleep_summary, sleep_stages):
 
 def test_compute_awake_count(sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame):
     awake_count = pywearable.sleep._compute_awake_count(sleep_summary, sleep_stages)
-    assert type(awake_count) == pd.Series
-    assert awake_count["x4c64722-64595538-6630"] == 3.0
-    assert awake_count["x4c64722-645bf6d0-6888"] == 0.0
-    assert np.isnan(awake_count["x4c64722-645ab9b4-55c8"])
+    pd.testing.assert_series_equal(
+        awake_count,
+        pd.Series(
+            [3.0, np.nan, 0.0, 1.0],
+            index=[
+                "x4c64722-64595538-6630",
+                "x4c64722-645ab9b4-55c8",
+                "x4c64722-645bf6d0-6888",
+                "x4c64722-645d63f8-5c94",
+            ],
+        ),
+        check_names=False,
+    )
 
 
 def test_compute_latencies(sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame):
@@ -193,13 +202,20 @@ def test_compute_sleep_period_time(
 ):
     sol = pywearable.sleep._compute_sleep_period_time(sleep_summary, sleep_stages)
     assert type(sol) == pd.Series
-    # Check sleep onset latency for given sleep summaries
-    assert sol.loc["x4c64722-64595538-6630"] == 449.0
-    assert sol.loc["x4c64722-645bf6d0-6888"] == 53.0
-    # Check sleep period time for sleep summary with first stage as awake
-    assert sol.loc["x4c64722-645d63f8-5c94"] == 50.0
-    # Check sleep period time for sleep summary with no sleep stages
-    assert np.isnan(sol.loc["x4c64722-645ab9b4-55c8"])
+    pandas.testing.assert_series_equal(
+        sol,
+        pd.Series(
+            [449.0, np.nan, 446.0, 395.0],
+            index=[
+                "x4c64722-64595538-6630",
+                "x4c64722-645ab9b4-55c8",
+                "x4c64722-645bf6d0-6888",
+                "x4c64722-645d63f8-5c94",
+            ],
+        ),
+        check_dtype=False,
+        check_names=False,
+    )
 
 
 def test_compute_unmeasurable_duration(sleep_summary: pd.DataFrame):
@@ -215,13 +231,48 @@ def test_compute_unmeasurable_duration(sleep_summary: pd.DataFrame):
 def test_compute_stage_count(sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame):
     counts = pywearable.sleep._compute_stage_count(sleep_summary, sleep_stages)
     assert type(counts) == pd.DataFrame
-    assert counts.loc["x4c64722-64595538-6630", "n1"] == 11.0
-    assert counts.loc["x4c64722-64595538-6630", "n3"] == 5.0
-    assert counts.loc["x4c64722-64595538-6630", "awake"] == 3.0
-    assert np.isnan(counts.loc["x4c64722-645ab9b4-55c8", "n3"])
-    assert counts.loc["x4c64722-645bf6d0-6888", "n3"] == 1.0
-    assert counts.loc["x4c64722-645d63f8-5c94", "n1"] == 1.0
-    assert counts.loc["x4c64722-645d63f8-5c94", "rem"] == 0.0
+    assert (
+        counts.loc[
+            "x4c64722-64595538-6630", pywearable.constants._SLEEP_STAGE_N1_STAGE_VALUE
+        ]
+        == 11.0
+    )
+    assert (
+        counts.loc[
+            "x4c64722-64595538-6630", pywearable.constants._SLEEP_STAGE_N3_STAGE_VALUE
+        ]
+        == 5.0
+    )
+    assert (
+        counts.loc[
+            "x4c64722-64595538-6630",
+            pywearable.constants._SLEEP_STAGE_AWAKE_STAGE_VALUE,
+        ]
+        == 3.0
+    )
+    assert np.isnan(
+        counts.loc[
+            "x4c64722-645ab9b4-55c8", pywearable.constants._SLEEP_STAGE_N3_STAGE_VALUE
+        ]
+    )
+    assert (
+        counts.loc[
+            "x4c64722-645bf6d0-6888", pywearable.constants._SLEEP_STAGE_N3_STAGE_VALUE
+        ]
+        == 1.0
+    )
+    assert (
+        counts.loc[
+            "x4c64722-645d63f8-5c94", pywearable.constants._SLEEP_STAGE_N1_STAGE_VALUE
+        ]
+        == 1.0
+    )
+    assert (
+        counts.loc[
+            "x4c64722-645d63f8-5c94", pywearable.constants._SLEEP_STAGE_REM_STAGE_VALUE
+        ]
+        == 0.0
+    )
 
 
 def test_compute_rem_count(sleep_summary: pd.DataFrame, sleep_stages: pd.DataFrame):
