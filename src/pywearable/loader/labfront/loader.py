@@ -1992,8 +1992,8 @@ class LabfrontLoader(BaseLoader):
                     {
                         constants._SLEEP_STAGE_REM_STAGE_VALUE: constants._SLEEP_STAGE_REM_STAGE_MAPPED_VALUE,
                         constants._SLEEP_STAGE_AWAKE_STAGE_VALUE: constants._SLEEP_STAGE_AWAKE_STAGE_MAPPED_VALUE,
-                        constants._SLEEP_STAGE_DEEP_STAGE_VALUE: constants._SLEEP_STAGE_DEEP_STAGE_MAPPED_VALUE,
-                        constants._SLEEP_STAGE_LIGHT_STAGE_VALUE: constants._SLEEP_STAGE_LIGHT_STAGE_MAPPED_VALUE,
+                        constants._SLEEP_STAGE_N3_STAGE_VALUE: constants._SLEEP_STAGE_N3_STAGE_MAPPED_VALUE,
+                        constants._SLEEP_STAGE_N1_STAGE_VALUE: constants._SLEEP_STAGE_N1_STAGE_MAPPED_VALUE,
                         constants._SLEEP_STAGE_UNMEASURABLE_STAGE_VALUE: constants._SLEEP_STAGE_UNMEASURABLE_STAGE_MAPPED_VALUE,
                     }
                 )
