@@ -73,7 +73,7 @@ class LifeSnapsLoader(BaseLoader):
 
     def load_sleep_summary(
         self,
-        user_id: Union[ObjectId, str],
+        user_id: str,
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
         same_day_filter: bool = True,
@@ -89,7 +89,7 @@ class LifeSnapsLoader(BaseLoader):
 
         Parameters
         ----------
-        user_id : :class:`bson.objectid.ObjectId` or :class:`str`
+        user_id : :class:`str`
             Unique identifier for the user.
         start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
             Start date for data retrieval, by default None
@@ -422,7 +422,7 @@ class LifeSnapsLoader(BaseLoader):
 
     def load_sleep_stage(
         self,
-        user_id: Union[ObjectId, str],
+        user_id: str,
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
         include_short_data: bool = True,
@@ -437,7 +437,7 @@ class LifeSnapsLoader(BaseLoader):
 
         Parameters
         ----------
-        user_id : :class:`bson.objectid.ObjectId` or :class:`str`
+        user_id : :class:`str`
             Unique identifier for the user.
         start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
             Start date for data retrieval, by default None
@@ -581,7 +581,7 @@ class LifeSnapsLoader(BaseLoader):
     def load_metric(
         self,
         metric: str,
-        user_id: Union[ObjectId, str],
+        user_id: str,
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
@@ -654,7 +654,7 @@ class LifeSnapsLoader(BaseLoader):
 
     def load_steps(
         self,
-        user_id: Union[ObjectId, str],
+        user_id: str,
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
