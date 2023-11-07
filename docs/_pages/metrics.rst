@@ -38,7 +38,7 @@ The required fields for this metric are the following ones:
       - Unix timestamp in milliseconds of the sleep start time
       - ``pywearable.constants._UNIXTIMESTAMP_IN_MS_COL``
     * - isoDate
-      - Sleep start time in `ISO <https://en.wikipedia.org/wiki/ISO_8601>`_ format
+      - Sleep start time in `ISO <https://en.wikipedia.org/wiki/ISO_8601>`__ format
       - ``pywearable.constants._ISODATE_COL``
     * - durationInMs
       - Overall sleep duration in milliseconds, **without** counting awake stages
