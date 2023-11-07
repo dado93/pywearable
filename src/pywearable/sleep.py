@@ -1198,7 +1198,7 @@ def get_rem_duration(
     return get_sleep_statistic(
         loader=loader,
         user_id=user_id,
-        metric=_SLEEP_METRIC_N3_DURATION,
+        metric=_SLEEP_METRIC_REM_DURATION,
         start_date=start_date,
         end_date=end_date,
         kind=kind,
