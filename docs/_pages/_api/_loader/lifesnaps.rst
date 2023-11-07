@@ -1,5 +1,5 @@
-LifeSnaps Loader
-================
+LifeSnaps
+=========
 
-.. autoclass:: pywearable.loader.lifesnaps.loader.LifesnapsLoader
+.. autoclass:: pywearable.loader.LifeSnapsLoader
    :members:

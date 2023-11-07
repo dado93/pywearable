@@ -1,5 +1,5 @@
-Base Loader
-===========
+Base
+====
 
 .. automodule:: pywearable.loader.base
    :members:
