@@ -1911,9 +1911,6 @@ def get_cpd(
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     sleep_metric: str = "midpoint",
     chronotype_dict : Union[dict, None] = None,
-    chronotype_sleep_start: str = "00:00",
-    chronotype_sleep_end: str = "08:00",
-    days_to_consider: int = 28,
     verbose: bool = False,
     average: bool = True,
 ):
@@ -1938,12 +1935,8 @@ def get_cpd(
         End date for data retrieval, by default None
     sleep_metric : :class:`str`, optional
         the metric for the computation of CPD, can be either "midpoint" or "duration", by default "midpoint"
-    chronotype_sleep_start : :class:`str`, optional
-        the hour of reference at which the user begins to sleep in format HH:MM, by default "00:00"
-    chronotype_sleep_end : :class:`str`, optional
-        the hour of reference at which the user wakes up in format HH:MM, by default "08:00"
-    days_to_consider : :class:`int`, optional
-        the maximum number of days to consider in the period of interest, by default 28
+    chronotype_dict : :class:`dict`, optional
+        dictionary specifying for every user his usual sleeping time and waking time in format HH:MM, as a tuple
     verbose : :class:`str`, optional
         whether to show daily cpd components
     average : :class:`bool`, optional
@@ -1951,8 +1944,8 @@ def get_cpd(
 
     Returns
     -------
-    :class:`float`
-        CPD metric, indicating sleep regularity of the user
+    :class:`dict`
+        Dictionary of the CPD metric for every user of interest, indicating sleep regularity
 
     Raises
     -------
@@ -1968,123 +1961,120 @@ def get_cpd(
         raise ValueError(f"Must specify the chronotype for all users of interest.")
 
     for user in user_id:
-        #chronotype_sleep_start = chronotype_dict[loader.get_]
-        pass
 
-    if sleep_metric == "midpoint":
-        # define what is the expected midpoint based on the chronotype
-        chronotype_sleep_midpoint = utils.mean_time(
-            [chronotype_sleep_start, chronotype_sleep_end]
-        )
-        sleep_midpoints = get_sleep_midpoints(
-            loader, user_id=user, start_date=start_date, end_date=end_date
-        )[user]
+        chronotype_sleep_start = chronotype_dict[user]
+        chronotype_sleep_end = chronotype_dict[user]
 
-        previous_midpoint = None
-        CPDs = []
-        dates = []
+        if sleep_metric == "midpoint":
+            # define what is the expected midpoint based on the chronotype
+            chronotype_sleep_midpoint = utils.mean_time(
+                [chronotype_sleep_start, chronotype_sleep_end]
+            )
+            sleep_midpoints = get_sleep_midpoints(
+                loader, user_id=user, start_date=start_date, end_date=end_date
+            )[user]
 
-        try:
-            for calendar_date, midpoint in list(sleep_midpoints.items())[
-                -days_to_consider:
-            ]:
-                # mistiming component
-                chronotype_daily_midpoint = datetime.datetime(
-                    calendar_date.year,
-                    calendar_date.month,
-                    calendar_date.day,
-                    hour=int(chronotype_sleep_midpoint[:2]),
-                    minute=int(chronotype_sleep_midpoint[3:]),
-                )
-                # if the expected midpoint is prior to midnight we need to adjust the day
-                if 14 < int(chronotype_sleep_midpoint[:2]) < 24:
-                    chronotype_daily_midpoint -= datetime.timedelta(days=1)
+            previous_midpoint = None
+            CPDs = []
+            dates = []
 
-                mistiming_component = (
-                    chronotype_daily_midpoint - midpoint
-                ).total_seconds() / (60 * 60)
-
-                # irregularity component
-                if previous_midpoint is None:  # only for the first night recorded
-                    irregularity_component = 0
-                else:
-                    previous_day_midpoint_proxy = datetime.datetime(
+            try:
+                for calendar_date, midpoint in list(sleep_midpoints.items()):
+                    # mistiming component
+                    chronotype_daily_midpoint = datetime.datetime(
                         calendar_date.year,
                         calendar_date.month,
                         calendar_date.day,
-                        hour=previous_midpoint.hour,
-                        minute=previous_midpoint.minute,
+                        hour=int(chronotype_sleep_midpoint[:2]),
+                        minute=int(chronotype_sleep_midpoint[3:]),
                     )
+                    # if the expected midpoint is prior to midnight we need to adjust the day
+                    if 14 < int(chronotype_sleep_midpoint[:2]) < 24:
+                        chronotype_daily_midpoint -= datetime.timedelta(days=1)
 
-                    if 14 < previous_day_midpoint_proxy.hour < 24:
-                        previous_day_midpoint_proxy -= datetime.timedelta(days=1)
-
-                    irregularity_component = (
-                        previous_day_midpoint_proxy - midpoint
+                    mistiming_component = (
+                        chronotype_daily_midpoint - midpoint
                     ).total_seconds() / (60 * 60)
 
-                previous_midpoint = midpoint
+                    # irregularity component
+                    if previous_midpoint is None:  # only for the first night recorded
+                        irregularity_component = 0
+                    else:
+                        previous_day_midpoint_proxy = datetime.datetime(
+                            calendar_date.year,
+                            calendar_date.month,
+                            calendar_date.day,
+                            hour=previous_midpoint.hour,
+                            minute=previous_midpoint.minute,
+                        )
 
-                cpd = np.sqrt(mistiming_component**2 + irregularity_component**2)
-                if verbose:
-                    print(
-                        f"Date: {calendar_date}. Mistiming component: {round(mistiming_component,2)}. Irregularity component {round(irregularity_component,2)}."
-                    )
-                CPDs.append(cpd)
-                dates.append(calendar_date)
-        except:
-            return np.nan
+                        if 14 < previous_day_midpoint_proxy.hour < 24:
+                            previous_day_midpoint_proxy -= datetime.timedelta(days=1)
 
-    elif sleep_metric == "duration":
-        chronotype_sleep_duration = (
-            datetime.datetime.strptime(chronotype_sleep_end, "%H:%M")
-            - datetime.datetime.strptime(chronotype_sleep_start, "%H:%M")
-        ).total_seconds() / (60 * 60)
-        if chronotype_sleep_duration < 0:  # takes care of sleep-time prior to midnight
-            chronotype_sleep_duration += 24
-        try:
-            sleep_durations = get_total_sleep_time(loader, user, start_date, end_date)[
-                user
-            ]
-        except:
-            return np.nan
+                        irregularity_component = (
+                            previous_day_midpoint_proxy - midpoint
+                        ).total_seconds() / (60 * 60)
 
-        CPDs = []
-        dates = []
-        previous_duration = None
+                    previous_midpoint = midpoint
 
-        try:
-            for calendar_date, daily_duration in list(sleep_durations.items())[
-                -days_to_consider:
-            ]:
-                daily_duration = daily_duration / 60  # conversion in hours
+                    cpd = np.sqrt(mistiming_component**2 + irregularity_component**2)
+                    if verbose:
+                        print(
+                            f"User: {user} \t Date: {calendar_date}. Mistiming component: {round(mistiming_component,2)}. Irregularity component {round(irregularity_component,2)}."
+                        )
+                    CPDs.append(cpd)
+                    dates.append(calendar_date)
+            except:
+                data_dict[user] = None
 
-                mistiming_component = chronotype_sleep_duration - daily_duration
+        elif sleep_metric == "duration":
+            chronotype_sleep_duration = (
+                datetime.datetime.strptime(chronotype_sleep_end, "%H:%M")
+                - datetime.datetime.strptime(chronotype_sleep_start, "%H:%M")
+            ).total_seconds() / (60 * 60)
+            if chronotype_sleep_duration < 0:  # takes care of sleep-time prior to midnight
+                chronotype_sleep_duration += 24
+            try:
+                sleep_durations = get_total_sleep_time(loader, user, start_date, end_date)[
+                    user
+                ]
+            except:
+                data_dict[user] = None
 
-                if previous_duration is None:
-                    irregularity_component = 0
-                else:
-                    irregularity_component = previous_duration - daily_duration
+            CPDs = []
+            dates = []
+            previous_duration = None
 
-                previous_duration = daily_duration
+            try:
+                for calendar_date, daily_duration in list(sleep_durations.items()):
+                    daily_duration = daily_duration / 60  # conversion in hours
 
-                cpd = np.sqrt(mistiming_component**2 + irregularity_component**2)
-                if verbose:
-                    print(
-                        f"Date: {calendar_date}. Mistiming component: {round(mistiming_component,2)}. Irregularity component {round(irregularity_component,2)}."
-                    )
-                CPDs.append(cpd)
-                dates.append(calendar_date)
-        except:
-            return np.nan
+                    mistiming_component = chronotype_sleep_duration - daily_duration
 
-    else:
-        raise KeyError("The sleep metric must be either 'midpoint' or 'duration'")
+                    if previous_duration is None:
+                        irregularity_component = 0
+                    else:
+                        irregularity_component = previous_duration - daily_duration
 
-    if average:
-        return np.mean(CPDs)
-    else:
-        return {dates[i]: CPDs[i] for i in range(len(dates))}
+                    previous_duration = daily_duration
+
+                    cpd = np.sqrt(mistiming_component**2 + irregularity_component**2)
+                    if verbose:
+                        print(
+                            f"User {user} \t Date: {calendar_date}. Mistiming component: {round(mistiming_component,2)}. Irregularity component {round(irregularity_component,2)}."
+                        )
+                    CPDs.append(cpd)
+                    dates.append(calendar_date)
+            except:
+                data_dict[user] = None
+
+        else:
+            raise KeyError("The sleep metric must be either 'midpoint' or 'duration'")
+
+        if average:
+            data_dict[user] = np.mean(CPDs)
+        else:
+            data_dict[user] = {dates[i]: CPDs[i] for i in range(len(dates))}
 
 
 def get_sleep_metric_std(
