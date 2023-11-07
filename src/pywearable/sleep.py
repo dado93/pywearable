@@ -57,8 +57,6 @@ def get_time_in_bed(
     of the sleep, given by the sum of all sleep stages and unmeasurable sleep
     as well. The value is reported in minutes.
 
-    .. math:: TIB = N1 + N2 + N3 + REM + UNMEASURABLE + AWAKE
-
     Depending on the value of the ``kind`` parameter, this function
     returns TIB for each calendar day (``kind=None``) from ``start_date`` to
     ``end_date`` or the transformed value across all days. The applied
@@ -141,7 +139,7 @@ def get_sleep_period_time(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ) -> pd.DataFrame:
     """Get sleep period time (SPT) sleep metric.
 
@@ -214,7 +212,12 @@ def get_sleep_period_time(
         calendar days over which the transformation was computed.
     """
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_SPT, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_SPT,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -223,7 +226,7 @@ def get_total_sleep_time(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ) -> pd.DataFrame:
     """Get total sleep time (TST) sleep metric.
 
@@ -297,7 +300,12 @@ def get_total_sleep_time(
         calendar days over which the transformation was computed.
     """
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_TST, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_TST,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -306,7 +314,7 @@ def get_sleep_efficiency(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ) -> pd.DataFrame:
     """Get sleep efficiency (SE) sleep metric.
 
@@ -381,7 +389,12 @@ def get_sleep_efficiency(
         calendar days over which the transformation was computed.
     """
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_SE, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_SE,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -390,7 +403,7 @@ def get_sleep_maintenance_efficiency(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ) -> pd.DataFrame:
     """Get sleep maintenance efficiency (SME) sleep metric.
 
@@ -399,22 +412,19 @@ def get_sleep_maintenance_efficiency(
 
     .. math:: SME = \\frac{TST}{SPT}
 
-    Depending on the value of the `average` parameter, this function
-    returns SME for each calendar day (`average=False`) from `start_date` to
-    `end_date` or the average value across all days (`average=True`).
+    Depending on the value of the ``kind`` parameter, this function
+    returns SME for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter:
+
+        - `mean`: computes the average across days
+        - `std`: computes the standard deviation across days
+        - `min`: computes the minimum value across days
+        - `max`: computes the maximum value across days
 
     Example::
 
-        import pywearable.loader.base.BaseLoader
-        import pywearable.sleep
-        import datetime
-
-        loader = pywearable.loader.base.BaseLoader()
-        start_date = datetime.date(2023, 9, 9)
-        end_date = datetime.date.today()
-        user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
-
-        pylabfront.sleep.get_sleep_maintenance_efficiency(loader, user_id, start_date, end_date)
+        pywearable.sleep.get_sleep_maintenance_efficiency(loader, user_id, start_date, end_date)
 
         >> {'f457c562-2159-431c-8866-dfa9a917d9b8':
             datetime.date(2023, 9, 9): 99.20159680638723,
@@ -425,7 +435,7 @@ def get_sleep_maintenance_efficiency(
             datetime.date(2023, 9, 14): 100.0,
             datetime.date(2023, 9, 15): 99.59677419354838}
 
-        pylabfront.sleep.get_sleep_maintenance_efficiency(loader, user_id, start_date, end_date, average=True)
+        pywearable.sleep.get_sleep_maintenance_efficiency(loader, user_id, start_date, end_date, kind='mean')
         >> {
                 'f457c562-2159-431c-8866-dfa9a917d9b8':
                     {
@@ -451,20 +461,31 @@ def get_sleep_maintenance_efficiency(
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None
-    average : :class:`bool`, optional
-        Whether to average SME over days, or to return the value for each day, by default False
+    kind : :class:`str` or None, optional
+        Whether to transform SME over days, or to return the value for each day, by default None.
+        Valid options are:
+
+            - `mean`
+            - `std`
+            - `min`
+            - `max`
 
     Returns
     -------
     :class:`dict`
-        If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (as :class:`datetime.date`) as keys and sleep maintenance efficiency as values.
-        If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `SME`
-        as key and its value, and an additional `days` keys that contains an array of all
-        calendar days over which the average was computed.
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and SME as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `SME`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
     """
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_SME, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_SME,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -473,15 +494,20 @@ def get_n1_latency(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ) -> dict:
     """Get N1 sleep latency.
 
     This function computes the latency to the first stage of N1 sleep.
-    Depending on the value of the `average` parameter, this function
-    returns N1 sleep latency for each calendar day (`average=False`) from `start_date` to
-    `end_date` or the average value across all days (`average=True`).
-    Latency is reported in minutes.
+    Depending on the value of the ``kind`` parameter, this function
+    returns N1 latency for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter:
+
+        - `mean`: computes the average across days
+        - `std`: computes the standard deviation across days
+        - `min`: computes the minimum value across days
+        - `max`: computes the maximum value across days
 
     Example::
 
@@ -522,20 +548,31 @@ def get_n1_latency(
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None
-    average : :class:`bool`, optional
-        Whether to average N1 sleep latency over days, or to return the value for each day, by default False
+    kind : :class:`str` or None, optional
+        Whether to transform N1 latency over days, or to return the value for each day, by default None.
+        Valid options are:
+
+            - `mean`
+            - `std`
+            - `min`
+            - `max`
 
     Returns
     -------
     :class:`dict`
-        If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (as :class:`datetime.date`) as keys and N1 sleep latency as values.
-        If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `Lat_N1`
-        as key and its value, and an additional `days` keys that contains an array of all
-        calendar days over which the average was computed.
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and N1 latency as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `Lat_N1`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
     """
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_N1_LATENCY, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_N1_LATENCY,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -544,36 +581,39 @@ def get_n2_latency(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ):
     """Get N2 sleep latency.
 
     This function computes the latency to the first stage of N2 sleep.
-    Depending on the value of the `average` parameter, this function
-    returns N2 sleep latency for each calendar day (`average=False`) from `start_date` to
-    `end_date` or the average value across all days (`average=True`).
-    Latency is reported in minutes.
-    Beware that, if Garmin data are used, N2 sleep latency will always be equal
-    to nan as Garmin does not report N2 sleep stages.
+    Depending on the value of the ``kind`` parameter, this function
+    returns N2 latency for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter:
+
+        - `mean`: computes the average across days
+        - `std`: computes the standard deviation across days
+        - `min`: computes the minimum value across days
+        - `max`: computes the maximum value across days
 
     Example::
 
         pywearable.sleep.get_n2_latency(loader, user_id, start_date, end_date)
 
         >> {'f457c562-2159-431c-8866-dfa9a917d9b8':
-            datetime.date(2023, 9, 9): 0.0,
-            datetime.date(2023, 9, 10): 0.0,
-            datetime.date(2023, 9, 11): 0.0,
-            datetime.date(2023, 9, 12): 0.0,
-            datetime.date(2023, 9, 13): 0.0,
-            datetime.date(2023, 9, 14): 0.0,
-            datetime.date(2023, 9, 15): 0.0}
+            datetime.date(2023, 9, 9): 10.0,
+            datetime.date(2023, 9, 10): 15.0,
+            datetime.date(2023, 9, 11): 20.0,
+            datetime.date(2023, 9, 12): 17.0,
+            datetime.date(2023, 9, 13): 62.0,
+            datetime.date(2023, 9, 14): 33.0,
+            datetime.date(2023, 9, 15): 48.0}
 
-        pywearable.sleep.get_n2_latency(loader, user_id, start_date, end_date, average=True)
+        pywearable.sleep.get_n2_latency(loader, user_id, start_date, end_date, kind='mean')
         >> {
                 'f457c562-2159-431c-8866-dfa9a917d9b8':
                     {
-                        'Lat_N2': 0.0,
+                        'Lat_N2': 29,285714285714285714285714285714,
                         'days': ['2023-09-09',
                                     '2023-09-10',
                                     '2023-09-11',
@@ -595,20 +635,31 @@ def get_n2_latency(
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None
-    average : :class:`bool`, optional
-        Whether to average N2 sleep latency over days, or to return the value for each day, by default False
+    kind : :class:`str` or None, optional
+        Whether to transform N2 latency over days, or to return the value for each day, by default None.
+        Valid options are:
+
+            - `mean`
+            - `std`
+            - `min`
+            - `max`
 
     Returns
     -------
     :class:`dict`
-        If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (as :class:`datetime.date`) as keys and N2 sleep latency as values.
-        If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `Lat_N2`
-        as key and its value, and an additional `days` keys that contains an array of all
-        calendar days over which the average was computed.
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and N2 latency as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `Lat_N2`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
     """
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_N2_LATENCY, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_N2_LATENCY,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -617,27 +668,24 @@ def get_n3_latency(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ) -> dict:
     """Get N3 sleep latency.
 
     This function computes the latency to the first stage of N3 sleep.
-    Depending on the value of the `average` parameter, this function
-    returns N3 sleep latency for each calendar day (`average=False`) from `start_date` to
-    `end_date` or the average value across all days (`average=True`).
+    Depending on the value of the ``kind`` parameter, this function
+    returns N3 latency for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter:
+
+        - `mean`: computes the average across days
+        - `std`: computes the standard deviation across days
+        - `min`: computes the minimum value across days
+        - `max`: computes the maximum value across days
 
     Example::
 
-        import pywearable.loader.base.BaseLoader
-        import pywearable.sleep
-        import datetime
-
-        loader = pywearable.loader.base.BaseLoader()
-        start_date = datetime.date(2023, 9, 9)
-        end_date = datetime.date.today()
-        user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
-
-        pylabfront.sleep.get_n3_latency(loader, user_id, start_date, end_date)
+        pywearable.sleep.get_n3_latency(loader, user_id, start_date, end_date)
 
         >> {'f457c562-2159-431c-8866-dfa9a917d9b8':
             datetime.date(2023, 9, 9): 6.0,
@@ -648,7 +696,7 @@ def get_n3_latency(
             datetime.date(2023, 9, 14): 19.0,
             datetime.date(2023, 9, 15): 15.0}
 
-        pylabfront.sleep.get_n3_latency(loader, user_id, start_date, end_date, average=True)
+        pywearable.sleep.get_n3_latency(loader, user_id, start_date, end_date, kind='mean')
         >> {
                 'f457c562-2159-431c-8866-dfa9a917d9b8':
                     {
@@ -674,20 +722,31 @@ def get_n3_latency(
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None
-    average : :class:`bool`, optional
-        Whether to average N3 sleep latency over days, or to return the value for each day, by default False
+    kind : :class:`str` or None, optional
+        Whether to transform N3 latency over days, or to return the value for each day, by default None.
+        Valid options are:
+
+            - `mean`
+            - `std`
+            - `min`
+            - `max`
 
     Returns
     -------
     :class:`dict`
-        If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (as :class:`datetime.date`) as keys and N3 sleep latency as values.
-        If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `Lat_N3`
-        as key and its value, and an additional `days` keys that contains an array of all
-        calendar days over which the average was computed.
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and N1 latency as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `Lat_N3`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
     """
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_N3_LATENCY, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_N3_LATENCY,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -696,27 +755,24 @@ def get_rem_latency(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ) -> dict:
     """Get REM sleep latency.
 
     This function computes the latency to the first stage of REM sleep.
-    Depending on the value of the `average` parameter, this function
-    returns REM sleep latency for each calendar day (`average=False`) from `start_date` to
-    `end_date` or the average value across all days (`average=True`).
+    Depending on the value of the ``kind`` parameter, this function
+    returns REM latency for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter:
+
+        - `mean`: computes the average across days
+        - `std`: computes the standard deviation across days
+        - `min`: computes the minimum value across days
+        - `max`: computes the maximum value across days
 
     Example::
 
-        import pywearable.loader.base.BaseLoader
-        import pywearable.sleep
-        import datetime
-
-        loader = pywearable.loader.base.BaseLoader()
-        start_date = datetime.date(2023, 9, 9)
-        end_date = datetime.date.today()
-        user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
-
-        pylabfront.sleep.get_rem_latency(loader, user_id, start_date, end_date)
+        pywearable.sleep.get_rem_latency(loader, user_id, start_date, end_date)
 
         >> {'f457c562-2159-431c-8866-dfa9a917d9b8':
             datetime.date(2023, 9, 9): 47.0,
@@ -727,7 +783,7 @@ def get_rem_latency(
             datetime.date(2023, 9, 14): 167.0,
             datetime.date(2023, 9, 15): 52.0}
 
-        pylabfront.sleep.get_rem_latency(loader, user_id, start_date, end_date, average=True)
+        pywearable.sleep.get_rem_latency(loader, user_id, start_date, end_date, kind='mean')
         >> {
                 'f457c562-2159-431c-8866-dfa9a917d9b8':
                     {
@@ -753,20 +809,31 @@ def get_rem_latency(
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None
-    average : :class:`bool`, optional
-        Whether to average REM sleep latency over days, or to return the value for each day, by default False
+    kind : :class:`str` or None, optional
+        Whether to transform REM latency over days, or to return the value for each day, by default None.
+        Valid options are:
+
+            - `mean`
+            - `std`
+            - `min`
+            - `max`
 
     Returns
     -------
     :class:`dict`
-        If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (as :class:`datetime.date`) as keys and REM sleep latency as values.
-        If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `Lat_REM`
-        as key and its value, and an additional `days` keys that contains an array of all
-        calendar days over which the average was computed.
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and REM latency as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `Lat_REM`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
     """
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_REM_LATENCY, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_REM_LATENCY,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -775,28 +842,25 @@ def get_n1_duration(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ) -> dict:
     """Get N1 sleep duration.
 
     This function returns the absolute time spent in N1 sleep stage for
-    the given user(s). Depending on the value of ``average``
-    parameter, the function returns N1 sleep time for each night (``average=False``),
-    or the average N1 sleep time from ``start_date`` to ``end_date`` (``average=True``).
-    Duration is reported in minutes.
+    the given user(s). Duration is reported in minutes.
+    Depending on the value of the ``kind`` parameter, this function
+    returns N1 duration for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter:
+
+        - `mean`: computes the average across days
+        - `std`: computes the standard deviation across days
+        - `min`: computes the minimum value across days
+        - `max`: computes the maximum value across days
 
     Example::
 
-        import pywearable.loader.base.BaseLoader
-        import pywearable.sleep
-        import datetime
-
-        loader = pywearable.loader.base.BaseLoader()
-        start_date = datetime.date(2023, 9, 9)
-        end_date = datetime.date.today()
-        user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
-
-        pylabfront.sleep.get_n1_duration(loader, user_id, start_date, end_date)
+        pywearable.sleep.get_n1_duration(loader, user_id, start_date, end_date)
 
         >> {'f457c562-2159-431c-8866-dfa9a917d9b8':
             datetime.date(2023, 9, 9): 280.0,
@@ -807,7 +871,7 @@ def get_n1_duration(
             datetime.date(2023, 9, 14): 233.0,
             datetime.date(2023, 9, 15): 295.0}
 
-        pylabfront.sleep.get_n1_duration(loader, user_id, start_date, end_date, average=True)
+        pywearable.sleep.get_n1_duration(loader, user_id, start_date, end_date, kind='mean')
         >> {
                 'f457c562-2159-431c-8866-dfa9a917d9b8':
                     {
@@ -837,22 +901,31 @@ def get_n1_duration(
         End date up to which sleep data should be extracted, by default None.
         If None is used, then the ``end_date`` will be the last day with available sleep data
         for the given ``user_id``, by default None
-    average : :class:`bool`, optional
-        Average N1 sleep across nights, by default False. If set to ``True``, then
-        the average N1 sleep from ``start_date`` to ``end_date`` is returned. Otherwise,
-        N1 sleep for each night from ``start_date`` to ``end_date`` is returned.
+    kind : :class:`str` or None, optional
+        Whether to transform N1 duration over days, or to return the value for each day, by default None.
+        Valid options are:
+
+            - `mean`
+            - `std`
+            - `min`
+            - `max`
 
     Returns
     -------
     :class:`dict`
-        If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (as :class:`datetime.date`) as keys and N1 sleep duration as values.
-        If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `N1`
-        as key and its value, and an additional `days` keys that contains an array of all
-        calendar days over which the average was computed.
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and N1 duration as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `N1`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
     """
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_N1_DURATION, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_N1_DURATION,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -861,30 +934,25 @@ def get_n2_duration(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ) -> dict:
     """Get N2 sleep duration.
 
     This function returns the absolute time spent in N2 sleep stage for
-    the given user(s). Depending on the value of ``average``
-    parameter, the function returns N2 sleep time for each night (``average=False``),
-    or the average N2 sleep time from ``start_date`` to ``end_date`` (``average=True``).
-    Duration is reported in minutes.
-    Beware that if Garmin data are used, then N2 sleep duration will always be equal to
-    nan as Garmin does not detect N2 sleep stages.
+    the given user(s). Duration is reported in minutes.
+    Depending on the value of the ``kind`` parameter, this function
+    returns N2 duration for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter:
+
+        - `mean`: computes the average across days
+        - `std`: computes the standard deviation across days
+        - `min`: computes the minimum value across days
+        - `max`: computes the maximum value across days
 
     Example::
 
-        import pywearable.loader.base.BaseLoader
-        import pywearable.sleep
-        import datetime
-
-        loader = pywearable.loader.base.BaseLoader()
-        start_date = datetime.date(2023, 9, 9)
-        end_date = datetime.date.today()
-        user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
-
-        pylabfront.sleep.get_n2_duration(loader, user_id, start_date, end_date)
+        pywearable.sleep.get_n2_duration(loader, user_id, start_date, end_date)
 
         >> {'f457c562-2159-431c-8866-dfa9a917d9b8':
             datetime.date(2023, 9, 9): nan,
@@ -895,7 +963,7 @@ def get_n2_duration(
             datetime.date(2023, 9, 14): nan,
             datetime.date(2023, 9, 15): nan}
 
-        pylabfront.sleep.get_n2_duration(loader, user_id, start_date, end_date, average=True)
+        pywearable.sleep.get_n2_duration(loader, user_id, start_date, end_date, kind='mean')
         >> {
                 'f457c562-2159-431c-8866-dfa9a917d9b8':
                     {
@@ -925,22 +993,31 @@ def get_n2_duration(
         End date up to which sleep data should be extracted, by default None.
         If None is used, then the ``end_date`` will be the last day with available sleep data
         for the given ``user_id``, by default None
-    average : :class:`bool`, optional
-        Average N2 sleep across nights, by default False. If set to ``True``, then
-        the average N2 sleep from ``start_date`` to ``end_date`` is returned. Otherwise,
-        N1 sleep for each night from ``start_date`` to ``end_date`` is returned.
+    kind : :class:`str` or None, optional
+        Whether to transform N2 duration over days, or to return the value for each day, by default None.
+        Valid options are:
+
+            - `mean`
+            - `std`
+            - `min`
+            - `max`
 
     Returns
     -------
     :class:`dict`
-        If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (as :class:`datetime.date`) as keys and N2 sleep duration as values.
-        If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `N2`
-        as key and its value, and an additional `days` keys that contains an array of all
-        calendar days over which the average was computed.
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and N2 duration as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `N2`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
     """
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_N2_DURATION, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_N2_DURATION,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -949,28 +1026,24 @@ def get_n3_duration(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ) -> dict:
     """Get N3 sleep duration.
 
     This function returns the absolute time spent in N3 sleep stage for
-    the given user(s). Depending on the value of ``average``
-    parameter, the function returns N3 sleep time for each night (``average=False``),
-    or the average N3 sleep time from ``start_date`` to ``end_date`` (``average=True``).
-    Duration is reported in minutes.
+    the given user(s). Depending on the value of the ``kind`` parameter, this function
+    returns N1 duration for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter:
+
+        - `mean`: computes the average across days
+        - `std`: computes the standard deviation across days
+        - `min`: computes the minimum value across days
+        - `max`: computes the maximum value across days
 
     Example::
 
-        import pywearable.loader.base.BaseLoader
-        import pywearable.sleep
-        import datetime
-
-        loader = pywearable.loader.base.BaseLoader()
-        start_date = datetime.date(2023, 9, 9)
-        end_date = datetime.date.today()
-        user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
-
-        pylabfront.sleep.get_n3_duration(loader, user_id, start_date, end_date)
+        pywearable.sleep.get_n3_duration(loader, user_id, start_date, end_date)
 
         >> {'f457c562-2159-431c-8866-dfa9a917d9b8':
             datetime.date(2023, 9, 9): 53.0,
@@ -981,7 +1054,7 @@ def get_n3_duration(
             datetime.date(2023, 9, 14): 76.0,
             datetime.date(2023, 9, 15): 83.0}
 
-        pylabfront.sleep.get_n3_duration(loader, user_id, start_date, end_date, average=True)
+        pywearable.sleep.get_n3_duration(loader, user_id, start_date, end_date, kind='mean')
         >> {
                 'f457c562-2159-431c-8866-dfa9a917d9b8':
                     {
@@ -1011,22 +1084,31 @@ def get_n3_duration(
         End date up to which sleep data should be extracted, by default None.
         If None is used, then the ``end_date`` will be the last day with available sleep data
         for the given ``user_id``, by default None
-    average : :class:`bool`, optional
-        Average N3 sleep across nights, by default False. If set to ``True``, then
-        the average N3 sleep from ``start_date`` to ``end_date`` is returned. Otherwise,
-        N1 sleep for each night from ``start_date`` to ``end_date`` is returned.
+    kind : :class:`str` or None, optional
+        Whether to transform N3 duration over days, or to return the value for each day, by default None.
+        Valid options are:
+
+            - `mean`
+            - `std`
+            - `min`
+            - `max`
 
     Returns
     -------
     :class:`dict`
-        If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (as :class:`datetime.date`) as keys and N3 sleep duration as values.
-        If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `N3`
-        as key and its value, and an additional `days` keys that contains an array of all
-        calendar days over which the average was computed.
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and N2 duration as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `N3`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
     """
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_N3_DURATION, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_N3_DURATION,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -1035,26 +1117,24 @@ def get_rem_duration(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ) -> dict:
     """Get REM sleep duration.
 
     This function returns the absolute time spent in REM sleep stage for
-    the given user(s). Depending on the value of ``average``
-    parameter, the function returns REM sleep time for each night (``average=False``),
-    or the average REM sleep time from ``start_date`` to ``end_date`` (``average=True``).
+    the given user(s). Depending on the value of the ``kind`` parameter, this function
+    returns REM duration for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter:
+
+        - `mean`: computes the average across days
+        - `std`: computes the standard deviation across days
+        - `min`: computes the minimum value across days
+        - `max`: computes the maximum value across days
+
     Duration is reported in minutes.
 
     Example::
-
-        import pywearable.loader.base.BaseLoader
-        import pywearable.sleep
-        import datetime
-
-        loader = pywearable.loader.base.BaseLoader()
-        start_date = datetime.date(2023, 9, 9)
-        end_date = datetime.date.today()
-        user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
 
         pylabfront.sleep.get_rem_duration(loader, user_id, start_date, end_date)
 
@@ -1067,7 +1147,7 @@ def get_rem_duration(
             datetime.date(2023, 9, 14): 93.0,
             datetime.date(2023, 9, 15): 116.0}
 
-        pylabfront.sleep.get_rem_duration(loader, user_id, start_date, end_date, average=True)
+        pylabfront.sleep.get_rem_duration(loader, user_id, start_date, end_date, kind='mean')
         >> {
                 'f457c562-2159-431c-8866-dfa9a917d9b8':
                     {
@@ -1097,22 +1177,31 @@ def get_rem_duration(
         End date up to which sleep data should be extracted, by default None.
         If None is used, then the ``end_date`` will be the last day with available sleep data
         for the given ``user_id``, by default None
-    average : :class:`bool`, optional
-        Average REM sleep across nights, by default False. If set to ``True``, then
-        the average REM sleep from ``start_date`` to ``end_date`` is returned. Otherwise,
-        N1 sleep for each night from ``start_date`` to ``end_date`` is returned.
+    kind : :class:`str` or None, optional
+        Whether to transform REM duration over days, or to return the value for each day, by default None.
+        Valid options are:
+
+            - `mean`
+            - `std`
+            - `min`
+            - `max`
 
     Returns
     -------
     :class:`dict`
-        If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (as :class:`datetime.date`) as keys and REM sleep duration as values.
-        If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `REM`
-        as key and its value, and an additional `days` keys that contains an array of all
-        calendar days over which the average was computed.
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and REM duration as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `REM`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
     """
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_REM_DURATION, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_N3_DURATION,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -1121,28 +1210,26 @@ def get_nrem_duration(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ) -> dict:
     """Get NREM sleep duration.
 
     This function returns the absolute time spent in NREM sleep stage for
-    the given user(s). Depending on the value of ``average``
-    parameter, the function returns NREM sleep time for each night (``average=False``),
-    or the average NREM sleep time from ``start_date`` to ``end_date`` (``average=True``).
+    the given user(s). Depending on the value of the ``kind`` parameter, this function
+    returns N1 duration for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter:
+
+        - `mean`: computes the average across days
+        - `std`: computes the standard deviation across days
+        - `min`: computes the minimum value across days
+        - `max`: computes the maximum value across days
+
     Duration is reported in minutes.
 
     Example::
 
-        import pywearable.loader.base.BaseLoader
-        import pywearable.sleep
-        import datetime
-
-        loader = pywearable.loader.base.BaseLoader()
-        start_date = datetime.date(2023, 9, 9)
-        end_date = datetime.date.today()
-        user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
-
-        pylabfront.sleep.get_nrem_duration(loader, user_id, start_date, end_date)
+        pywearable.sleep.get_nrem_duration(loader, user_id, start_date, end_date)
 
         >> {'f457c562-2159-431c-8866-dfa9a917d9b8':
             datetime.date(2023, 9, 9): 333.0,
@@ -1153,7 +1240,7 @@ def get_nrem_duration(
             datetime.date(2023, 9, 14): 309.0,
             datetime.date(2023, 9, 15): 433.0}
 
-        pylabfront.sleep.get_nrem_duration(loader, user_id, start_date, end_date, average=True)
+        pywearable.sleep.get_nrem_duration(loader, user_id, start_date, end_date, kind='mean')
         >> {
                 'f457c562-2159-431c-8866-dfa9a917d9b8':
                     {
@@ -1174,31 +1261,40 @@ def get_nrem_duration(
     loader : :class:`pywearable.loader.base.BaseLoader`
         Initialized instance of :class:`pywearable.loader.base.BaseLoader`, required in order to properly load data.
     user_id : :class:`str` or :class:`list`, optional
-        IDs of the users for which NREM sleep data have to be extracted, by default "all"
+        IDs of the users for which sleep data have to be extracted, by default "all".
     start_date : :class:`datetime.datetime`, optional
         Start date from which sleep data should be extracted, by default None.
-        If None is used, then the ``start_date`` will be the first day with available sleep data
+        If None is used, then the ``start_date`` will be the first day with available sleep data.
         for the given ``user_id``, by default None
     end_date : :class:`datetime.datetime`, optional
         End date up to which sleep data should be extracted, by default None.
-        If None is used, then the ``end_date`` will be the last day with available sleep data
+        If None is used, then the ``end_date`` will be the last day with available sleep data.
         for the given ``user_id``, by default None
-    average : :class:`bool`, optional
-        Average NREM sleep across nights, by default False. If set to ``True``, then
-        the average NREM sleep from ``start_date`` to ``end_date`` is returned. Otherwise,
-        N1 sleep for each night from ``start_date`` to ``end_date`` is returned.
+    kind : :class:`str` or None, optional
+        Whether to transform NREM duration over days, or to return the value for each day, by default None.
+        Valid options are:
+
+            - `mean`
+            - `std`
+            - `min`
+            - `max`
 
     Returns
     -------
     :class:`dict`
-        If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (as :class:`datetime.date`) as keys and NREM sleep duration as values.
-        If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `NREM`
-        as key and its value, and an additional `days` keys that contains an array of all
-        calendar days over which the average was computed.
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and NREM duration as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `NREM`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
     """
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_NREM_DURATION, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_NREM_DURATION,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -1207,28 +1303,26 @@ def get_awake_duration(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ) -> dict:
     """Get awake sleep duration.
 
     This function returns the absolute time spent in awake stage for
-    the given user(s). Depending on the value of ``average``
-    parameter, the function returns awake time for each night (``average=False``),
-    or the average awake time from ``start_date`` to ``end_date`` (``average=True``).
+    the given user(s). Depending on the value of the ``kind`` parameter, this function
+    returns awake duration for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter:
+
+        - `mean`: computes the average across days
+        - `std`: computes the standard deviation across days
+        - `min`: computes the minimum value across days
+        - `max`: computes the maximum value across days
+
     Duration is reported in minutes.
 
     Example::
 
-        import pywearable.loader.base.BaseLoader
-        import pywearable.sleep
-        import datetime
-
-        loader = pywearable.loader.base.BaseLoader()
-        start_date = datetime.date(2023, 9, 9)
-        end_date = datetime.date.today()
-        user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
-
-        pylabfront.sleep.get_awake_duration(loader, user_id, start_date, end_date)
+        pywearable.sleep.get_awake_duration(loader, user_id, start_date, end_date)
 
         >> {'f457c562-2159-431c-8866-dfa9a917d9b8':
             datetime.date(2023, 9, 9): 4.0,
@@ -1239,7 +1333,7 @@ def get_awake_duration(
             datetime.date(2023, 9, 14): 0.0,
             datetime.date(2023, 9, 15): 5.0}
 
-        pylabfront.sleep.get_awake_duration(loader, user_id, start_date, end_date, average=True)
+        pywearable.sleep.get_awake_duration(loader, user_id, start_date, end_date, kind='mean')
         >> {
                 'f457c562-2159-431c-8866-dfa9a917d9b8':
                     {
@@ -1260,7 +1354,7 @@ def get_awake_duration(
     loader : :class:`pywearable.loader.base.BaseLoader`
         Initialized instance of :class:`pywearable.loader.base.BaseLoader`, required in order to properly load data.
     user_id : :class:`str` or :class:`list`, optional
-        IDs of the users for which awake data have to be extracted, by default "all"
+        IDs of the users for which sleep data have to be extracted, by default "all"
     start_date : :class:`datetime.datetime`, optional
         Start date from which sleep data should be extracted, by default None.
         If None is used, then the ``start_date`` will be the first day with available sleep data
@@ -1269,22 +1363,31 @@ def get_awake_duration(
         End date up to which sleep data should be extracted, by default None.
         If None is used, then the ``end_date`` will be the last day with available sleep data
         for the given ``user_id``, by default None
-    average : :class:`bool`, optional
-        Average awake time across nights, by default False. If set to ``True``, then
-        the average awake time sleep from ``start_date`` to ``end_date`` is returned. Otherwise,
-        awake time for each night from ``start_date`` to ``end_date`` is returned.
+    kind : :class:`str` or None, optional
+        Whether to transform awake duration over days, or to return the value for each day, by default None.
+        Valid options are:
+
+            - `mean`
+            - `std`
+            - `min`
+            - `max`
 
     Returns
     -------
     :class:`dict`
-        If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (as :class:`datetime.date`) as keys and awake duration as values.
-        If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `AWAKE`
-        as key and its value, and an additional `days` keys that contains an array of all
-        calendar days over which the average was computed.
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and awake duration as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `AWAKE`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
     """
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_AWAKE_DURATION, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_AWAKE_DURATION,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -1293,28 +1396,26 @@ def get_unmeasurable_duration(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ) -> dict:
     """Get unmeasurable sleep duration.
 
     This function returns the absolute time spent in unmeasurable sleep stage for
-    the given user(s). Depending on the value of ``average``
-    parameter, the function returns unmeasurable sleep time for each night (``average=False``),
-    or the average unmeasurable sleep time from ``start_date`` to ``end_date`` (``average=True``).
+    the given user(s). Depending on the value of the ``kind`` parameter, this function
+    returns unmeasurable sleep duration for each calendar day (``kind=None``)
+    from ``start_date`` to ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter:
+
+        - `mean`: computes the average across days
+        - `std`: computes the standard deviation across days
+        - `min`: computes the minimum value across days
+        - `max`: computes the maximum value across days
+
     Duration is reported in minutes.
 
     Example::
 
-        import pywearable.loader.base.BaseLoader
-        import pywearable.sleep
-        import datetime
-
-        loader = pywearable.loader.base.BaseLoader()
-        start_date = datetime.date(2023, 9, 9)
-        end_date = datetime.date.today()
-        user_id = "f457c562-2159-431c-8866-dfa9a917d9b8"
-
-        pylabfront.sleep.get_unmeasurable_duration(loader, user_id, start_date, end_date)
+        pywearable.sleep.get_unmeasurable_duration(loader, user_id, start_date, end_date)
 
         >> {'f457c562-2159-431c-8866-dfa9a917d9b8':
             datetime.date(2023, 9, 9): 0.0,
@@ -1325,7 +1426,7 @@ def get_unmeasurable_duration(
             datetime.date(2023, 9, 14): 0.0,
             datetime.date(2023, 9, 15): 0.0}
 
-        pylabfront.sleep.get_unmeasurable_duration(loader, user_id, start_date, end_date, average=True)
+        pywearable.sleep.get_unmeasurable_duration(loader, user_id, start_date, end_date, kind='mean')
         >> {
                 'f457c562-2159-431c-8866-dfa9a917d9b8':
                     {
@@ -1346,7 +1447,7 @@ def get_unmeasurable_duration(
     loader : :class:`pywearable.loader.base.BaseLoader`
         Initialized instance of :class:`pywearable.loader.base.BaseLoader`, required in order to properly load data.
     user_id : :class:`str` or :class:`list`, optional
-        IDs of the users for which unmeasurable sleep data have to be extracted, by default "all"
+        IDs of the users for which sleep data have to be extracted, by default "all"
     start_date : :class:`datetime.datetime`, optional
         Start date from which sleep data should be extracted, by default None.
         If None is used, then the ``start_date`` will be the first day with available sleep data
@@ -1355,27 +1456,31 @@ def get_unmeasurable_duration(
         End date up to which sleep data should be extracted, by default None.
         If None is used, then the ``end_date`` will be the last day with available sleep data
         for the given ``user_id``, by default None
-    average : :class:`bool`, optional
-        Average NREM sleep across nights, by default False. If set to ``True``, then
-        the average NREM sleep from ``start_date`` to ``end_date`` is returned. Otherwise,
-        N1 sleep for each night from ``start_date`` to ``end_date`` is returned.
+    kind : :class:`str` or None, optional
+        Whether to transform unmeasurable sleep duration over days, or to return the value for each day, by default None.
+        Valid options are:
+
+            - `mean`
+            - `std`
+            - `min`
+            - `max`
 
     Returns
     -------
     :class:`dict`
-        If ``average==False``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (as :class:`datetime.date`) as keys and unmeasurable sleep duration as values.
-        If ``average==True``, dictionary with ``user_id`` as key, and a nested dictionary with `UNMEASURABLE`
-        as key and its value, and an additional `days` keys that contains an array of all
-        calendar days over which the average was computed.
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and unmeasurable sleep duration as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `UNMEASURABLE`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
     """
     return get_sleep_statistic(
-        loader,
-        user_id,
-        _SLEEP_METRIC_UNMEASURABLE_DURATION,
-        start_date,
-        end_date,
-        average,
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_UNMEASURABLE_DURATION,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -1384,10 +1489,15 @@ def get_n1_percentage(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ):
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_N1_PERCENTAGE, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_N1_PERCENTAGE,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -1396,10 +1506,15 @@ def get_n2_percentage(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ):
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_N2_PERCENTAGE, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_N2_PERCENTAGE,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -1408,10 +1523,15 @@ def get_n3_percentage(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ):
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_N3_PERCENTAGE, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_N3_PERCENTAGE,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -1420,10 +1540,15 @@ def get_rem_percentage(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ):
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_REM_PERCENTAGE, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_REM_PERCENTAGE,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -1432,10 +1557,15 @@ def get_nrem_percentage(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ):
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_NREM_PERCENTAGE, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_NREM_PERCENTAGE,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -1444,10 +1574,15 @@ def get_wake_after_sleep_onset(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ):
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_WASO, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_WASO,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -1456,10 +1591,15 @@ def get_sleep_onset_latency(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ):
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_SOL, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_SOL,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
@@ -1468,10 +1608,15 @@ def get_sleep_score(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
+    kind: Union[str, None] = None,
 ):
     return get_sleep_statistic(
-        loader, user_id, _SLEEP_METRIC_SLEEP_SCORE, start_date, end_date, average
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_SLEEP_SCORE,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
     )
 
 
