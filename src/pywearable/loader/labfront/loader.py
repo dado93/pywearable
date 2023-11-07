@@ -2009,8 +2009,8 @@ class LabfrontLoader(BaseLoader):
         self,
         metric: str,
         user_id: str,
-        start_date: datetime.datetime | datetime.date | str | None = None,
-        end_date: datetime.datetime | datetime.date | str | None = None,
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
         source="health_api",
     ):
         try:
@@ -2029,8 +2029,8 @@ class LabfrontLoader(BaseLoader):
     def load_heart_rate(
         self,
         user_id: str,
-        start_date: datetime.datetime | datetime.date | str | None = None,
-        end_date: datetime.datetime | datetime.date | str | None = None,
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
         source="health_api",
     ) -> pd.DataFrame:
         return self.load_metric(
@@ -2044,8 +2044,8 @@ class LabfrontLoader(BaseLoader):
     def load_stress(
         self,
         user_id: str,
-        start_date: datetime.datetime | datetime.date | str | None = None,
-        end_date: datetime.datetime | datetime.date | str | None = None,
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
         source="health_api",
     ) -> pd.DataFrame:
         return self.load_metric(
