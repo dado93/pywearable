@@ -1373,6 +1373,7 @@ class LabfrontLoader(BaseLoader):
                     constants._TIMEZONEOFFSET_IN_MS_COL,
                     constants._UNIXTIMESTAMP_IN_MS_COL,
                     constants._ISODATE_COL,
+                    constants._CALENDAR_DATE_COL,
                     constants._DURATION_IN_MS_COL,
                     constants._SLEEP_SUMMARY_N1_SLEEP_DURATION_IN_MS_COL,
                     constants._SLEEP_SUMMARY_N2_SLEEP_DURATION_IN_MS_COL,

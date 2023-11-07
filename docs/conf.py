@@ -11,7 +11,7 @@ import sys
 
 import sphinx_rtd_theme
 
-sys.path.insert(0, os.path.abspath(".."))
+sys.path.insert(0, os.path.abspath("../src/"))
 
 project = "pywearable"
 copyright = "2023, Davide Marzorati"
@@ -35,7 +35,7 @@ html_static_path = ["_static"]
 intersphinx_mapping = {
     "python": ("https://docs.python.org/", None),
     "numpy": ("http://docs.scipy.org/doc/numpy/", None),
-    "pandas": ("https://pandas.pydata.org/docs/reference/index.html", None),
+    "pandas": ("https://pandas.pydata.org/docs/", None),
 }
 
 napoleon_google_docstring = False
