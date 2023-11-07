@@ -1,10 +1,17 @@
 import datetime
+import warnings
 from typing import Union
 
 import numpy as np
 import pandas as pd
-import pymongo
-from bson.objectid import ObjectId
+
+try:
+    import pymongo
+    from bson.objectid import ObjectId
+except ImportError:
+    warnings.warn(
+        "pymongo is required when using LifeSnapsLoader", category=ImportWarning
+    )
 
 from ... import constants, utils
 from ..base import BaseLoader
@@ -39,6 +46,10 @@ class LifeSnapsLoader(BaseLoader):
     """
 
     def __init__(self, host: str = "localhost", port: int = 27017):
+        try:
+            import pymongo
+        except ImportError:
+            raise ("pymongo is required to use LifeSnapsLoader.")
         self.host = host
         self.port = port
         self.client = pymongo.MongoClient(self.host, self.port)
