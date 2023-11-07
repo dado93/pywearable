@@ -1906,10 +1906,11 @@ def get_rem_count(
 
 def get_cpd(
     loader: BaseLoader,
-    user: Union[str, None] = None,
+    user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     sleep_metric: str = "midpoint",
+    chronotype_dict : Union[dict, None] = None,
     chronotype_sleep_start: str = "00:00",
     chronotype_sleep_end: str = "08:00",
     days_to_consider: int = 28,
@@ -1927,14 +1928,14 @@ def get_cpd(
 
     Parameters
     ----------
-    loader : :class:`pylabfront.loader.Loader`
-        Initialized instance of data loader.
-    user : :class:`str`, optional
-        ID of the user for which CPD is computed, by default None.
-    start_date : :class:`datetime.datetime`, optional
-        Start date from which to compute CPD, by default None.
-    end_date : :class:`datetime.datetime`, optional
-        End date until which to compute CPD, by default None.
+    loader : `pywearable.loader.base.BaseLoader`
+        An instance of a data loader.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) for which CPD must be retrieved, by default "all"
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None.
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None
     sleep_metric : :class:`str`, optional
         the metric for the computation of CPD, can be either "midpoint" or "duration", by default "midpoint"
     chronotype_sleep_start : :class:`str`, optional
@@ -1960,10 +1961,15 @@ def get_cpd(
     `user` isn't specified.
     """
 
-    if user is None:
-        raise ValueError("Specify a user")
+    data_dict = {}
+    user_id = utils.get_user_ids(loader, user_id)
 
-    user = loader.get_full_id(user)
+    if chronotype_dict is None:
+        raise ValueError(f"Must specify the chronotype for all users of interest.")
+
+    for user in user_id:
+        #chronotype_sleep_start = chronotype_dict[loader.get_]
+        pass
 
     if sleep_metric == "midpoint":
         # define what is the expected midpoint based on the chronotype
