@@ -1199,7 +1199,7 @@ def get_rem_duration(
     return get_sleep_statistic(
         loader=loader,
         user_id=user_id,
-        metric=_SLEEP_METRIC_N3_DURATION,
+        metric=_SLEEP_METRIC_REM_DURATION,
         start_date=start_date,
         end_date=end_date,
         kind=kind,
@@ -3362,7 +3362,7 @@ def _compute_cpd_midpoint(sleep_summary: pd.DataFrame,
                 sleep_summary[constants._UNIXTIMESTAMP_IN_MS_COL]
                 + sleep_summary[constants._TIMEZONEOFFSET_IN_MS_COL]
                 + sleep_summary[constants._DURATION_IN_MS_COL]
-                + sleep_summary[constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL],
+                + sleep_summary[constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL].fillna(0),
                 unit="ms",
                 utc=True,
             ).dt.tz_localize(None)
@@ -3412,6 +3412,7 @@ def _compute_cpd_midpoint(sleep_summary: pd.DataFrame,
                 calendar_date.day,
                 hour=previous_midpoint.hour,
                 minute=previous_midpoint.minute,
+                second=previous_midpoint.second
             )
 
             if 14 < previous_day_midpoint_proxy.hour < 24:
@@ -3439,17 +3440,8 @@ def _compute_cpd_duration(sleep_summary: pd.DataFrame,
 
     durations = (
             sleep_summary[
-                constants._SLEEP_SUMMARY_N1_SLEEP_DURATION_IN_MS_COL
-            ].fillna(0)
-            + sleep_summary[
-                constants._SLEEP_SUMMARY_N2_SLEEP_DURATION_IN_MS_COL
-            ].fillna(0)
-            + sleep_summary[
-                constants._SLEEP_SUMMARY_N3_SLEEP_DURATION_IN_MS_COL
-            ].fillna(0)
-            + sleep_summary[
-                constants._SLEEP_SUMMARY_REM_SLEEP_DURATION_IN_MS_COL
-            ].fillna(0)
+                constants._SLEEP_STAGE_DURATION_IN_MS_COL
+            ]
         ) / (
             1000 * 60 * 60
         )  # convert from ms to hours

@@ -105,7 +105,7 @@ def test_compute_sleep_efficiency(sleep_summary, sleep_stages):
 
 
 def test_compute_total_sleep_time(sleep_summary, sleep_stages):
-    tst = pywearable.sleep._compute_total_sleep_time(sleep_summary, sleep_stages)
+    tst = pywearable.sleep._compute_total_sleep_time(sleep_summary=sleep_summary, sleep_stages=sleep_stages)
     correct_tst = pd.Series(
         [436.0, 366.0, 446.0, 385.0],
         index=[
@@ -122,7 +122,7 @@ def test_compute_total_sleep_time(sleep_summary, sleep_stages):
 def test_compute_sleep_maintenance_efficiency(sleep_summary, sleep_stages):
     sleep_maintenance_efficiency = (
         pywearable.sleep._compute_sleep_maintenance_efficiency(
-            sleep_summary, sleep_stages
+            sleep_summary=sleep_summary, sleep_stages=sleep_stages
         )
     )
     assert type(sleep_maintenance_efficiency) == pd.Series
@@ -220,7 +220,7 @@ def test_compute_sleep_period_time(
 
 def test_compute_unmeasurable_duration(sleep_summary: pd.DataFrame):
     unmeasurable_duration = pywearable.sleep._compute_unmeasurable_duration(
-        sleep_summary, sleep_stages
+        sleep_summary=sleep_summary, sleep_stages=sleep_stages
     )
     assert type(unmeasurable_duration) == pd.Series
     # Check sleep onset latency for given sleep summaries
@@ -279,3 +279,118 @@ def test_compute_rem_count(sleep_summary: pd.DataFrame, sleep_stages: pd.DataFra
     counts = pywearable.sleep._compute_rem_count(sleep_summary, sleep_stages)
     assert type(counts) == pd.Series
     assert counts.loc["x4c64722-64595538-6630"] == 3.0
+
+
+def test_compute_cpd_midpoint(sleep_summary: pd.DataFrame):
+    sleep_summary.calendarDate = sleep_summary.calendarDate.apply(lambda x: pd.to_datetime(x)).dt.date
+    sol = pywearable.sleep._compute_cpd_midpoint(sleep_summary, ("22:30","06:00"))
+    assert type(sol) == pd.Series
+    pandas.testing.assert_series_equal(
+        sol,
+        pd.Series(
+            [0.475, 0.683, 0.987, 1.921],
+            index=[
+                "x4c64722-64595538-6630",
+                "x4c64722-645ab9b4-55c8",
+                "x4c64722-645bf6d0-6888",
+                "x4c64722-645d63f8-5c94",
+            ],
+        ),
+        check_dtype=False,
+        check_names=False,
+        check_exact=False,
+        atol=0.01
+    )
+    sol2 = pywearable.sleep._compute_cpd_midpoint(sleep_summary, ("23:30","07:00"))
+    assert type(sol2) == pd.Series
+    pandas.testing.assert_series_equal(
+        sol2,
+        pd.Series(
+            [1.475, 1.049, 1.781, 1.625],
+            index=[
+                "x4c64722-64595538-6630",
+                "x4c64722-645ab9b4-55c8",
+                "x4c64722-645bf6d0-6888",
+                "x4c64722-645d63f8-5c94",
+            ],
+        ),
+        check_dtype=False,
+        check_names=False,
+        check_exact=False,
+        atol=0.01
+    )
+    sol3 = pywearable.sleep._compute_cpd_midpoint(sleep_summary, None)
+    assert type(sol3) == pd.Series
+    pandas.testing.assert_series_equal(
+        sol3,
+        pd.Series(
+            [0.492, 0.679, 0.997, 1.912],
+            index=[
+                "x4c64722-64595538-6630",
+                "x4c64722-645ab9b4-55c8",
+                "x4c64722-645bf6d0-6888",
+                "x4c64722-645d63f8-5c94",
+            ],
+        ),
+        check_dtype=False,
+        check_names=False,
+        check_exact=False,
+        atol=0.01
+    )
+
+def test_compute_cpd_duration(sleep_summary: pd.DataFrame):
+    sleep_summary.calendarDate = sleep_summary.calendarDate.apply(lambda x: pd.to_datetime(x)).dt.date
+    sol = pywearable.sleep._compute_cpd_duration(sleep_summary, ("22:30","06:00"))
+    assert type(sol) == pd.Series
+    pandas.testing.assert_series_equal(
+        sol,
+        pd.Series(
+            [0.233, 1.822, 1.335, 1.250],
+            index=[
+                "x4c64722-64595538-6630",
+                "x4c64722-645ab9b4-55c8",
+                "x4c64722-645bf6d0-6888",
+                "x4c64722-645d63f8-5c94",
+            ],
+        ),
+        check_dtype=False,
+        check_names=False,
+        check_exact=False,
+        atol=0.01
+    )
+    sol2 = pywearable.sleep._compute_cpd_duration(sleep_summary, ("22:45","07:00"))
+    assert type(sol2) == pd.Series
+    pandas.testing.assert_series_equal(
+        sol2,
+        pd.Series(
+            [0.983, 2.446, 1.564, 1.871],
+            index=[
+                "x4c64722-64595538-6630",
+                "x4c64722-645ab9b4-55c8",
+                "x4c64722-645bf6d0-6888",
+                "x4c64722-645d63f8-5c94",
+            ],
+        ),
+        check_dtype=False,
+        check_names=False,
+        check_exact=False,
+        atol=0.01
+    )
+    sol3 = pywearable.sleep._compute_cpd_duration(sleep_summary, None)
+    assert type(sol3) == pd.Series
+    pandas.testing.assert_series_equal(
+        sol3,
+        pd.Series(
+            [0.421, 1.385, 1.457, 0.890],
+            index=[
+                "x4c64722-64595538-6630",
+                "x4c64722-645ab9b4-55c8",
+                "x4c64722-645bf6d0-6888",
+                "x4c64722-645d63f8-5c94",
+            ],
+        ),
+        check_dtype=False,
+        check_names=False,
+        check_exact=False,
+        atol=0.01
+    )
