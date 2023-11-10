@@ -145,7 +145,7 @@ def get_cardiac_statistic(
 
     for user in user_id:
         try:
-            daily_summary_data = loader.load_garmin_connect_daily_summary(
+            daily_summary_data = loader.load_daily_summary(
                 user, start_date, end_date
             )
             if len(daily_summary_data) > 0:
