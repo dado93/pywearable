@@ -7,8 +7,14 @@ _METRIC_SLEEP_STAGE = "sleep-stage"
 #          CSV FILES - COLUMN NAMES             #
 #################################################
 # General columns #
+
+#: Column for date in ISO format
 _ISODATE_COL = "isoDate"
+
+#: Column for unix timestamp in milliseconds
 _UNIXTIMESTAMP_IN_MS_COL = "unixTimestampInMs"
+
+#: Column for timezone offset in milliseconds
 _TIMEZONEOFFSET_IN_MS_COL = "timezoneOffsetInMs"
 _CALENDAR_DATE_COL = "calendarDate"
 _SLEEP_SUMMARY_ID_COL = "sleepSummaryId"
