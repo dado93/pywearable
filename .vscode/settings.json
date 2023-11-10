@@ -8,9 +8,8 @@
     "autoDocstring.docstringFormat": "numpy",
     "autoDocstring.includeExtendedSummary": true,
     "python.testing.pytestArgs": [
-        "tests"
+        "."
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
-    "materialkv.pythonFile": "main.py",
 }

@@ -99,7 +99,7 @@ def get_time_in_bed(
 
     Parameters
     ----------
-    loader : `pywearable.loader.base.BaseLoader`
+    loader : :class:`pywearable.loader.base.BaseLoader`
         An instance of a data loader.
     user_id : :class:`str` or :class:`list`, optional
         The id(s) for which TIB must be retrieved, by default "all"
@@ -186,7 +186,7 @@ def get_sleep_period_time(
 
     Parameters
     ----------
-    loader : `pywearable.loader.base.BaseLoader()`
+    loader : :class:`pywearable.loader.base.BaseLoader`
         An instance of a data loader.
     user_id : :class:`str` or :class:`list`, optional
         The id(s) for which SPT must be retrieved, by default "all".
@@ -274,7 +274,7 @@ def get_total_sleep_time(
 
     Parameters
     ----------
-    loader : :class:`loader.LabfrontLoader`
+    loader : :class:`pywearable.loader.base.BaseLoader`
         An instance of a data loader.
     user_id : :class:`str` or :class:`list`, optional
         The id(s) for which TST must be retrieved, by default "all".

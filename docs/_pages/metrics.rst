@@ -5,7 +5,7 @@ Metrics and Data Format
 
 This page describes all the metrics that are available to be used in the `pywearable` package.
 By metrics, we mean either a measurement (e.g., heart rate, oxygen saturation, ...) and processed measurements
-(e.g., sleep summary, daily summary, ...). The class :class:`pywearable.loader.labfront.loader.BaseLoader` defines
+(e.g., sleep summary, daily summary, ...). The class :class:`pywearable.loader.BaseLoader` defines
 the loading functions that have to be implemented by the loaders and that support the metrics described
 here below. All the metrics are then returned by the loading functions as |dataframe|.
 The loading functions are then used in all the other sub-modules for analysis and visualization purposes.
@@ -25,45 +25,59 @@ The required fields for this metric are the following ones:
     * - Name
       - Description
       - Constant
+      - Type
     * - sleepSummaryId
       - Unique identifier for a single sleep summary
       - ``pywearable.constants._SLEEP_SUMMARY_ID_COL``
+      -
     * - calendarDate
       - Calendar date to which the sleep summary refers to. Date format is 'yyyy-mm-dd'
       - ``pywearable.constants._CALENDAR_DATE_COL``
+      - :class:`datetime.date`
     * - timezoneOffsetInMs
       - Timezone offset in milliseconds of the sleep start time
       - ``pywearable.constants._TIMEZONEOFFSET_IN_MS_COL``
+      - :class:`int`
     * - unixTimestampInMs
       - Unix timestamp in milliseconds of the sleep start time
       - ``pywearable.constants._UNIXTIMESTAMP_IN_MS_COL``
+      - :class:`int`
     * - isoDate
       - Sleep start time in `ISO <https://en.wikipedia.org/wiki/ISO_8601>`__ format
-      - ``pywearable.constants._ISODATE_COL``
+      - :const:`pywearable.constants._ISODATE_COL`
+      -
     * - durationInMs
       - Overall sleep duration in milliseconds, **without** counting awake stages
       - ``pywearable.constants._DURATION_IN_MS_COL``
+      - :class:`int`
     * - n1SleepDurationInMs
       - Duration of N1 sleep stage in milliseconds
       - ``pywearable.constants._SLEEP_SUMMARY_N1_SLEEP_DURATION_IN_MS_COL``
+      - :class:`int`
     * - n2SleepDurationInMs
       - Duration of N2 sleep stage in milliseconds
       - ``pywearable.constants._SLEEP_SUMMARY_N2_SLEEP_DURATION_IN_MS_COL``
+      - :class:`int`
     * - n3SleepDurationInMs
       - Duration of N3 sleep stage in milliseconds
       - ``pywearable.constants._SLEEP_SUMMARY_N3_SLEEP_DURATION_IN_MS_COL``
+      - :class:`int`
     * - remSleepDurationInMs
       - Duration of REM sleep stage in milliseconds
       - ``pywearable.constants._SLEEP_SUMMARY_N3_SLEEP_DURATION_IN_MS_COL``
+      - :class:`int`
     * - unmeasurableSleepDurationInMs
       - Duration of unmeasurable (i.e., artifacts, movements, ...) in milliseconds
       - ``pywearable.constants._SLEEP_SUMMARY_UNMEASURABLE_SLEEP_DURATION_IN_MS_COL``
+      - :class:`int`
     * - awakeDurationInMs
       - Duration of awake stages in milliseconds
       - ``pywearable.constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL``
+      - :class:`int`
     * - overallSleepScore
       - Overall sleep score (0-100)
       - ``pywearable.constants._SLEEP_SUMMARY_SLEEP_SCORE_COL``
+      - :class:`int`
 
 If one of the metric is not available for a given loader, the column must
 still be present in the returned |dataframe| but empty (i.e., `nan`) values
@@ -108,7 +122,7 @@ An example of a sleep-summary is shown in the table below.
      - 4560000
      - 840000
      - 120000
-     - 
+     - 80
    * - x35bda69-64f8eae4-6630
      - 2023-09-07
      - 7200000
@@ -121,7 +135,7 @@ An example of a sleep-summary is shown in the table below.
      - 3900000
      - 0
      - 12000
-     - 
+     - 75
    * - x35bda69-64f8eae4-666c
      - 2023-09-07
      - 7200000
@@ -134,7 +148,7 @@ An example of a sleep-summary is shown in the table below.
      - 3720000
      - 0
      - 6000
-     - 
+     - 85
 
 sleep-stage
 =============
@@ -245,6 +259,33 @@ An example of a sleep-stage is shown in the table below.
 
 steps
 =====
+The steps metric contains information about the recorded steps as measured
+by the wearable. Each row of the returned |dataframe| represents the measured
+steps and the amount of type to which the measured steps refer to.
+
+The required fields for the steps are the following ones:
+
+.. list-table:: Steps fields
+    :header-rows: 1
+    
+    * - Name
+      - Description
+      - Constant
+    * - timezoneOffsetInMs
+      - Timezone offset in milliseconds of the steps start time
+      - ``pywearable.constants._TIMEZONEOFFSET_IN_MS_COL``
+    * - unixTimestampInMs
+      - Unix timestamp in milliseconds of the steps start time
+      - ``pywearable.constants._UNIXTIMESTAMP_IN_MS_COL``
+    * - isoDate
+      - Steps start time in `ISO <https://en.wikipedia.org/wiki/ISO_8601>`_ format
+      - ``pywearable.constants._ISODATE_COL``
+    * - durationInMs
+      - Duration in milliseconds of the collected
+      - ``pywearable.constants._DURATION_IN_MS_COL``
+    * - steps
+      - Amount of steps recorded from 
+      - ``pywearable.constants._STEPS_COL``
 
 daily-summary
 =============

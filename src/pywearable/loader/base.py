@@ -5,8 +5,7 @@ import pandas as pd
 
 
 class BaseLoader:
-    def get_user_ids(self) -> list:
-        pass
+    """Abstract class for the implementation of loader classes."""
 
     def load_daily_summary(
         self,
@@ -38,4 +37,7 @@ class BaseLoader:
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
+        pass
+
+    def get_user_ids(self) -> list:
         pass
