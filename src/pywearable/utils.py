@@ -509,26 +509,30 @@ def filter_bbi(
     return bbi
 
 
-def filter_out_awake_bbi(loader, user, bbi_df, date, resolution=1):
-    """Filters out night bbi data relative to periods where the user was awake
+def filter_out_awake(loader : BaseLoader,
+                         user : str,
+                         df : pd.DataFrame,
+                         date : datetime.date,
+                         resolution: int = 1):
+    """Filters out night data relative to periods where the user was awake
 
     Parameters
     ----------
-    loader : :class:`pylabfront.loader.Loader`
+    loader : :class:`pywearable.loader.base.BaseLoader`
         Initialized instance of data loader.
     user : class:`str`
-        ID of the user for which bbi data has to be filtered.
-    bbi_df : class:`pandas.DataFrame`
-        DataFrame of bbi data
-    date : class:`pandas.Timestamp`
-        Timestamp of the date relative to the night in consideration.
-    resolution : class:`int`
-        Resolution of the hypnogram used to find awakening periods
+        ID of the user for which data has to be filtered.
+    df : class:`pandas.DataFrame`
+        DataFrame of the data to filter, must contain an isoDate column
+    date : class:`datetime.date`
+        Date relative to the night in consideration.
+    resolution : class:`int`, optional
+        Resolution of the hypnogram used to find awake periods, by default 1
 
     Returns
     -------
-    pandas.DataFrame
-    DataFrame in the same format of `bbi_df`, including only bbi data of periods when the participant is asleep.
+    :class:`pandas.DataFrame`
+        Filtered version of the original `df`, including only data of periods when the participant is asleep.
     """
     # we get the hypnogram for that day
     hypnogram = loader.load_hypnogram(user_id = user,
@@ -558,8 +562,8 @@ def filter_out_awake_bbi(loader, user, bbi_df, date, resolution=1):
     datetime_ends = [hypnogram_start + datetime.timedelta(minutes=idx*resolution) for idx in idx_ends]
 
     for start, end in zip(datetime_starts, datetime_ends):
-        bbi_df = bbi_df.loc[
-            (bbi_df[constants._ISODATE_COL] < start) | (bbi_df[constants._ISODATE_COL] > end)
+        df = df.loc[
+            (df[constants._ISODATE_COL] < start) | (df[constants._ISODATE_COL] > end)
         ]
 
-    return bbi_df
+    return df
