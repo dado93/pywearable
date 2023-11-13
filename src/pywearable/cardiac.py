@@ -180,7 +180,11 @@ def get_cardiac_statistic(
 
 
 def get_rest_heart_rate(
-    loader, user_id="all", start_date=None, end_date=None, average=False
+    loader, 
+    user_id="all", 
+    start_date=None, 
+    end_date=None, 
+    average=False
 ):
     """Get heart rate during sleep.
 
@@ -639,7 +643,7 @@ def get_night_rmssd(
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
                 bbi_df = loader.load_garmin_device_bbi(user, start_hour, end_hour)
                 if (method == "filter awake"):
-                    bbi_df = utils.filter_out_awake_bbi(loader, user, bbi_df, date, resolution)
+                    bbi_df = utils.filter_out_awake(loader, user, bbi_df, date, resolution)
                 bbi_df = bbi_df.set_index(constants._ISODATE_COL)
                 counts = bbi_df.resample("5min").bbi.count()
                 means = bbi_df.resample("5min").bbi.mean()
@@ -708,7 +712,7 @@ def get_night_sdnn(
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
                 bbi_df = loader.load_garmin_device_bbi(user, start_hour, end_hour)
                 if (method == "filter awake"):
-                    bbi_df = utils.filter_out_awake_bbi(loader, user, bbi_df, date, resolution)
+                    bbi_df = utils.filter_out_awake(loader, user, bbi_df, date, resolution)
                 bbi_df = bbi_df.set_index(constants._ISODATE_COL)
                 counts = bbi_df.resample("5min").bbi.count()
                 means = bbi_df.resample("5min").bbi.mean()
