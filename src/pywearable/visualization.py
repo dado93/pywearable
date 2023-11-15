@@ -16,32 +16,34 @@ import pandas as pd
 from matplotlib.dates import DateFormatter
 from matplotlib.ticker import FuncFormatter, MultipleLocator, PercentFormatter
 
-import pylabfront.activity as activity
-import pylabfront.cardiac as cardiac
-import pylabfront.constants
-import pylabfront.loader
-import pylabfront.respiration as respiration
-import pylabfront.sleep as sleep
-import pylabfront.stress as stress
-import pylabfront.utils as utils
+import pywearable.activity as activity
+import pywearable.cardiac as cardiac
+import pywearable.constants
+from .loader.base import BaseLoader
+import pywearable.respiration as respiration
+import pywearable.sleep as sleep
+import pywearable.stress as stress
+import pywearable.utils as utils
+
+from .loader.base import BaseLoader
 
 date_form = DateFormatter("%m-%d")
 
 
 def get_steps_line_graph_and_stats(
-    loader : pylabfront.loader.LabfrontLoader,
-    user_id : str,
-    start_date : Union[datetime.datetime, datetime.date, str, None] = None,
-    end_date : Union[datetime.datetime, datetime.date, str, None] = None,
-    verbose : bool = False,
-    save_to : Union[str, None] = None,
-    show : bool = True,
-    steps_line_label : str = "steps",
-    goal_line_label : str = "daily goal",
-    ylabel : str = "Steps",
-    plot_title : Union[str, None] = "Daily steps",
-    figsize : tuple = (10,6),
-    fontsize : int = 15
+    loader: BaseLoader,
+    user_id: str,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    verbose: bool = False,
+    save_to: Union[str, None] = None,
+    show: bool = True,
+    steps_line_label: str = "steps",
+    goal_line_label: str = "daily goal",
+    ylabel: str = "Steps",
+    plot_title: Union[str, None] = "Daily steps",
+    figsize: tuple = (10, 6),
+    fontsize: int = 15,
 ) -> dict:
     """Generate line-plot of daily steps and goals.
 
@@ -54,7 +56,7 @@ def get_steps_line_graph_and_stats(
     ----------
     loader : :class:`pylabfront.loader.LabfrontLoader`
         An instance of a data loader
-    user_id : :class:`str` 
+    user_id : :class:`str`
         The id of the user of interest
     start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         Start date for data retrieval, by default None.
@@ -82,26 +84,28 @@ def get_steps_line_graph_and_stats(
     Returns
     -------
     :class:`dict`
-        dictionary of daily activity statistics 
+        dictionary of daily activity statistics
         (Mean daily steps, Mean daily distance, Percentage goal completion)
     """
     user_id = loader.get_full_id(user_id)
     # get dates,steps,goals,compare steps to goal to get goal completion
     dates, steps = zip(
-        *activity.get_daily_steps(loader, start_date, end_date, user_id)[user_id].items()
+        *activity.get_daily_steps(loader, user_id, start_date, end_date)[
+            user_id
+        ].items()
     )
     goals = list(
-        activity.get_daily_steps_goal(loader, start_date, end_date, user_id)[
+        activity.get_daily_steps_goal(loader, user_id, start_date, end_date)[
             user_id
         ].values()
     )
     col = np.where(np.array(steps) > np.array(goals), "g", "r")
     # get stats from the series
     mean_steps = activity.get_daily_steps(
-        loader, start_date, end_date, user_id, average=True
+        loader, user_id, start_date, end_date, average=True
     )[user_id]
     mean_distance = activity.get_daily_distance(
-        loader, start_date, end_date, user_id, average=True
+        loader, user_id, start_date, end_date, average=True
     )[user_id]
     goal_reached = np.sum(np.array(steps) > np.array(goals))
     number_of_days = len(dates)
@@ -120,7 +124,7 @@ def get_steps_line_graph_and_stats(
         ax.scatter(dates, steps, c=col, s=100)
         plt.xticks(rotation=45, fontsize=fontsize)
         plt.yticks(fontsize=fontsize)
-        plt.legend(fontsize=fontsize-1, loc="best")
+        plt.legend(fontsize=fontsize - 1, loc="best")
         plt.grid("on")
         plt.ylim([max(min(steps) - 500, 0), max(steps) + 2000])
         plt.xlim(
@@ -131,7 +135,7 @@ def get_steps_line_graph_and_stats(
         )
         plt.ylabel(ylabel, fontsize=fontsize)
         if plot_title:
-            plt.title(plot_title, fontsize=fontsize+2)
+            plt.title(plot_title, fontsize=fontsize + 2)
         if save_to:
             plt.savefig(save_to, bbox_inches="tight")
 
@@ -150,25 +154,25 @@ def get_steps_line_graph_and_stats(
 
 
 def get_cardiac_line_graph_and_stats(
-    loader : pylabfront.loader.LabfrontLoader,
-    user_id : str ,
-    start_date : Union[datetime.datetime, datetime.date, str, None] = None,
-    end_date : Union[datetime.datetime, datetime.date, str, None] = None,
-    verbose : bool = False,
-    save_to : Union[str, None] = None,
-    show : bool = True,
-    resting_hr_label : str = "resting heart rate",
-    maximum_hr_label : str = "maximum heart rate",
-    ylabel : str = "Heart rate [beats/min]",
-    title : Union[str, None] = None,
-    figsize : tuple = (10, 6),
-    fontsize : int = 15
-) -> dict :
+    loader: BaseLoader,
+    user_id: str,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    verbose: bool = False,
+    save_to: Union[str, None] = None,
+    show: bool = True,
+    resting_hr_label: str = "resting heart rate",
+    maximum_hr_label: str = "maximum heart rate",
+    ylabel: str = "Heart rate [beats/min]",
+    title: Union[str, None] = None,
+    figsize: tuple = (10, 6),
+    fontsize: int = 15,
+) -> dict:
     """Generate graph of cardiac activity
 
     This function generate (and possibly save) a graph of cardiac data of `user_id`
     for a period of interest between `start_date` and `end_date`.
-    Cardiac statistics are computed and returned. 
+    Cardiac statistics are computed and returned.
 
     Parameters
     ----------
@@ -208,23 +212,15 @@ def get_cardiac_line_graph_and_stats(
     user_id = loader.get_full_id(user_id)
     # get stats
     avg_resting_hr = round(
-        cardiac.get_rest_heart_rate(loader, 
-                                    user_id,
-                                    start_date, 
-                                    end_date, 
-                                    average=True)[user_id][
-            "values"
-        ]
+        cardiac.get_rest_heart_rate(
+            loader, user_id, start_date, end_date, average=True
+        )[user_id]["values"]
     )
     max_hr_recorded = np.nanmax(
         list(
-            cardiac.get_max_heart_rate(loader,
-                                       user_id,
-                                       start_date, 
-                                       end_date, 
-                                       average=False)[
-                user_id
-            ].values()
+            cardiac.get_max_heart_rate(
+                loader, user_id, start_date, end_date, average=False
+            )[user_id].values()
         )
     )
     stats_dict = {
@@ -233,17 +229,15 @@ def get_cardiac_line_graph_and_stats(
     }
     # get time series
     dates, rest_hr = zip(
-        *cardiac.get_rest_heart_rate(loader, 
-                                     user_id,
-                                     start_date, 
-                                     end_date)[user_id].items()
+        *cardiac.get_rest_heart_rate(loader, user_id, start_date, end_date)[
+            user_id
+        ].items()
     )
     # avg_hr = list(cardiac.get_avg_heart_rate(loader,start_date,end_date,user)[user].values())
     max_hr = list(
-        cardiac.get_max_heart_rate(loader,
-                                   user_id,
-                                   start_date,
-                                   end_date)[user_id].values()
+        cardiac.get_max_heart_rate(loader, user_id, start_date, end_date)[
+            user_id
+        ].values()
     )
 
     # plotting
@@ -270,14 +264,14 @@ def get_cardiac_line_graph_and_stats(
             markersize=4,
         )
         # ax.set_title(title,fontsize=18)
-        ax.set_ylabel(ylabel, fontsize=fontsize+1)
+        ax.set_ylabel(ylabel, fontsize=fontsize + 1)
         plt.xticks(rotation=45, fontsize=fontsize)
         plt.yticks(fontsize=fontsize)
-        plt.legend(loc="upper right", fontsize=fontsize-1)
+        plt.legend(loc="upper right", fontsize=fontsize - 1)
         plt.grid("both")
         plt.ylim([min(30, min(rest_hr)), max(200, max_hr_recorded + 30)])
         if title:
-            plt.title(title,fontsize=fontsize+2)
+            plt.title(title, fontsize=fontsize + 2)
         if save_to:
             plt.savefig(save_to, bbox_inches="tight")
     if show:
@@ -293,24 +287,24 @@ def get_cardiac_line_graph_and_stats(
 
 
 def get_rest_spo2_graph(
-    loader : pylabfront.loader.LabfrontLoader,
-    user_id : str,
-    start_date : Union[datetime.datetime, datetime.date, str, None] = None,
-    end_date : Union[datetime.datetime, datetime.date, str, None] = None,
-    save_to : Union[str, None] = None,
-    show : bool = True,
-    zones_labels : list = ["Normal", "Low", "Concerning", "Critical"],
+    loader: BaseLoader,
+    user_id: str,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    save_to: Union[str, None] = None,
+    show: bool = True,
+    zones_labels: list = ["Normal", "Low", "Concerning", "Critical"],
     zones_colors: list = ["g", "yellow", "orange", "tomato"],
-    zones_alpha : float = 0.25,
-    title : str = r"Rest SpO$_2$",
-    ylabel : str = r"SpO$_2$",
-    figsize : tuple = (14, 6),
-    fontsize : int = 18
+    zones_alpha: float = 0.25,
+    title: str = r"Rest SpO$_2$",
+    ylabel: str = r"SpO$_2$",
+    figsize: tuple = (14, 6),
+    fontsize: int = 18,
 ):
     """Generate spO2 night graph
 
-    This function creates (and possibly save if `save_to` = True), 
-    a graph showing all night data of SpO2 for `user_id`, 
+    This function creates (and possibly save if `save_to` = True),
+    a graph showing all night data of SpO2 for `user_id`,
     in the period of interest starting from `start_date` and ending at `end_date`
 
     Parameters
@@ -408,14 +402,14 @@ def get_rest_spo2_graph(
 
     # graph params
     ax.set_ylabel(ylabel, fontsize=fontsize)
-    ax.set_title(title, fontsize=fontsize+2)
+    ax.set_title(title, fontsize=fontsize + 2)
 
     ax.xaxis.grid(True, color="#CCCCCC")
     ax.xaxis.set_major_formatter(date_form)
-    plt.xticks(rotation=60, fontsize=fontsize-2)
-    plt.yticks(fontsize=fontsize-2)
+    plt.xticks(rotation=60, fontsize=fontsize - 2)
+    plt.yticks(fontsize=fontsize - 2)
     plt.ylim([min(50, min(sleep_spo2_df.spo2)), 100])
-    plt.legend(loc="best", fontsize=fontsize-2)
+    plt.legend(loc="best", fontsize=fontsize - 2)
     plt.xlim([min_date, max_date])
     plt.tight_layout()
     if save_to:
@@ -427,14 +421,14 @@ def get_rest_spo2_graph(
 
 
 def get_stress_grid_and_stats(
-    loader: pylabfront.loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: str,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    verbose : bool = False,
-    save_to : Union[str, None] = None,
-    show : bool = True,
-    title : str = "Average daily stress",
+    verbose: bool = False,
+    save_to: Union[str, None] = None,
+    show: bool = True,
+    title: str = "Average daily stress",
 ) -> dict:
     """Generate a github-like plot of daily stress scores
 
@@ -463,7 +457,7 @@ def get_stress_grid_and_stats(
         Average stress score for the period of interest
     """
     user_id = loader.get_full_id(user_id)
-    
+
     # get stats
     dates, metrics = zip(
         *stress.get_daily_stress_statistics(loader, user_id, start_date, end_date)[
@@ -519,22 +513,22 @@ def get_stress_grid_and_stats(
 
 
 def get_respiration_line_graph_and_stats(
-    loader: pylabfront.loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: str,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    verbose : bool = False,
-    save_to : Union[str, None] = None,
-    show : bool = True,
-    figsize : tuple = (10,6),
-    rest_line_label : str = "Sleep Avg",
-    awake_line_label : str ="Awake Avg",
-    title : Union[str, None] = None,
-    xlabel : str = "Date",
-    ylabel : str ="Breaths per minute",
-    fontsize : int = 15
+    verbose: bool = False,
+    save_to: Union[str, None] = None,
+    show: bool = True,
+    figsize: tuple = (10, 6),
+    rest_line_label: str = "Sleep Avg",
+    awake_line_label: str = "Awake Avg",
+    title: Union[str, None] = None,
+    xlabel: str = "Date",
+    ylabel: str = "Breaths per minute",
+    fontsize: int = 15,
 ) -> dict:
-    """Generate a line-plot of daily and night average daily respiration rates 
+    """Generate a line-plot of daily and night average daily respiration rates
 
     Parameters
     ----------
@@ -609,19 +603,21 @@ def get_respiration_line_graph_and_stats(
         fig, ax = plt.subplots(figsize=figsize)
         ax.plot(rest_dates, rest_resp, marker="o", label=rest_line_label)
         ax.plot(waking_dates, waking_resp, marker="o", label=awake_line_label)
-        ax.legend(loc="best", fontsize=fontsize-1)
+        ax.legend(loc="best", fontsize=fontsize - 1)
         # ax.set_title(title,fontsize=15)
         ax.set_ylabel(ylabel, fontsize=fontsize)
         ax.set_xlabel(xlabel, fontsize=fontsize)
         plt.ylim(
             [min(8, min(rest_resp + waking_resp)), max(rest_resp + waking_resp) + 2.5]
         )
-        plt.xticks(combined_dates[::2], dates_format[::2], rotation=45, fontsize=fontsize)
+        plt.xticks(
+            combined_dates[::2], dates_format[::2], rotation=45, fontsize=fontsize
+        )
         plt.yticks(fontsize=fontsize)
         if save_to:
             plt.savefig(save_to, bbox_inches="tight")
         if title:
-            plt.title(fontsize=fontsize+2)
+            plt.title(fontsize=fontsize + 2)
     if show:
         plt.show()
     else:
@@ -635,14 +631,14 @@ def get_respiration_line_graph_and_stats(
 
 
 def get_sleep_grid_and_stats(
-    loader: pylabfront.loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: str,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    verbose : bool =False,
-    save_to : Union[str, None] = None,
-    show : bool = True,
-    title : str = "Sleep performance",
+    verbose: bool = False,
+    save_to: Union[str, None] = None,
+    show: bool = True,
+    title: str = "Sleep performance",
 ) -> dict:
     """
     Generate a github-like grid plot of the sleep scores over that years for `user_id`
@@ -673,7 +669,6 @@ def get_sleep_grid_and_stats(
     """
     user_id = loader.get_full_id(user_id)
 
-    # We need to create a dataframe with dates going from one year before to the latest datetime
     dates, scores = zip(
         *sleep.get_sleep_score(loader, user_id, start_date, end_date)[user_id].items()
     )
@@ -709,22 +704,22 @@ def get_sleep_grid_and_stats(
 
     # stats
     avg_deep = sleep.get_n3_duration(
-        loader, user_id, start_date, end_date, average=True
+        loader, user_id, start_date, end_date, kind="mean"
     )[user_id]["N3"]
     avg_light = sleep.get_n1_duration(
-        loader, user_id, start_date, end_date, average=True
+        loader, user_id, start_date, end_date, kind="mean"
     )[user_id]["N1"]
     avg_rem = sleep.get_rem_duration(
-        loader, user_id, start_date, end_date, average=True
+        loader, user_id, start_date, end_date, kind="mean"
     )[user_id]["REM"]
     avg_awake = sleep.get_awake_duration(
-        loader, user_id, start_date, end_date, average=True
+        loader, user_id, start_date, end_date, kind="mean"
     )[user_id]["AWAKE"]
-    avg_awakenings = sleep.get_awakenings(
-        loader, user_id, start_date, end_date, average=True
-    )[user_id]["AWAKENINGS"]
+    avg_awakenings = sleep.get_awake_count(
+        loader, user_id, start_date, end_date, kind="mean"
+    )[user_id]["countAwake"]
     avg_score = sleep.get_sleep_score(
-        loader, user_id, start_date, end_date, average=True
+        loader, user_id, start_date, end_date, kind="mean"
     )[user_id]["SCORE"]
 
     stats_dict = {
@@ -744,7 +739,7 @@ def get_sleep_grid_and_stats(
 
 
 def get_sleep_summary_graph(
-    loader: pylabfront.loader.LabfrontLoader,
+    loader: BaseLoader,
     user_id: str,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -758,13 +753,13 @@ def get_sleep_summary_graph(
     legend_labels: str = ["Deep", "Light", "REM", "Awake"],
     colorbar_title: str = "Sleep Score",
     colorbar_labels: str = ["poor", "fair", "good", "excellent"],
-    figsize: tuple = (15,30),
-    bottom_offset : int =500,
-    vertical_offset : float = -0.,
-    sleep_metric : Union[str, None] = None,
-    chronotype_sleep_start : Union[str, None] = None,
-    chronotype_sleep_end : Union[str, None] = None,
-    show_chronotype : bool = False
+    figsize: tuple = (15, 30),
+    bottom_offset: int = 500,
+    vertical_offset: float = -0.0,
+    sleep_metric: Union[str, None] = None,
+    chronotype_sleep_start: Union[str, None] = None,
+    chronotype_sleep_end: Union[str, None] = None,
+    show_chronotype: bool = False,
 ):
     """
     Generates a graph of all hypnograms of main sleeps of `user_id` for the period of interest
@@ -814,11 +809,13 @@ def get_sleep_summary_graph(
     show_chronotype : :class:`bool`, optional
         whether to show chronotype dashed vertical lines over the hypnograms, by default False
     """
-    
+
     if sleep_metric is not None:
         assertion_msg = "Must specify chronotype when plotting circadian measures"
-        assert chronotype_sleep_start is not None and chronotype_sleep_end is not None, assertion_msg
-    
+        assert (
+            chronotype_sleep_start is not None and chronotype_sleep_end is not None
+        ), assertion_msg
+
     user_id = loader.get_full_id(user_id)
 
     # Define parameters for plotting
@@ -826,7 +823,7 @@ def get_sleep_summary_graph(
     POSITION = 1.3
 
     # Get sleep summaries so that it is easier to get info
-    sleep_summaries = loader.load_garmin_connect_sleep_summary(
+    sleep_summaries = loader.load_sleep_summary(
         user_id, start_date, end_date
     )
     if len(sleep_summaries) == 0:
@@ -846,13 +843,13 @@ def get_sleep_summary_graph(
 
     sleep_summaries["endIsoDate"] = pd.to_datetime(
         (
-            sleep_summaries[pylabfront.constants._UNIXTIMESTAMP_IN_MS_COL]
+            sleep_summaries[pywearable.constants._UNIXTIMESTAMP_IN_MS_COL]
             + sleep_summaries[
-                pylabfront.constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL
+                pywearable.constants._TIMEZONEOFFSET_IN_MS_COL
             ]
-            + sleep_summaries[pylabfront.constants._SLEEP_SUMMARY_DURATION_IN_MS_COL]
+            + sleep_summaries[pywearable.constants._SLEEP_SUMMARY_DURATION_IN_MS_COL]
             + sleep_summaries[
-                pylabfront.constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL
+                pywearable.constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL
             ]
         ),
         unit="ms",
@@ -916,15 +913,15 @@ def get_sleep_summary_graph(
     if sleep_metric is None:
         fig, ax = plt.subplots(figsize=figsize)
     elif sleep_metric == "midpoint" or sleep_metric == "duration":
-        fig, (ax, ax2) = plt.subplots(1, 2, 
-                                      gridspec_kw={'width_ratios': [8, 2]},
-                                      figsize=figsize)
+        fig, (ax, ax2) = plt.subplots(
+            1, 2, gridspec_kw={"width_ratios": [8, 2]}, figsize=figsize
+        )
     elif sleep_metric == "both":
-        fig, (ax, ax2, ax3) = plt.subplots(1, 3, 
-                                      gridspec_kw={'width_ratios': [8, 1, 1]},
-                                      figsize=figsize)
+        fig, (ax, ax2, ax3) = plt.subplots(
+            1, 3, gridspec_kw={"width_ratios": [8, 1, 1]}, figsize=figsize
+        )
     else:
-        raise KeyError("sleep metric specified for variability isn't valid.") 
+        raise KeyError("sleep metric specified for variability isn't valid.")
 
     # for every day in the period of interest, we plot the hypnogram
     for j, night in enumerate(time_period):
@@ -1070,9 +1067,9 @@ def get_sleep_summary_graph(
     )
     ax.set_title(title, pad=25, color="#333333", weight="bold", fontsize=20)
     # ordinarly the yaxis starts from below, but it's better to visualize earlier dates on top instead
-    ax.set_ylim([-POSITION, (len(time_period))*POSITION])
+    ax.set_ylim([-POSITION, (len(time_period)) * POSITION])
     ax.invert_yaxis()
-    
+
     ## Legend
     alphas = [1, ALPHA, 1, ALPHA]
     colors = ["darkblue", "royalblue", "darkmagenta", "hotpink"]
@@ -1095,65 +1092,66 @@ def get_sleep_summary_graph(
         sleep_time_mins = int(chronotype_sleep_start.split(":")[1])
         wake_time_hour = int(chronotype_sleep_end.split(":")[0])
         wake_time_mins = int(chronotype_sleep_end.split(":")[1])
-        # this conversion takes into consideration the min_sleep_time = 15 
+        # this conversion takes into consideration the min_sleep_time = 15
         # and the change of day (assuming wake is before 12)
-        converted_sleep_time = (sleep_time_hour + 24* (0 <= sleep_time_hour <= 12) - 15)*60*60 + sleep_time_mins*60
-        converted_wake_time = (wake_time_hour + 24* (0 <= wake_time_hour <= 12) - 15)*60*60 + wake_time_mins*60
-        ax.axvline(converted_sleep_time, linestyle="--", zorder= 10)
-        ax.axvline(converted_wake_time, linestyle="--", zorder= 11)
+        converted_sleep_time = (
+            sleep_time_hour + 24 * (0 <= sleep_time_hour <= 12) - 15
+        ) * 60 * 60 + sleep_time_mins * 60
+        converted_wake_time = (
+            wake_time_hour + 24 * (0 <= wake_time_hour <= 12) - 15
+        ) * 60 * 60 + wake_time_mins * 60
+        ax.axvline(converted_sleep_time, linestyle="--", zorder=10)
+        ax.axvline(converted_wake_time, linestyle="--", zorder=11)
 
     # CONSISTENCY SUBPLOTS
     if sleep_metric is not None:
         # determine which metrics are needed in the subplot(s)
-        metrics = [sleep_metric] if sleep_metric!= "both" else ["duration", "midpoint"]
-        axes = [ax2] if sleep_metric!="both" else [ax2, ax3]
-        
+        if sleep_metric == "duration":
+            consistency_fns = [sleep.get_cpd_duration]
+            axes = [ax2]
+        elif sleep_metric == "midpoint":
+            consistency_fns = [sleep.get_cpd_midpoint]
+            axes = [ax2]
+        elif sleep_metric == "both":
+            consistency_fns = [sleep.get_cpd_midpoint, sleep.get_cpd_duration]
+            axes = [ax2, ax3]
+        else:
+            raise ValueError(f"Warning: consistency sleep metric {sleep_metric} isn't valid.")
+            
         # and populate a subplot which each one
-        for k in range(len(metrics)):
+        for k in range(len(consistency_fns)):
             current_ax = axes[k]
-            sleep_metric = metrics[k]
+            consistency_fn = consistency_fns[k]
             # we get data for cpd antecedent to the period of interest so that we may have a NR already set in some cases
-            cpd_dict = sleep.get_cpd(loader,
-                                     user_id,
-                                     start_date-datetime.timedelta(days=30),
-                                     end_date,
-                                     days_to_consider=1000,
-                                     average=False,
-                                     sleep_metric=sleep_metric,
-                                     chronotype_sleep_start=chronotype_sleep_start,
-                                     chronotype_sleep_end=chronotype_sleep_end)
-            cpd_trend = utils.trend_analysis(cpd_dict,
-                                             start_date-datetime.timedelta(days=30),
-                                             end_date)
+            cpd_dict = consistency_fn(
+                loader,
+                user_id,
+                start_date - datetime.timedelta(days=30),
+                end_date,
+                kind = None,
+                chronotype_dict = {user_id:(chronotype_sleep_start, chronotype_sleep_end)}
+            )[user_id]
+            cpd_trend = utils.trend_analysis(
+                cpd_dict, start_date - datetime.timedelta(days=30), end_date
+            )
             # filter out to keep appropriate period
             cpd_trend = cpd_trend[cpd_trend.index.isin(time_period)]
 
             dates = cpd_trend.index
             # need to fillna to avoid skipping plotting some days at the start and end of the period
-            metric = cpd_trend.metric.fillna(0) 
+            metric = cpd_trend.metric.fillna(0)
             baseline = cpd_trend.BASELINE
             LB = cpd_trend.NR_LOWER_BOUND
-            LB[LB < 0] = 0 # can't have a negative lower bound
+            LB[LB < 0] = 0  # can't have a negative lower bound
             UB = cpd_trend.NR_UPPER_BOUND
-            
-            current_ax.barh(dates,
-                    metric,
-                    color="gray",
-                    alpha=0.7)
-            current_ax.plot(baseline, 
-                    dates, 
-                    linestyle="-", 
-                    linewidth=1, 
-                    color="red")
-            current_ax.fill_betweenx(dates, 
-                            LB, 
-                            UB, 
-                            alpha=0.25, 
-                            color="green")
+
+            current_ax.barh(dates, metric, color="gray", alpha=0.7)
+            current_ax.plot(baseline, dates, linestyle="-", linewidth=1, color="red")
+            current_ax.fill_betweenx(dates, LB, UB, alpha=0.25, color="green")
             current_ax.grid("on")
-            current_ax.set_title(f"CPD ({sleep_metric})",fontsize=10)
+            current_ax.set_title(f"CPD ({sleep_metric})", fontsize=10)
             current_ax.set_yticks([])
-            
+
             # subplot params
             current_ax.set_axisbelow(True)
             current_ax.xaxis.grid(True, color="#EEEEEE")
@@ -1162,9 +1160,14 @@ def get_sleep_summary_graph(
             current_ax.spines["right"].set_visible(False)
             current_ax.spines["left"].set_color("#DDDDDD")
             # as before invert to keep earlier dates in the upper part of the plot
-            current_ax.set_ylim([time_period.iloc[0]-datetime.timedelta(days=1), time_period.iloc[-1]+datetime.timedelta(days=1)])
+            current_ax.set_ylim(
+                [
+                    time_period.iloc[0] - datetime.timedelta(days=1),
+                    time_period.iloc[-1] + datetime.timedelta(days=1),
+                ]
+            )
             current_ax.invert_yaxis()
-    
+
     # COLORBAR
     bins = [40, 60, 80, 90, 100]
     midpoints = [(bins[i] + bins[i + 1]) / 2 for i in range(len(bins) - 1)]
@@ -1196,14 +1199,14 @@ def get_sleep_summary_graph(
 
 def get_errorbar_graph(
     quest_df: pd.DataFrame,
-    questionnaire_dict : dict,
-    variable_of_interest : str,
-    answer_of_interest : str,
-    title : str = "",
-    ylabel : str = "",
-    answer_categories : Union[list, None] = None,
-    save_to : Union[str, None] = None,
-    show : bool = True,
+    questionnaire_dict: dict,
+    variable_of_interest: str,
+    answer_of_interest: str,
+    title: str = "",
+    ylabel: str = "",
+    answer_categories: Union[list, None] = None,
+    save_to: Union[str, None] = None,
+    show: bool = True,
 ):
     """Plots an errorbar graph with respect to the ``variable_of_interest`` for a specific question in a questionnaire
 
@@ -1289,8 +1292,7 @@ def get_errorbar_graph(
     plt.yticks(fontsize=15)
 
     if save_to:
-        plt.savefig(save_to, 
-                    bbox_inches="tight")
+        plt.savefig(save_to, bbox_inches="tight")
 
     if show:
         plt.show()
@@ -1298,9 +1300,7 @@ def get_errorbar_graph(
         plt.close()
 
 
-def plot_bbi_distribution(
-    bbi : np.array, 
-    bin_length : int = 20):
+def plot_bbi_distribution(bbi: np.array, bin_length: int = 20):
     """
     Plots distribution of BBI data
 
@@ -1320,20 +1320,20 @@ def plot_comparison_radar_chart():
 
 
 def compare_against_group(
-    user_data : Union[int, float],
-    comparison_data : list,
-    show : bool = True,
-    save_to : Union[str, None] = None,
-    bins : int = 10,
-    title : str = "", 
-    ylabel : str = "% users",
-    xlabel : str = "",
-    fontsize : int = 16,
-    shaded_regions : bool = False,
-    regions_cutoffs : Union[list, None] = None,
-    regions_colors : Union[list, None] = None,
-    alpha : float = 0.25,
-    xlim : Union[list, None] = None,
+    user_data: Union[int, float],
+    comparison_data: list,
+    show: bool = True,
+    save_to: Union[str, None] = None,
+    bins: int = 10,
+    title: str = "",
+    ylabel: str = "% users",
+    xlabel: str = "",
+    fontsize: int = 16,
+    shaded_regions: bool = False,
+    regions_cutoffs: Union[list, None] = None,
+    regions_colors: Union[list, None] = None,
+    alpha: float = 0.25,
+    xlim: Union[list, None] = None,
 ):
     """Plots a histogram of the distribution of a desired metric, specifying where an user stands within the distribution
 
@@ -1377,7 +1377,7 @@ def compare_against_group(
         Percentile standing of the user among the comparison group considered
     """
 
-    # note that the following is not strict percentile 
+    # note that the following is not strict percentile
     # this is good to say you were above x% of the others..
     # should we instead show the strict percentile??
     percentile_standing = np.round(
@@ -1421,20 +1421,20 @@ def compare_against_group(
 
 
 def plot_trend_analysis(
-    df : pd.DataFrame,
-    ax : Union[plt.axes, None] =None,
-    save_to : Union[str, None] =None,
-    show : bool = True,
-    xlabel : str = "",
-    ylabel : str = "",
-    title : str = "",
-    fontsize : int = 16,
-    alpha : float = 0.3,
+    df: pd.DataFrame,
+    ax: Union[plt.axes, None] = None,
+    save_to: Union[str, None] = None,
+    show: bool = True,
+    xlabel: str = "",
+    ylabel: str = "",
+    title: str = "",
+    fontsize: int = 16,
+    alpha: float = 0.3,
     xticks_frequency: int = 3,
     xticks_rotation: int = 45,
-    figsize : tuple = (10,6),
-    show_legend : bool = False,
-    normal_range : tuple = None
+    figsize: tuple = (10, 6),
+    show_legend: bool = False,
+    normal_range: tuple = None,
 ):
     """Plots a trend analysis graph including short-term, mid-term, and long-term metrics
 
@@ -1469,7 +1469,7 @@ def plot_trend_analysis(
     normal_range : :class:`tuple`, optional
         start and end of a fixed range (based on norm values) instead of a trend NR, by default None
     """
-    df = df.dropna(how="all") # restrict viz to period with available data
+    df = df.dropna(how="all")  # restrict viz to period with available data
     dates = df.index
     metric = df.metric
     baseline = df.BASELINE
@@ -1478,15 +1478,22 @@ def plot_trend_analysis(
     if ax is None:
         _, ax = plt.subplots(figsize=figsize)
     ax.bar(dates, metric, label="Daily metric")
-    ax.plot(baseline, linestyle="-", linewidth=3, color="red",label="Baseline")
+    ax.plot(baseline, linestyle="-", linewidth=3, color="red", label="Baseline")
     if normal_range is not None:
         assert type(normal_range) == tuple and len(normal_range) == 2
-        ax.fill_between(dates, normal_range[0], normal_range[1], alpha=alpha, color="green",label="Normal range")
+        ax.fill_between(
+            dates,
+            normal_range[0],
+            normal_range[1],
+            alpha=alpha,
+            color="green",
+            label="Normal range",
+        )
     else:
         ax.fill_between(dates, LB, UB, alpha=alpha, color="green")
     ax.grid("on")
     ax.set_xticks(dates[::xticks_frequency])
-    ax.tick_params(axis="x",labelrotation=xticks_rotation)
+    ax.tick_params(axis="x", labelrotation=xticks_rotation)
     ax.set_xlabel(xlabel, fontsize=fontsize)
     ax.set_ylabel(ylabel, fontsize=fontsize)
     ax.set_title(title, fontsize=fontsize + 2)

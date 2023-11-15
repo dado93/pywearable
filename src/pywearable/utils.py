@@ -13,6 +13,9 @@ import hrvanalysis
 import numpy as np
 import pandas as pd
 
+from .loader.base import BaseLoader
+from . import constants
+
 _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY = "lastSampleUnixTimestampInMs"
 _LABFRONT_QUESTIONNAIRE_STRING = "questionnaire"
 _LABFRONT_TODO_STRING = "todo"
@@ -52,15 +55,51 @@ def check_date(
         raise ValueError(f"{type(date)} is not valid.")
 
 
-def get_user_ids(labfront_loader, user_id: Union[str, list]):
-    """Returns user ids in the appropriate format required by pylabfront functions
+def check_start_and_end_dates(
+    start_date: Union[datetime.datetime, None], end_date: Union[datetime.datetime, None]
+) -> bool:
+    """Check if dates are in correct order.
+
+    This function checks if ``start_date`` is
+    lower or equal than ``end_date`` and returns
+    `True` if this is the case, `False` otherwise.
 
     Parameters
     ----------
-    labfront_loader : :class:`loader.LabfrontLoader`
+    start_date : :class:`datetime.datetime` or None
+        Start date that needs to be checked.
+    end_date : :class:`datetime.datetime` or None
+        End date that needs to be checked.
+
+    Returns
+    -------
+    bool
+        `True` if ``start_date`` is equal or lower than ``end_date``,
+        `False` otherwise.
+    """
+    if not ((start_date is None) and (end_date is None)):
+        if end_date < start_date:
+            return False
+    return True
+
+
+def check_is_df(input, raise_name="input"):
+    if not isinstance(input, pd.DataFrame):
+        raise ValueError(
+            f"{raise_name} must be a pd.DataFrame. {type(input)} is not a valid type."
+        )
+    return input
+
+
+def get_user_ids(loader: "BaseLoader", user_id: Union[str, list]):
+    """Returns user ids in the appropriate format required by pywearable functions
+
+    Parameters
+    ----------
+    loader : :class:`loader.base.BaseLoader`
         An instance of a data loader
     user_id : :class:`str` or :class:`list`
-        The id(s) of the user(s9) of interest
+        The id(s) of the user(s) of interest
 
     Returns
     -------
@@ -68,10 +107,9 @@ def get_user_ids(labfront_loader, user_id: Union[str, list]):
         List of all the full user ids of interest.
     """
     if user_id == "all":
-        user_id = labfront_loader.get_full_ids()
+        user_id = loader.get_user_ids()
 
     elif isinstance(user_id, str):
-        user_id = labfront_loader.get_full_id(user_id)
         user_id = [user_id]
 
     elif not isinstance(user_id, list):
@@ -80,7 +118,7 @@ def get_user_ids(labfront_loader, user_id: Union[str, list]):
     return user_id
 
 
-def get_summary(labfront_loader, comparison_date=time.time()):
+def get_summary(loader: "BaseLoader", comparison_date=time.time()):
     """Returns a general summary of the latest update of every metric for every participant
 
     Args:
@@ -92,23 +130,23 @@ def get_summary(labfront_loader, comparison_date=time.time()):
         Entries are NaN if the metric has never been registered for the participant.
     """
 
-    available_metrics = set(labfront_loader.get_available_metrics())
+    available_metrics = set(loader.get_available_metrics())
     available_metrics.discard("todo")
     available_metrics.discard("questionnaire")
     available_metrics = sorted(list(available_metrics))
-    available_questionnaires = labfront_loader.get_available_questionnaires()
-    available_todos = labfront_loader.get_available_todos()
+    available_questionnaires = loader.get_available_questionnaires()
+    available_todos = loader.get_available_todos()
 
     features_dictionary = {}
 
-    for participant_id in sorted(labfront_loader.get_user_ids()):
-        full_participant_id = labfront_loader.get_full_id(participant_id)
+    for participant_id in sorted(loader.get_user_ids()):
+        full_participant_id = loader.get_full_id(participant_id)
         features_dictionary[participant_id] = {}
-        participant_metrics = labfront_loader.get_available_metrics([participant_id])
-        participant_questionnaires = labfront_loader.get_available_questionnaires(
+        participant_metrics = loader.get_available_metrics([participant_id])
+        participant_questionnaires = loader.get_available_questionnaires(
             [participant_id]
         )
-        participant_todos = labfront_loader.get_available_todos([participant_id])
+        participant_todos = loader.get_available_todos([participant_id])
 
         for metric in available_metrics:
             if metric not in participant_metrics:
@@ -116,7 +154,7 @@ def get_summary(labfront_loader, comparison_date=time.time()):
             else:  # figure out how many days since the last update
                 last_unix_times = [
                     v[_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY]
-                    for v in labfront_loader.data_dictionary[full_participant_id][
+                    for v in loader.data_dictionary[full_participant_id][
                         metric
                     ].values()
                 ]
@@ -133,7 +171,7 @@ def get_summary(labfront_loader, comparison_date=time.time()):
             else:
                 last_unix_times = [
                     v[_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY]
-                    for v in labfront_loader.data_dictionary[full_participant_id][
+                    for v in loader.data_dictionary[full_participant_id][
                         _LABFRONT_QUESTIONNAIRE_STRING
                     ][questionnaire].values()
                 ]
@@ -150,7 +188,7 @@ def get_summary(labfront_loader, comparison_date=time.time()):
             else:
                 last_unix_times = [
                     v[_LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY]
-                    for v in labfront_loader.data_dictionary[full_participant_id][
+                    for v in loader.data_dictionary[full_participant_id][
                         _LABFRONT_TODO_STRING
                     ][todo].values()
                 ]
@@ -205,15 +243,15 @@ def find_nearest_timestamp(timestamp, timestamp_array):
 
 
 def trend_analysis(
-    data_dict,
-    start_date,
-    end_date,
-    ma_kind="normal",
-    baseline_periods=7,
-    min_periods_baseline=3,
-    normal_range_periods=30,
-    min_periods_normal_range=20,
-    std_multiplier=1,
+    data_dict : dict,
+    start_date : datetime.datetime,
+    end_date : datetime.datetime,
+    ma_kind : str ="normal",
+    baseline_periods : int = 7,
+    min_periods_baseline : int = 3,
+    normal_range_periods : int = 30,
+    min_periods_normal_range : int = 20,
+    std_multiplier : float = 1.,
 ):
     """Performs trend analysis on daily data for a pre-loaded metric.
 
@@ -284,7 +322,141 @@ def mean_time(times):
         mean_seconds += day
     h, m = divmod(mean_seconds, 3600)
     m, s = divmod(m, 60)
+    if (h == 24) and (m == 0):
+        h = 0
     return "%02i:%02i" % (h, m)
+
+
+def get_earliest_bedtime(times: list) -> str:
+    """Get earliest bedtime from list of bedtimes.
+
+    This function returns the earliest bedtime
+    from a list of bedtimes. The way in which this function
+    returns the earliest bedtime is by computing the
+    time difference between the bedtimes and
+    "12:00". The time with the lowest difference from 12 o'clock
+    (considering times occurring after "00:00" with +1 day) is
+    considered as the earliest bedtime.
+
+    Parameters
+    ----------
+    times : :class:`list`
+        List of times from which the earliest bedtime must be determined.
+
+    Returns
+    -------
+    :class:`str`
+        Earliest bedtime in HH:MM format.
+    """
+    dt_times = [
+        datetime.time(int(t.split(":")[0]), int(t.split(":")[1])) for t in times
+    ]
+    converted_dt_times = [
+        datetime.datetime.combine(datetime.date.today(), dt_time)
+        for dt_time in dt_times
+    ]
+    converted_dt_times = [
+        dt_time + datetime.timedelta(days=1)
+        if (dt_time.hour >= 0 and dt_time.hour < 12)
+        else dt_time
+        for dt_time in converted_dt_times
+    ]
+
+    dt_diff = np.array(
+        [
+            (
+                dt_time
+                - datetime.datetime.combine(datetime.date.today(), datetime.time(12, 0))
+            ).total_seconds()
+            for dt_time in converted_dt_times
+        ]
+    )
+    return times[dt_diff.argmin()]
+
+
+def get_earliest_wakeup_time(times: list) -> str:
+    dt_times = [
+        datetime.time(int(t.split(":")[0]), int(t.split(":")[1])) for t in times
+    ]
+    converted_dt_times = [
+        datetime.datetime.combine(datetime.date.today(), dt_time)
+        for dt_time in dt_times
+    ]
+    converted_dt_times = [
+        dt_time - datetime.timedelta(days=1)
+        if (dt_time.hour >= 12 and dt_time.hour <= 23)
+        else dt_time
+        for dt_time in converted_dt_times
+    ]
+
+    dt_diff = np.array(
+        [
+            (
+                datetime.datetime.combine(datetime.date.today(), datetime.time(12, 0))
+                - dt_time
+            ).total_seconds()
+            for dt_time in converted_dt_times
+        ]
+    )
+    return times[dt_diff.argmax()]
+
+
+def get_latest_bedtime(times: list) -> str:
+    dt_times = [
+        datetime.time(int(t.split(":")[0]), int(t.split(":")[1])) for t in times
+    ]
+    converted_dt_times = [
+        datetime.datetime.combine(datetime.date.today(), dt_time)
+        for dt_time in dt_times
+    ]
+    converted_dt_times = [
+        dt_time + datetime.timedelta(days=1)
+        if (dt_time.hour >= 0 and dt_time.hour < 12)
+        else dt_time
+        for dt_time in converted_dt_times
+    ]
+
+    dt_diff = np.array(
+        [
+            (
+                dt_time
+                - datetime.datetime.combine(datetime.date.today(), datetime.time(12, 0))
+            ).total_seconds()
+            for dt_time in converted_dt_times
+        ]
+    )
+    return times[dt_diff.argmax()]
+
+
+def get_latest_wakeup_time(times: list) -> str:
+    dt_times = [
+        datetime.time(int(t.split(":")[0]), int(t.split(":")[1])) for t in times
+    ]
+    converted_dt_times = [
+        datetime.datetime.combine(datetime.date.today(), dt_time)
+        for dt_time in dt_times
+    ]
+    converted_dt_times = [
+        dt_time - datetime.timedelta(days=1)
+        if (dt_time.hour >= 12 and dt_time.hour <= 23)
+        else dt_time
+        for dt_time in converted_dt_times
+    ]
+
+    dt_diff = np.array(
+        [
+            (
+                datetime.datetime.combine(datetime.date.today(), datetime.time(12, 0))
+                - dt_time
+            ).total_seconds()
+            for dt_time in converted_dt_times
+        ]
+    )
+    return times[dt_diff.argmin()]
+
+
+def std_time(times):
+    pass
 
 
 def filter_bbi(
@@ -337,7 +509,7 @@ def filter_bbi(
     return bbi
 
 
-def filter_out_awake_bbi(loader, user, bbi_df, date):
+def filter_out_awake_bbi(loader, user, bbi_df, date, resolution=1):
     """Filters out night bbi data relative to periods where the user was awake
 
     Parameters
@@ -350,41 +522,44 @@ def filter_out_awake_bbi(loader, user, bbi_df, date):
         DataFrame of bbi data
     date : class:`pandas.Timestamp`
         Timestamp of the date relative to the night in consideration.
+    resolution : class:`int`
+        Resolution of the hypnogram used to find awakening periods
 
     Returns
     -------
     pandas.DataFrame
     DataFrame in the same format of `bbi_df`, including only bbi data of periods when the participant is asleep.
     """
-    hypnogram = loader.load_hypnogram(user, date)
-    hypnogram["stages_diff"] = np.concatenate(
+    # we get the hypnogram for that day
+    hypnogram = loader.load_hypnogram(user_id = user,
+                                     start_date = date,
+                                     end_date= date,
+                                     resolution=resolution)[date]
+    hypnogram_start = hypnogram["start_time"]
+    hypnogram_end = hypnogram["end_time"]
+    hypnogram = hypnogram["values"]
+
+    # stage differences
+    hypnogram_diff = np.concatenate(
         [
             [0],
-            hypnogram.iloc[1:, :].stage.values - hypnogram.iloc[:-1, :].stage.values,
+            np.diff(hypnogram)
         ]
-    )
+    ) 
     # if there has been a negative change and the current stage is awake, then count it as awakening start
-    hypnogram["awakening_start"] = np.logical_and(
-        hypnogram.stage == 0, hypnogram.stages_diff < 0
-    )
+    awakening_starts = np.logical_and(hypnogram == 0, hypnogram_diff < 0)
     # if there has been a positive change and the previous stage was awake, then count it as awakening end
-    hypnogram["awakening_end"] = np.concatenate(
-        [
-            [0],
-            np.logical_and(
-                (hypnogram.iloc[:-1, :].stage == 0).values,
-                (hypnogram.iloc[1:, :].stages_diff > 0).values,
-            ),
-        ]
-    )
-    relevant_rows = hypnogram.loc[
-        np.logical_or(hypnogram.awakening_start == 1, hypnogram.awakening_end == 1)
-    ][:20]
-    awakening_starts = relevant_rows.isoDate.iloc[::2].values
-    awakening_ends = relevant_rows.isoDate.iloc[1::2].values
-    for awakening_start, awakening_end in zip(awakening_starts, awakening_ends):
+    awakening_ends = np.concatenate([[0],np.logical_and(hypnogram[:-1] == 0, hypnogram_diff[1:] > 0)])
+    # get the indexes of starts and ends
+    idx_starts = [idx for idx, start in enumerate(awakening_starts) if start]
+    idx_ends = [idx for idx, end in enumerate(awakening_ends) if end]
+    # based on the start of the sleep and the indexes of the awakenings, get the datetimes
+    datetime_starts = [hypnogram_start + datetime.timedelta(minutes=idx*resolution) for idx in idx_starts]
+    datetime_ends = [hypnogram_start + datetime.timedelta(minutes=idx*resolution) for idx in idx_ends]
+
+    for start, end in zip(datetime_starts, datetime_ends):
         bbi_df = bbi_df.loc[
-            (bbi_df.index < awakening_start) | (bbi_df.index > awakening_end)
+            (bbi_df[constants._ISODATE_COL] < start) | (bbi_df[constants._ISODATE_COL] > end)
         ]
 
     return bbi_df

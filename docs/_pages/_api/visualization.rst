@@ -1,5 +1,5 @@
 Visualization
 =============
 
-.. automodule:: pylabfront.visualization
+.. automodule:: pywearable.visualization
    :members:

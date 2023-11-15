@@ -1,5 +1,5 @@
 Respiration
 ===========
 
-.. automodule:: pylabfront.respiration
+.. automodule:: pywearable.respiration
    :members:

@@ -1,12 +1,11 @@
 import pandas as pd
 
-from . import constants, loader
+from . import constants
+from .loader.base import BaseLoader
 
 
 def process_questionnaire(
-    labfront_loader: loader.LabfrontLoader, 
-    questionnaire: str, 
-    verbose: bool = False
+    loader: BaseLoader, questionnaire: str, verbose: bool = False
 ) -> pd.DataFrame:
     """Process questionnaire to extract answers.
 
@@ -16,7 +15,7 @@ def process_questionnaire(
 
     Example :class:`pd.DataFrame`::
 
-        timezone,unixTimestampInMs,isoDate,userId,How are you?
+        timezone,unixTimestampInMs,isoDate,userId,How would you rate your sleep?, How would you rate your energy?
         Europe/Rome,1683599224781,2023-05-09 04:27:04.781,User1_4a520aea-12d9-4513-8a0c-3055d399b097,Come al solito,Peggio del solito
         Europe/Budapest,1683698097137,2023-05-10 07:54:57.137,User1_4a520aea-12d9-4513-8a0c-3055d399b097,Peggio del solito,Come al solito
         Europe/Budapest,1683784544642,2023-05-11 07:55:44.642,User1_4a520aea-12d9-4513-8a0c-3055d399b097,Come al solito,Peggio del solito
@@ -24,7 +23,7 @@ def process_questionnaire(
 
     Parameters
     ----------
-    labfront_loader : :class:`pylabfront.loader.LabfrontLoader`
+    loader : :class:`pylabfront.loader.LabfrontLoader`
         An instance of a :class:`pylabfront.loader.LabfrontLoader`.
     questionnaire : str
         Unique identifier for the questionnaire to be analyzed.
@@ -39,11 +38,11 @@ def process_questionnaire(
         information.
     """
     questionnaire_df = pd.DataFrame()
-    questionnaire_questions = labfront_loader.get_questionnaire_questions(questionnaire)
+    questionnaire_questions = loader.get_questionnaire_questions(questionnaire)
 
-    for participant in labfront_loader.get_full_ids():
+    for participant in loader.get_full_ids():
         try:
-            questionnaire_data = labfront_loader.load_questionnaire(
+            questionnaire_data = loader.load_questionnaire(
                 participant, questionnaire_name=questionnaire
             )
         except KeyError:

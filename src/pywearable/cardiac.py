@@ -11,8 +11,10 @@ import numpy as np
 import pandas as pd
 import pyhrv
 
-import pylabfront.sleep as sleep
-import pylabfront.utils as utils
+import pywearable.sleep as sleep
+import pywearable.utils as utils
+
+from . import constants
 
 _LABFRONT_SPO2_COLUMN = "spo2"
 
@@ -98,12 +100,7 @@ def get_rest_spO2(
 
 
 def get_cardiac_statistic(
-    loader, 
-    statistic, 
-    user_id="all",
-    start_date=None, 
-    end_date=None, 
-    average=False
+    loader, statistic, user_id="all", start_date=None, end_date=None, average=False
 ):
     """Get a single cardiac summary statistic.
 
@@ -148,7 +145,7 @@ def get_cardiac_statistic(
 
     for user in user_id:
         try:
-            daily_summary_data = loader.load_garmin_connect_daily_summary(
+            daily_summary_data = loader.load_daily_summary(
                 user, start_date, end_date
             )
             if len(daily_summary_data) > 0:
@@ -183,11 +180,7 @@ def get_cardiac_statistic(
 
 
 def get_rest_heart_rate(
-    loader, 
-    user_id="all",
-    start_date=None, 
-    end_date=None, 
-    average=False
+    loader, user_id="all", start_date=None, end_date=None, average=False
 ):
     """Get heart rate during sleep.
 
@@ -222,11 +215,7 @@ def get_rest_heart_rate(
 
 
 def get_max_heart_rate(
-    loader,
-    user_id="all",
-    start_date=None,
-    end_date=None, 
-    average=False
+    loader, user_id="all", start_date=None, end_date=None, average=False
 ):
     """Get maximum daily heart rate.
 
@@ -261,11 +250,7 @@ def get_max_heart_rate(
 
 
 def get_min_heart_rate(
-    loader, 
-    user_id="all", 
-    start_date=None, 
-    end_date=None, 
-    average=False
+    loader, user_id="all", start_date=None, end_date=None, average=False
 ):
     """Get minimum daily heart rate.
 
@@ -275,7 +260,7 @@ def get_min_heart_rate(
     ----------
     loader: :class:`pylabfront.loader.Loader`
         Initialized instance of data loader.
-    user_id: :class:`str`, optional 
+    user_id: :class:`str`, optional
         ID of the user for which min heart rate must be computed, by default "all".
     start_date: :class:`datetime.datetime`, optional
         Start date from which min heart rate must be computed, by default None.
@@ -299,11 +284,7 @@ def get_min_heart_rate(
 
 
 def get_avg_heart_rate(
-    loader, 
-    user_id="all",
-    start_date=None, 
-    end_date=None, 
-    average=False
+    loader, user_id="all", start_date=None, end_date=None, average=False
 ):
     """Get average daily heart rate.
 
@@ -331,10 +312,9 @@ def get_avg_heart_rate(
         Dictionary with participant id as primary key, calendar days as secondary keys,
         and average heart rate as value.
     """
-    return get_cardiac_statistic(loader,_LABFRONT_AVG_HR_COLUMN,user_id,start_date,end_date,average)
-
-
-
+    return get_cardiac_statistic(
+        loader, _LABFRONT_AVG_HR_COLUMN, user_id, start_date, end_date, average
+    )
 
 
 def get_hrv_time_domain(
@@ -343,7 +323,8 @@ def get_hrv_time_domain(
     start_date=None,
     end_date=None,
     pyhrv=False,
-    filtering_kwargs={}):
+    filtering_kwargs={},
+):
     """Get time-domain heart rate variability features.
 
     This function returns a dictionary containing for every user of interest
@@ -375,9 +356,9 @@ def get_hrv_time_domain(
 
     for user in user_id:
         try:
-            bbi = loader.load_garmin_device_bbi(user,start_date,end_date).bbi
+            bbi = loader.load_garmin_device_bbi(user, start_date, end_date).bbi
             bbi = utils.filter_bbi(bbi, **filtering_kwargs)
-            if pyhrv: # pyhrv has more features but it's a lot slower
+            if pyhrv:  # pyhrv has more features but it's a lot slower
                 td_features = pyhrv.time_domain.time_domain(bbi).as_dict()
             else:
                 td_features = hrvanalysis.get_time_domain_features(bbi)
@@ -437,7 +418,7 @@ def get_hrv_frequency_domain(
 
     for user in user_id:
         try:
-            bbi = loader.load_garmin_device_bbi(user,start_date,end_date).bbi
+            bbi = loader.load_garmin_device_bbi(user, start_date, end_date).bbi
             bbi = utils.filter_bbi(bbi, **filtering_kwargs)
             if method == "ar":
                 fd_features = pyhrv.frequency_domain.ar_psd(
@@ -513,7 +494,7 @@ def get_hrv_nonlinear_domain(
 
     for user in user_id:
         try:
-            bbi = loader.load_garmin_device_bbi(user,start_date,end_date).bbi
+            bbi = loader.load_garmin_device_bbi(user, start_date, end_date).bbi
             bbi = utils.filter_bbi(bbi, **filtering_kwargs)
             non_linear_features = {}
             non_linear_features |= pyhrv.nonlinear.poincare(
@@ -613,11 +594,12 @@ def get_hrv_features(
 
 def get_night_rmssd(
     loader,
-    user_id="all",  
+    user_id="all",
     start_date=None,
     end_date=None,
     coverage=0.7,
     method="all night",
+    resolution=1
 ):
     """Compute rmssd metrics considering night data for the specified participants and period.
 
@@ -635,6 +617,8 @@ def get_night_rmssd(
         the percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7
     method : str, optional
         method specifying how to filter bbi data in order to compute the night metric, by default "all night"
+    resolution: float, optional
+        resolution of the hypnogram used to filter out awake periods
 
     Returns
     -------
@@ -648,19 +632,15 @@ def get_night_rmssd(
     for user in user_id:
         try:
             sleeping_timestamps = sleep.get_sleep_timestamps(
-                loader, start_date, end_date, user
+                loader, user, start_date, end_date
             )[user]
             daily_means = {}
 
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
                 bbi_df = loader.load_garmin_device_bbi(user, start_hour, end_hour)
-                bbi_df = bbi_df.set_index("isoDate")
-
-                if (
-                    method == "filter awake"
-                ):  # this filters out bbi relative to awake periods during sleep
-                    bbi_df = utils._filter_out_awake_bbi(loader, user, bbi_df, date)
-
+                if (method == "filter awake"):
+                    bbi_df = utils.filter_out_awake_bbi(loader, user, bbi_df, date, resolution)
+                bbi_df = bbi_df.set_index(constants._ISODATE_COL)
                 counts = bbi_df.resample("5min").bbi.count()
                 means = bbi_df.resample("5min").bbi.mean()
                 coverage_filter = (counts > (300 / (means / 1000) * coverage)).values
@@ -687,6 +667,7 @@ def get_night_sdnn(
     end_date=None,
     coverage=0.7,
     method="all night",
+    resolution=1
 ):
     """Compute SDNN metrics considering night data for the specified participants and period.
 
@@ -704,6 +685,8 @@ def get_night_sdnn(
         the percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7
     method : str, optional
         method specifying how to filter bbi data in order to compute the night metric, by default "all night"
+    resolution: float, optional
+        resolution of the hypnogram used to filter out awake periods
 
     Returns
     -------
@@ -724,9 +707,9 @@ def get_night_sdnn(
 
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
                 bbi_df = loader.load_garmin_device_bbi(user, start_hour, end_hour)
-                bbi_df = bbi_df.set_index("isoDate")
-                if method == "filter awake":
-                    bbi_df = utils._filter_out_awake_bbi(loader, user, bbi_df, date)
+                if (method == "filter awake"):
+                    bbi_df = utils.filter_out_awake_bbi(loader, user, bbi_df, date, resolution)
+                bbi_df = bbi_df.set_index(constants._ISODATE_COL)
                 counts = bbi_df.resample("5min").bbi.count()
                 means = bbi_df.resample("5min").bbi.mean()
                 coverage_filter = (counts > (300 / (means / 1000) * coverage)).values
@@ -754,6 +737,7 @@ def get_night_lf(
     coverage=0.7,
     method="all night",
     minimal_periods=10,
+    resolution=1
 ):
     """Compute LF power metrics considering night data for the specified participants and period.
 
@@ -771,6 +755,8 @@ def get_night_lf(
         the percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7
     method : str, optional
         method specifying how to filter bbi data in order to compute the night metric, by default "all night"
+    resolution: float, optional
+        resolution of the hypnogram used to filter out awake periods
 
     Returns
     -------
@@ -790,9 +776,9 @@ def get_night_lf(
 
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
                 bbi_df = loader.load_garmin_device_bbi(user, start_hour, end_hour)
-                bbi_df = bbi_df.set_index("isoDate")
-                if method == "filter awake":
-                    bbi_df = utils._filter_out_awake_bbi(loader, user, bbi_df, date)
+                if (method == "filter awake"):
+                    bbi_df = utils.filter_out_awake_bbi(loader, user, bbi_df, date, resolution)
+                bbi_df = bbi_df.set_index(constants._ISODATE_COL)
                 counts = bbi_df.resample("5min").bbi.count()
                 means = bbi_df.resample("5min").bbi.mean()
                 coverage_filter = (counts > (300 / (means / 1000) * coverage)).values
@@ -825,6 +811,7 @@ def get_night_hf(
     coverage=0.7,
     method="all night",
     minimal_periods=10,
+    resolution=1
 ):
     """Compute HF power metrics considering night data for the specified participants and period.
 
@@ -842,6 +829,8 @@ def get_night_hf(
         the percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7
     method : str, optional
         method specifying how to filter bbi data in order to compute the night metric, by default "all night"
+    resolution: float, optional
+        resolution of the hypnogram used to filter out awake periods
 
     Returns
     -------
@@ -861,9 +850,9 @@ def get_night_hf(
 
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
                 bbi_df = loader.load_garmin_device_bbi(user, start_hour, end_hour)
-                bbi_df = bbi_df.set_index("isoDate")
-                if method == "filter awake":
-                    bbi_df = utils._filter_out_awake_bbi(loader, user, bbi_df, date)
+                if (method == "filter awake"):
+                    bbi_df = utils.filter_out_awake_bbi(loader, user, bbi_df, date, resolution)
+                bbi_df = bbi_df.set_index(constants._ISODATE_COL)
                 counts = bbi_df.resample("5min").bbi.count()
                 means = bbi_df.resample("5min").bbi.mean()
                 coverage_filter = (counts > (300 / (means / 1000) * coverage)).values
@@ -895,6 +884,7 @@ def get_night_lfhf(
     end_date=None,
     coverage=0.7,
     method="all night",
+    resolution=1
 ):
     """Compute LF/HF ratio metrics considering night data for the specified participants and period.
 
@@ -912,6 +902,8 @@ def get_night_lfhf(
         the percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7
     method : str, optional
         method specifying how to filter bbi data in order to compute the night metric, by default "all night"
+    resolution: float, optional
+        resolution of the hypnogram used to filter out awake periods
 
     Returns
     -------
@@ -925,10 +917,10 @@ def get_night_lfhf(
     for user in user_id:
         try:
             lf_dict = get_night_lf(
-                loader, user, start_date, end_date, coverage=coverage, method=method
+                loader, user, start_date, end_date, coverage=coverage, method=method, resolution=resolution
             )[user]
             hf_dict = get_night_hf(
-                loader, user, start_date, end_date, coverage=coverage, method=method
+                loader, user, start_date, end_date, coverage=coverage, method=method, resolution=resolution
             )[user]
             lfhf_dict = {}
             for date in lf_dict.keys():
