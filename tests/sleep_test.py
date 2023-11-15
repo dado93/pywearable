@@ -15,6 +15,10 @@ import pywearable.sleep
 
 @pytest.fixture
 def sleep_summary():
+    """
+    pytest.fixture that returns sleep summary in the
+    format required by pywearable.
+    """
     sleep_summary = pd.read_csv(
         StringIO(
             """sleepSummaryId,calendarDate,timezoneOffsetInMs,unixTimestampInMs,isoDate,durationInMs,unmeasurableSleepDurationInMs,n3SleepDurationInMs,n1SleepDurationInMs,remSleepDurationInMs,awakeDurationInMs,n2SleepDurationInMs,overallSleepScore
@@ -38,27 +42,11 @@ x4c64722-645d63f8-5c94,2023-05-12,7200000,1683842040000,2023-05-11T23:54:00.000+
 
 
 @pytest.fixture
-def sleep_score():
-    return pd.Series(
-        [88, np.nan, 40, 70],
-        index=[
-            "x4c64722-64595538-6630",
-            "x4c64722-645ab9b4-55c8",
-            "x4c64722-645bf6d0-6888",
-            "x4c64722-645d63f8-5c94",
-        ],
-    )
-
-
-@pytest.fixture
-def sleep_summary_id_as_idx(sleep_summary):
-    return sleep_summary.set_index(
-        pywearable.constants._SLEEP_SUMMARY_ID_COL, drop=True
-    )
-
-
-@pytest.fixture
 def sleep_stages():
+    """
+    pytest.fixture that returns sleep stages in the format required
+    by pywearable.
+    """
     sleep_stages = pd.read_csv(
         StringIO(
             """sleepSummaryId,timezoneOffsetInMs,unixTimestampInMs,isoDate,durationInMs,type
@@ -99,8 +87,41 @@ x4c64722-645d63f8-5c94,7200000,1683842640000,2023-05-12T00:04:00.000+02:00,23700
     return sleep_stages
 
 
+@pytest.fixture
+def sleep_score():
+    return pd.Series(
+        [88, np.nan, 40, 70],
+        index=[
+            "x4c64722-64595538-6630",
+            "x4c64722-645ab9b4-55c8",
+            "x4c64722-645bf6d0-6888",
+            "x4c64722-645d63f8-5c94",
+        ],
+    )
+
+
+@pytest.fixture
+def sleep_summary_id_as_idx(sleep_summary):
+    """
+    Fixture that returns sleep summary with the
+    sleep summary id as index, as required by
+    the _compute functions of the sleep
+    module.
+    """
+    return sleep_summary.set_index(
+        pywearable.constants._SLEEP_SUMMARY_ID_COL, drop=True
+    )
+
+
 @pytest.fixture()
 def base_loader(mocker, sleep_summary, sleep_stages):
+    """
+    Fixture that returns a BaseLoader with mock values
+    for the load_sleep_summary and load_sleep_stage
+    functions. The value returned by these functions
+    are specified by the sleep_summary and
+    sleep_stages fixtures.
+    """
     loader = pywearable.loader.BaseLoader()
     mocker.patch(
         "pywearable.loader.BaseLoader.load_sleep_summary",
