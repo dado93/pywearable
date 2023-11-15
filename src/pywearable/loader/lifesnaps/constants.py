@@ -63,13 +63,18 @@ _ECG_SAMPLE_VALUE_COL = "value"
 #           Database             #
 ##################################
 _DB_NAME = "rais_anonymized"
+_DB_TYPE_KEY = "type"
+_DB_ID_KEY = "id"
+
+##################################
+#       Surveys Collection        #
+##################################
+_DB_SURVEYS_COLLECTION_NAME = "surveys"
 
 ##################################
 #       FitBit Collection        #
 ##################################
 _DB_FITBIT_COLLECTION_NAME = "fitbit"
-_DB_FITBIT_COLLECTION_TYPE_KEY = "type"
-_DB_FITBIT_COLLECTION_ID_KEY = "id"
 _DB_FITBIT_COLLECTION_DATA_KEY = "data"
 
 # --------------------------------#
