@@ -14,6 +14,8 @@ import pyhrv
 import pywearable.sleep as sleep
 import pywearable.utils as utils
 
+from . import constants
+
 _LABFRONT_SPO2_COLUMN = "spo2"
 
 _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATA_COL = "calendarDate"
@@ -143,7 +145,7 @@ def get_cardiac_statistic(
 
     for user in user_id:
         try:
-            daily_summary_data = loader.load_garmin_connect_daily_summary(
+            daily_summary_data = loader.load_daily_summary(
                 user, start_date, end_date
             )
             if len(daily_summary_data) > 0:
@@ -597,6 +599,7 @@ def get_night_rmssd(
     end_date=None,
     coverage=0.7,
     method="all night",
+    resolution=1
 ):
     """Compute rmssd metrics considering night data for the specified participants and period.
 
@@ -614,6 +617,8 @@ def get_night_rmssd(
         the percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7
     method : str, optional
         method specifying how to filter bbi data in order to compute the night metric, by default "all night"
+    resolution: float, optional
+        resolution of the hypnogram used to filter out awake periods
 
     Returns
     -------
@@ -627,19 +632,15 @@ def get_night_rmssd(
     for user in user_id:
         try:
             sleeping_timestamps = sleep.get_sleep_timestamps(
-                loader, start_date, end_date, user
+                loader, user, start_date, end_date
             )[user]
             daily_means = {}
 
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
                 bbi_df = loader.load_garmin_device_bbi(user, start_hour, end_hour)
-                bbi_df = bbi_df.set_index("isoDate")
-
-                if (
-                    method == "filter awake"
-                ):  # this filters out bbi relative to awake periods during sleep
-                    bbi_df = utils._filter_out_awake_bbi(loader, user, bbi_df, date)
-
+                if (method == "filter awake"):
+                    bbi_df = utils.filter_out_awake_bbi(loader, user, bbi_df, date, resolution)
+                bbi_df = bbi_df.set_index(constants._ISODATE_COL)
                 counts = bbi_df.resample("5min").bbi.count()
                 means = bbi_df.resample("5min").bbi.mean()
                 coverage_filter = (counts > (300 / (means / 1000) * coverage)).values
@@ -666,6 +667,7 @@ def get_night_sdnn(
     end_date=None,
     coverage=0.7,
     method="all night",
+    resolution=1
 ):
     """Compute SDNN metrics considering night data for the specified participants and period.
 
@@ -683,6 +685,8 @@ def get_night_sdnn(
         the percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7
     method : str, optional
         method specifying how to filter bbi data in order to compute the night metric, by default "all night"
+    resolution: float, optional
+        resolution of the hypnogram used to filter out awake periods
 
     Returns
     -------
@@ -703,9 +707,9 @@ def get_night_sdnn(
 
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
                 bbi_df = loader.load_garmin_device_bbi(user, start_hour, end_hour)
-                bbi_df = bbi_df.set_index("isoDate")
-                if method == "filter awake":
-                    bbi_df = utils._filter_out_awake_bbi(loader, user, bbi_df, date)
+                if (method == "filter awake"):
+                    bbi_df = utils.filter_out_awake_bbi(loader, user, bbi_df, date, resolution)
+                bbi_df = bbi_df.set_index(constants._ISODATE_COL)
                 counts = bbi_df.resample("5min").bbi.count()
                 means = bbi_df.resample("5min").bbi.mean()
                 coverage_filter = (counts > (300 / (means / 1000) * coverage)).values
@@ -733,6 +737,7 @@ def get_night_lf(
     coverage=0.7,
     method="all night",
     minimal_periods=10,
+    resolution=1
 ):
     """Compute LF power metrics considering night data for the specified participants and period.
 
@@ -750,6 +755,8 @@ def get_night_lf(
         the percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7
     method : str, optional
         method specifying how to filter bbi data in order to compute the night metric, by default "all night"
+    resolution: float, optional
+        resolution of the hypnogram used to filter out awake periods
 
     Returns
     -------
@@ -769,9 +776,9 @@ def get_night_lf(
 
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
                 bbi_df = loader.load_garmin_device_bbi(user, start_hour, end_hour)
-                bbi_df = bbi_df.set_index("isoDate")
-                if method == "filter awake":
-                    bbi_df = utils._filter_out_awake_bbi(loader, user, bbi_df, date)
+                if (method == "filter awake"):
+                    bbi_df = utils.filter_out_awake_bbi(loader, user, bbi_df, date, resolution)
+                bbi_df = bbi_df.set_index(constants._ISODATE_COL)
                 counts = bbi_df.resample("5min").bbi.count()
                 means = bbi_df.resample("5min").bbi.mean()
                 coverage_filter = (counts > (300 / (means / 1000) * coverage)).values
@@ -804,6 +811,7 @@ def get_night_hf(
     coverage=0.7,
     method="all night",
     minimal_periods=10,
+    resolution=1
 ):
     """Compute HF power metrics considering night data for the specified participants and period.
 
@@ -821,6 +829,8 @@ def get_night_hf(
         the percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7
     method : str, optional
         method specifying how to filter bbi data in order to compute the night metric, by default "all night"
+    resolution: float, optional
+        resolution of the hypnogram used to filter out awake periods
 
     Returns
     -------
@@ -840,9 +850,9 @@ def get_night_hf(
 
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
                 bbi_df = loader.load_garmin_device_bbi(user, start_hour, end_hour)
-                bbi_df = bbi_df.set_index("isoDate")
-                if method == "filter awake":
-                    bbi_df = utils._filter_out_awake_bbi(loader, user, bbi_df, date)
+                if (method == "filter awake"):
+                    bbi_df = utils.filter_out_awake_bbi(loader, user, bbi_df, date, resolution)
+                bbi_df = bbi_df.set_index(constants._ISODATE_COL)
                 counts = bbi_df.resample("5min").bbi.count()
                 means = bbi_df.resample("5min").bbi.mean()
                 coverage_filter = (counts > (300 / (means / 1000) * coverage)).values
@@ -874,6 +884,7 @@ def get_night_lfhf(
     end_date=None,
     coverage=0.7,
     method="all night",
+    resolution=1
 ):
     """Compute LF/HF ratio metrics considering night data for the specified participants and period.
 
@@ -891,6 +902,8 @@ def get_night_lfhf(
         the percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7
     method : str, optional
         method specifying how to filter bbi data in order to compute the night metric, by default "all night"
+    resolution: float, optional
+        resolution of the hypnogram used to filter out awake periods
 
     Returns
     -------
@@ -904,10 +917,10 @@ def get_night_lfhf(
     for user in user_id:
         try:
             lf_dict = get_night_lf(
-                loader, user, start_date, end_date, coverage=coverage, method=method
+                loader, user, start_date, end_date, coverage=coverage, method=method, resolution=resolution
             )[user]
             hf_dict = get_night_hf(
-                loader, user, start_date, end_date, coverage=coverage, method=method
+                loader, user, start_date, end_date, coverage=coverage, method=method, resolution=resolution
             )[user]
             lfhf_dict = {}
             for date in lf_dict.keys():

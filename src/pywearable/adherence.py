@@ -50,8 +50,8 @@ def get_questionnaire_dict(
 
     Parameters
     ----------
-    loader : :class:`loader.LabfrontLoader`
-        Instance of :class:`loader.LabfrontLoader`.
+    loader : :class:`loader.BaseLoader`
+        Instance of :class:`loader.BaseLoader`.
     user_id : :class:`str` or :class:`list`, optional
         Id(s) of user(s) for which adherence has to be computed, by default "all"
     start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional

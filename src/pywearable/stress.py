@@ -24,7 +24,7 @@ def get_body_battery(
 
     Parameters
     ----------
-    loader : loader.LabfrontLoader
+    loader : :class:`BaseLoader`
         An instance of a data loader
     user_id : Union[str, list], optional
         The id(s) for which body battery must be retrieved, by default "all"
@@ -245,7 +245,7 @@ def get_average_stress_weekend(loader, start_date=None, end_date=None, user_id="
 
 
 def get_daily_stress_metric(
-    loader, stress_metric, start_date=None, end_date=None, user_id="all"
+    loader, stress_metric, user_id="all", start_date=None, end_date=None 
 ):
     """Get daily summary of the metric.
 
@@ -314,7 +314,7 @@ def get_daily_stress_metric(
 
 
 def get_rest_duration(
-    loader: BaseLoader, start_date=None, end_date=None, user_id="all"
+    loader: BaseLoader, user_id="all", start_date=None, end_date=None
 ):
     """Get duration of daily rest stress in ms.
 
@@ -449,8 +449,10 @@ def get_high_stress_duration(
     return get_daily_stress_metric(loader, "high", start_date, end_date, user_id)
 
 
-def get_unreliable_stress_duration(
-    loader: BaseLoader, start_date=None, end_date=None, user_id="all"
+def get_unreliable_stress_duration(loader: BaseLoader,
+                                   user_id: Union[str, list] = "all",
+                                   start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+                                   end_date: Union[datetime.datetime, datetime.date, str, None] = None
 ):
     """Get duration of unreliable daily stress measures in ms.
 
@@ -483,7 +485,10 @@ def get_unreliable_stress_duration(
     return get_daily_stress_metric(loader, "unreliable", start_date, end_date, user_id)
 
 
-def get_stress_score(loader: BaseLoader, start_date=None, end_date=None, user_id="all"):
+def get_stress_score(loader: BaseLoader,
+                     user_id: Union[str, list] = "all",
+                     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+                     end_date: Union[datetime.datetime, datetime.date, str, None] = None):
     """Get a qualifier that summarizes the daily amount of stress.
 
     This function returns a score for the daily amount of stress
@@ -512,14 +517,13 @@ def get_stress_score(loader: BaseLoader, start_date=None, end_date=None, user_id
         Each value is a nested dictionary with the following structure:
             - ``day`` : ``daily stress qualifier``
     """
-    return get_daily_stress_metric(loader, "score", start_date, end_date, user_id)
+    return get_daily_stress_metric(loader, "score", user_id, start_date, end_date)
 
 
-def get_sleep_battery_recovery(
-    loader: BaseLoader,
-    user_id="all",
-    start_date=None,
-    end_date=None,
+def get_sleep_battery_recovery(loader: BaseLoader,
+                               user_id: Union[str, list] = "all",
+                               start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+                               end_date: Union[datetime.datetime, datetime.date, str, None] = None
 ):
     """Get body battery recovered during sleep.
 
@@ -528,18 +532,14 @@ def get_sleep_battery_recovery(
 
     Parameters
     ----------
-    loader : :class:`pylabfront.loader`
-        Initialized instance of :class:`pylabfront.loader`, required in order to properly load data.
-    start_date : :class:`datetime.datetime`, optional
-        Start date from which should be extracted, by default None.
-        If None is used, then the ``start_date`` will be the first day with available data
-        for the given ``user_id``.
-    end_date : :class:`datetime.datetime`, optional
-        End date up to which data should be extracted (inclusive of the whole day), by default None.
-        If None is used, then the ``end_date`` will be the last day with available data
-        for the given ``user_id``.
-    user_id : :class:`str`, optional
-        IDs of the users for which data have to extracted, by default "all"
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        Initialized instance of BaseLoader, required in order to properly load data.
+    user_id : :class:`str` or :class:`list`, optional
+        IDs of the users for which battery recovery have to be extracted, by default "all"
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None.
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None
 
     Returns
     -------
@@ -584,32 +584,31 @@ def get_sleep_battery_recovery(
     return data_dict
 
 
-def get_min_body_battery(loader: BaseLoader, start_date, end_date, user_id="all"):
+def get_min_body_battery(loader: BaseLoader,
+                         user_id: Union[str, list] = "all",
+                         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+                         end_date: Union[datetime.datetime, datetime.date, str, None] = None):
     """Get minimum daily body battery.
 
     This function returns the minimum recorded daily body battery
-    for the given participant(s), in the time range of interest.
+    for the given user(s), in the time range of interest.
 
     Parameters
     ----------
-    loader : :class:`pylabfront.loader`
+    loader : :class:`pywearable.loader.base.BaseLoader`
         Initialized instance of :class:`pylabfront.loader`, required in order to properly load data.
-    start_date : :class:`datetime.datetime`, optional
-        Start date from which should be extracted, by default None.
-        If None is used, then the ``start_date`` will be the first day with available data
-        for the given ``user_id``.
-    end_date : :class:`datetime.datetime`, optional
-        End date up to which data should be extracted (inclusive of the whole day), by default None.
-        If None is used, then the ``end_date`` will be the last day with available data
-        for the given ``user_id``.
-    user_id : :class:`str`, optional
-        IDs of the users for which data have to extracted, by default "all"
+    user_id : :class:`str` or :class:`list`, optional
+        IDs of the users for which minimum body battery have to be extracted, by default "all"
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None.
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None
 
     Returns
     -------
     :class:`dict`
         The returned dictionary contains the minimum daily body battery for the given ``user_id``.
-        The primary key of the dictionary is the id of the user of interest.
+        The primary key(s) of the dictionary is the id of the user(s) of interest.
         Each value is a nested dictionary with the following structure:
             - ``day`` : ``minimum body battery``
     """
@@ -630,32 +629,32 @@ def get_min_body_battery(loader: BaseLoader, start_date, end_date, user_id="all"
     return data_dict
 
 
-def get_max_body_battery(loader: BaseLoader, start_date, end_date, user_id="all"):
+def get_max_body_battery(loader: BaseLoader,
+                         user_id: Union[str, list] = "all",
+                         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+                         end_date: Union[datetime.datetime, datetime.date, str, None] = None
+):
     """Get maximum daily body battery.
 
     This function returns the maximum recorded daily body battery
-    for the given participant(s), in the time range of interest.
+    for the given user(s), in the time range of interest.
 
     Parameters
     ----------
-    loader : :class:`pylabfront.loader`
-        Initialized instance of :class:`pylabfront.loader`, required in order to properly load data.
-    start_date : :class:`datetime.datetime`, optional
-        Start date from which should be extracted, by default None.
-        If None is used, then the ``start_date`` will be the first day with available data
-        for the given ``user_id``.
-    end_date : :class:`datetime.datetime`, optional
-        End date up to which data should be extracted (inclusive of the whole day), by default None.
-        If None is used, then the ``end_date`` will be the last day with available data
-        for the given ``user_id``.
-    user_id : :class:`str`, optional
-        IDs of the users for which data have to extracted, by default "all"
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        Initialized instance of BaseLoader, required in order to properly load data.
+    user_id : :class:`str` or :class:`list`, optional
+        IDs of the users for max body battery have to be extracted, by default "all"
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None.
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None
 
     Returns
     -------
     :class:`dict`
         The returned dictionary contains the maximum daily body battery for the given ``user_id``.
-        The primary key of the dictionary is the id of the user of interest.
+        The primary key(s) of the dictionary is the id of the user(s) of interest.
         Each value is a nested dictionary with the following structure:
             - ``day`` : ``maximum body battery``
     """

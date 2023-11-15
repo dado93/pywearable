@@ -19,7 +19,7 @@ from matplotlib.ticker import FuncFormatter, MultipleLocator, PercentFormatter
 import pywearable.activity as activity
 import pywearable.cardiac as cardiac
 import pywearable.constants
-import pywearable.loader
+from .loader.base import BaseLoader
 import pywearable.respiration as respiration
 import pywearable.sleep as sleep
 import pywearable.stress as stress
@@ -90,22 +90,22 @@ def get_steps_line_graph_and_stats(
     user_id = loader.get_full_id(user_id)
     # get dates,steps,goals,compare steps to goal to get goal completion
     dates, steps = zip(
-        *activity.get_daily_steps(loader, start_date, end_date, user_id)[
+        *activity.get_daily_steps(loader, user_id, start_date, end_date)[
             user_id
         ].items()
     )
     goals = list(
-        activity.get_daily_steps_goal(loader, start_date, end_date, user_id)[
+        activity.get_daily_steps_goal(loader, user_id, start_date, end_date)[
             user_id
         ].values()
     )
     col = np.where(np.array(steps) > np.array(goals), "g", "r")
     # get stats from the series
     mean_steps = activity.get_daily_steps(
-        loader, start_date, end_date, user_id, average=True
+        loader, user_id, start_date, end_date, average=True
     )[user_id]
     mean_distance = activity.get_daily_distance(
-        loader, start_date, end_date, user_id, average=True
+        loader, user_id, start_date, end_date, average=True
     )[user_id]
     goal_reached = np.sum(np.array(steps) > np.array(goals))
     number_of_days = len(dates)
@@ -669,7 +669,6 @@ def get_sleep_grid_and_stats(
     """
     user_id = loader.get_full_id(user_id)
 
-    # We need to create a dataframe with dates going from one year before to the latest datetime
     dates, scores = zip(
         *sleep.get_sleep_score(loader, user_id, start_date, end_date)[user_id].items()
     )
@@ -705,22 +704,22 @@ def get_sleep_grid_and_stats(
 
     # stats
     avg_deep = sleep.get_n3_duration(
-        loader, user_id, start_date, end_date, average=True
+        loader, user_id, start_date, end_date, kind="mean"
     )[user_id]["N3"]
     avg_light = sleep.get_n1_duration(
-        loader, user_id, start_date, end_date, average=True
+        loader, user_id, start_date, end_date, kind="mean"
     )[user_id]["N1"]
     avg_rem = sleep.get_rem_duration(
-        loader, user_id, start_date, end_date, average=True
+        loader, user_id, start_date, end_date, kind="mean"
     )[user_id]["REM"]
     avg_awake = sleep.get_awake_duration(
-        loader, user_id, start_date, end_date, average=True
+        loader, user_id, start_date, end_date, kind="mean"
     )[user_id]["AWAKE"]
-    avg_awakenings = sleep.get_awakenings(
-        loader, user_id, start_date, end_date, average=True
-    )[user_id]["AWAKENINGS"]
+    avg_awakenings = sleep.get_awake_count(
+        loader, user_id, start_date, end_date, kind="mean"
+    )[user_id]["countAwake"]
     avg_score = sleep.get_sleep_score(
-        loader, user_id, start_date, end_date, average=True
+        loader, user_id, start_date, end_date, kind="mean"
     )[user_id]["SCORE"]
 
     stats_dict = {
@@ -824,7 +823,7 @@ def get_sleep_summary_graph(
     POSITION = 1.3
 
     # Get sleep summaries so that it is easier to get info
-    sleep_summaries = loader.load_garmin_connect_sleep_summary(
+    sleep_summaries = loader.load_sleep_summary(
         user_id, start_date, end_date
     )
     if len(sleep_summaries) == 0:
@@ -846,7 +845,7 @@ def get_sleep_summary_graph(
         (
             sleep_summaries[pywearable.constants._UNIXTIMESTAMP_IN_MS_COL]
             + sleep_summaries[
-                pywearable.constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL
+                pywearable.constants._TIMEZONEOFFSET_IN_MS_COL
             ]
             + sleep_summaries[pywearable.constants._SLEEP_SUMMARY_DURATION_IN_MS_COL]
             + sleep_summaries[
@@ -1107,25 +1106,31 @@ def get_sleep_summary_graph(
     # CONSISTENCY SUBPLOTS
     if sleep_metric is not None:
         # determine which metrics are needed in the subplot(s)
-        metrics = [sleep_metric] if sleep_metric != "both" else ["duration", "midpoint"]
-        axes = [ax2] if sleep_metric != "both" else [ax2, ax3]
-
+        if sleep_metric == "duration":
+            consistency_fns = [sleep.get_cpd_duration]
+            axes = [ax2]
+        elif sleep_metric == "midpoint":
+            consistency_fns = [sleep.get_cpd_midpoint]
+            axes = [ax2]
+        elif sleep_metric == "both":
+            consistency_fns = [sleep.get_cpd_midpoint, sleep.get_cpd_duration]
+            axes = [ax2, ax3]
+        else:
+            raise ValueError(f"Warning: consistency sleep metric {sleep_metric} isn't valid.")
+            
         # and populate a subplot which each one
-        for k in range(len(metrics)):
+        for k in range(len(consistency_fns)):
             current_ax = axes[k]
-            sleep_metric = metrics[k]
+            consistency_fn = consistency_fns[k]
             # we get data for cpd antecedent to the period of interest so that we may have a NR already set in some cases
-            cpd_dict = sleep.get_cpd(
+            cpd_dict = consistency_fn(
                 loader,
                 user_id,
                 start_date - datetime.timedelta(days=30),
                 end_date,
-                days_to_consider=1000,
-                average=False,
-                sleep_metric=sleep_metric,
-                chronotype_sleep_start=chronotype_sleep_start,
-                chronotype_sleep_end=chronotype_sleep_end,
-            )
+                kind = None,
+                chronotype_dict = {user_id:(chronotype_sleep_start, chronotype_sleep_end)}
+            )[user_id]
             cpd_trend = utils.trend_analysis(
                 cpd_dict, start_date - datetime.timedelta(days=30), end_date
             )
