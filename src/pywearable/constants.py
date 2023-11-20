@@ -66,6 +66,10 @@ _RESPIRATION_CALENDAR_DATE_COL = "calendarDate"
 _EPOCH_INTENSITY_COL = "intensity"
 _EPOCH_ACTIVE_TIME_MS_COL = "activeTimeInMs"
 
+# Steps #
+_STEPS_STEPS_COL = "steps"
+_STEPS_TOTAL_STEPS_COL = "totalSteps"
+
 # Todo/Questionnaire columns #
 _TODO_NAME_COL = "todoName"
 _QUESTIONNAIRE_NAME_COL = "questionnaireName"

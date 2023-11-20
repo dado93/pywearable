@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 import pywearable.constants as constants
-from pywearable.loader.lifesnaps.loader import LifeSnapsLoader
+from pywearable.loader import LifeSnapsLoader
 
 # TODO We need to mock the MongoDB to run the tests
 
@@ -13,6 +13,21 @@ from pywearable.loader.lifesnaps.loader import LifeSnapsLoader
 @pytest.fixture(scope="session")
 def lifesnaps_loader():
     return LifeSnapsLoader()
+
+
+def test_load_breq_questionnaire(lifesnaps_loader: LifeSnapsLoader):
+    user_id = "621e2efa67b776a2409dd1c3"
+    start_date = datetime.datetime(2021, 5, 26)
+    end_date = datetime.datetime(2021, 6, 11)
+    breq_questionnaire = lifesnaps_loader.load_breq_questionnaire(
+        user_id, start_date, end_date
+    )
+    assert isinstance(breq_questionnaire, pd.DataFrame)
+    assert {
+        constants._UNIXTIMESTAMP_IN_MS_COL,
+        constants._TIMEZONEOFFSET_IN_MS_COL,
+        constants._ISODATE_COL,
+    }.issubset(breq_questionnaire.columns)
 
 
 def test_load_daily_spo2(lifesnaps_loader: LifeSnapsLoader):

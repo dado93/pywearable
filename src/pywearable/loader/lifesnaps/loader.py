@@ -17,6 +17,13 @@ from ... import constants, utils
 from ..base import BaseLoader
 from ..lifesnaps import constants as lifesnaps_constants
 
+_METRIC_KEY = "metric"
+_METRIC_START_DATE_KEY = "start_date"
+_METRIC_END_DATE_KEY = "end_date"
+_METRIC_COLLECTION_KEY = "collection"
+_METRIC_ID_KEY = "id"
+_METRIC_DATE_FORMAT_KEY = "date_format"
+
 _METRIC_DICT = {
     lifesnaps_constants._METRIC_COMP_TEMP: {
         "metric_key": lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_TYPE_COMP_TEMP,
@@ -31,10 +38,19 @@ _METRIC_DICT = {
         "metric_key": lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_TYPE_STEPS,
         "start_date_key": lifesnaps_constants._DB_FITBIT_COLLECTION_STEPS_DATETIME_COL,
     },
-    "breq": {
-        "metric_key": "breq",
-        "start_date_key": "startdate",
-        "collection": "surveys",
+    lifesnaps_constants._METRIC_QUESTIONNAIRE_BREQ: {
+        _METRIC_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_DATA_TYPE_BREQ,
+        _METRIC_START_DATE_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_DATE_KEY,
+        _METRIC_COLLECTION_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_NAME,
+        _METRIC_ID_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_USER_KEY,
+        _METRIC_DATE_FORMAT_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_DATE_FORMAT,
+    },
+    lifesnaps_constants._METRIC_QUESTIONNAIRE_STAI: {
+        _METRIC_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_DATA_TYPE_STAI,
+        _METRIC_START_DATE_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_DATE_KEY,
+        _METRIC_COLLECTION_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_NAME,
+        _METRIC_ID_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_USER_KEY,
+        _METRIC_DATE_FORMAT_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_DATE_FORMAT,
     },
 }
 
@@ -45,7 +61,7 @@ class LifeSnapsLoader(BaseLoader):
     Parameters
     ----------
     host : str
-        Host for pymongo DB instance.
+        Host address of pymongo DB instance.
     port: int
         Port of the pymongo DB instance.
     """
@@ -78,6 +94,7 @@ class LifeSnapsLoader(BaseLoader):
         return [str(x) for x in self.fitbit_collection.distinct("id")]
 
     def get_full_id(self, user_id):
+        # TODO remove this function, where do we use it?
         return user_id
 
     def load_sleep_summary(
@@ -124,11 +141,11 @@ class LifeSnapsLoader(BaseLoader):
         start_date = utils.check_date(start_date)
         end_date = utils.check_date(end_date)
         # Get some constants for ease of access
-        date_of_sleep_key = f"{lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_KEY}"
+        date_of_sleep_key = f"{lifesnaps_constants._DB_DATA_KEY}"
         date_of_sleep_key += (
             f".{lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DATE_OF_SLEEP_KEY}"
         )
-        start_sleep_key = f"{lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_KEY}"
+        start_sleep_key = f"{lifesnaps_constants._DB_DATA_KEY}"
         start_sleep_key += (
             f".{lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_START_TIME_KEY}"
         )
@@ -172,13 +189,9 @@ class LifeSnapsLoader(BaseLoader):
         for sleep_summary in filtered_coll:
             # For each row, save all fields except sleep levels
             filtered_dict = {
-                k: sleep_summary[lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_KEY][k]
+                k: sleep_summary[lifesnaps_constants._DB_DATA_KEY][k]
                 for k in set(
-                    list(
-                        sleep_summary[
-                            lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_KEY
-                        ].keys()
-                    )
+                    list(sleep_summary[lifesnaps_constants._DB_DATA_KEY].keys())
                 )
                 - set(["levels"])
             }
@@ -186,7 +199,7 @@ class LifeSnapsLoader(BaseLoader):
             temp_df = pd.DataFrame(
                 filtered_dict,
                 index=[
-                    sleep_summary[lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_KEY][
+                    sleep_summary[lifesnaps_constants._DB_DATA_KEY][
                         lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LOG_ID_KEY
                     ]
                 ],
@@ -245,7 +258,7 @@ class LifeSnapsLoader(BaseLoader):
             ) // pd.Timedelta("1ms")
 
             sleep_summary_df = sleep_summary_df.sort_values(
-                by=lifesnaps_constants._CALENDAR_DATE_COL, ignore_index=True
+                by=constants._CALENDAR_DATE_COL, ignore_index=True
             )
 
             if same_day_filter:
@@ -290,25 +303,21 @@ class LifeSnapsLoader(BaseLoader):
 
     def _merge_sleep_data_and_sleep_short_data(self, sleep_entry: dict) -> pd.DataFrame:
         # Get data
-        sleep_data_dict = sleep_entry[
-            lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_KEY
-        ][lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY][
-            lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_KEY
-        ]
+        sleep_data_dict = sleep_entry[lifesnaps_constants._DB_DATA_KEY][
+            lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY
+        ][lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_KEY]
         # Create a pd.DataFrame with sleep data
         sleep_data_df = pd.DataFrame(sleep_data_dict)
         if not (
             lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_SHORT_DATA_KEY
-            in sleep_entry[lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_KEY][
+            in sleep_entry[lifesnaps_constants._DB_DATA_KEY][
                 lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY
             ].keys()
         ):
             return sleep_data_df
-        sleep_short_data_list = sleep_entry[
-            lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_KEY
-        ][lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY][
-            lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_SHORT_DATA_KEY
-        ]
+        sleep_short_data_list = sleep_entry[lifesnaps_constants._DB_DATA_KEY][
+            lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY
+        ][lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_SHORT_DATA_KEY]
         # Just store column names
         datetime_col = (
             lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_DATETIME_KEY
@@ -474,7 +483,7 @@ class LifeSnapsLoader(BaseLoader):
         if not utils.check_start_and_end_dates(start_date, end_date):
             raise ValueError(f"{start_date} is greater than {end_date}")
         # Get sleep start key
-        sleep_start_key = f"{lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_KEY}"
+        sleep_start_key = f"{lifesnaps_constants._DB_DATA_KEY}"
         sleep_start_key += (
             f".{lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_START_TIME_KEY}"
         )
@@ -513,17 +522,15 @@ class LifeSnapsLoader(BaseLoader):
                 sleep_data_df = self._merge_sleep_data_and_sleep_short_data(sleep_entry)
             else:
                 # Get data
-                sleep_data_dict = sleep_entry[
-                    lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_KEY
-                ][lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY][
-                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_KEY
-                ]
+                sleep_data_dict = sleep_entry[lifesnaps_constants._DB_DATA_KEY][
+                    lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY
+                ][lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_KEY]
                 # Create a pd.DataFrame with sleep data
                 sleep_data_df = pd.DataFrame(sleep_data_dict)
                 # Add log id to pd.DataFrame
             sleep_data_df[
                 lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LOG_ID_KEY
-            ] = sleep_entry[lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_KEY][
+            ] = sleep_entry[lifesnaps_constants._DB_DATA_KEY][
                 lifesnaps_constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LOG_ID_KEY
             ]
 
@@ -600,43 +607,60 @@ class LifeSnapsLoader(BaseLoader):
         start_date = utils.check_date(start_date)
         end_date = utils.check_date(end_date)
 
-        metric_start_key = _METRIC_DICT[metric]["start_date_key"]
-        if "end_date_key" in _METRIC_DICT[metric].keys():
-            metric_end_key = _METRIC_DICT[metric]["end_date_key"]
+        metric_start_key = _METRIC_DICT[metric][_METRIC_START_DATE_KEY]
+        if _METRIC_END_DATE_KEY in _METRIC_DICT[metric].keys():
+            metric_end_key = _METRIC_DICT[metric][_METRIC_END_DATE_KEY]
         else:
             metric_end_key = None
         if metric_start_key is None:
             metric_start_date_key_db = None
         else:
             metric_start_date_key_db = (
-                lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_KEY
-                + "."
-                + metric_start_key
+                lifesnaps_constants._DB_DATA_KEY + "." + metric_start_key
             )
         if metric_end_key is None:
             metric_end_date_key_db = None
         else:
             metric_end_date_key_db = (
-                lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_KEY
-                + "."
-                + metric_end_key
+                lifesnaps_constants._DB_DATA_KEY + "." + metric_end_key
+            )
+        if _METRIC_ID_KEY in _METRIC_DICT[metric].keys():
+            user_id_key = _METRIC_DICT[metric][_METRIC_ID_KEY]
+        else:
+            user_id_key = lifesnaps_constants._DB_ID_KEY
+        if metric_end_key is None:
+            metric_end_date_key_db = None
+        else:
+            metric_end_date_key_db = (
+                lifesnaps_constants._DB_DATA_KEY + "." + metric_end_key
             )
 
+        # Setup dictionary for date conversion
+        if _METRIC_DATE_FORMAT_KEY in _METRIC_DICT[metric].keys():
+            date_conversion_dict = self._get_date_conversion_dict(
+                start_date_key=metric_start_date_key_db,
+                end_date_key=metric_end_date_key_db,
+                date_format=_METRIC_DICT[metric][_METRIC_DATE_FORMAT_KEY],
+            )
+        else:
+            date_conversion_dict = self._get_date_conversion_dict(
+                start_date_key=metric_start_date_key_db,
+                end_date_key=metric_end_date_key_db,
+            )
+        # Setup dictionary to filter by time
         date_filter_dict = self._get_start_and_end_date_time_filter_dict(
             start_date_key=metric_start_date_key_db,
             end_date_key=metric_end_date_key_db,
             start_date=start_date,
             end_date=end_date,
         )
-        date_conversion_dict = self._get_date_conversion_dict(
-            start_date_key=metric_start_date_key_db, end_date_key=metric_end_date_key_db
-        )
-        if not "collection" in _METRIC_DICT[metric].keys():
+
+        if not _METRIC_COLLECTION_KEY in _METRIC_DICT[metric].keys():
             collection = self.fitbit_collection
         else:
-            if _METRIC_DICT[metric]["collection"] == "surveys":
+            if _METRIC_DICT[metric][_METRIC_COLLECTION_KEY] == "surveys":
                 collection = self.surveys_collection
-            elif _METRIC_DICT[metric]["collection"] == "fitbit":
+            elif _METRIC_DICT[metric][_METRIC_COLLECTION_KEY] == "fitbit":
                 collection = self.fitbit_collection
             else:
                 raise ValueError("Could not find valid collection for metric {metric}")
@@ -645,9 +669,9 @@ class LifeSnapsLoader(BaseLoader):
                 {
                     "$match": {
                         lifesnaps_constants._DB_TYPE_KEY: _METRIC_DICT[metric][
-                            "metric_key"
+                            _METRIC_KEY
                         ],
-                        lifesnaps_constants._DB_ID_KEY: user_id,
+                        user_id_key: user_id,
                     }
                 },
                 date_conversion_dict,
@@ -656,10 +680,8 @@ class LifeSnapsLoader(BaseLoader):
         )
         metric_df = pd.DataFrame()
         list_of_metric_dict = [
-            entry[lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_KEY]
-            for entry in filtered_coll
+            entry[lifesnaps_constants._DB_DATA_KEY] for entry in filtered_coll
         ]
-        print(list_of_metric_dict)
         metric_df = pd.json_normalize(list_of_metric_dict)
         if len(metric_df) > 0:
             if metric_start_key is not None:
@@ -667,6 +689,7 @@ class LifeSnapsLoader(BaseLoader):
                     drop=True
                 )
         metric_df = self._setup_datetime_columns(df=metric_df, metric=metric)
+        metric_df = self._reorder_datetime_columns(metric_df)
         return metric_df
 
     def load_steps(
@@ -681,24 +704,24 @@ class LifeSnapsLoader(BaseLoader):
             start_date=start_date,
             end_date=end_date,
         )
-        steps = self._reorder_datetime_columns(steps)
+
         if len(steps) > 0:
             steps = steps.rename(
                 columns={
-                    lifesnaps_constants._DB_FITBIT_COLLECTION_STEPS_VALUE_COL: lifesnaps_constants._STEPS_COL
+                    lifesnaps_constants._DB_FITBIT_COLLECTION_STEPS_VALUE_COL: constants._STEPS_STEPS_COL
                 }
             )
             # Compute daily steps column
-            steps[lifesnaps_constants._CALENDAR_DATE_COL] = pd.to_datetime(
-                steps[lifesnaps_constants._ISODATE_COL].dt.strftime("%Y-%m-%d"),
+            steps[constants._CALENDAR_DATE_COL] = pd.to_datetime(
+                steps[constants._ISODATE_COL].dt.strftime("%Y-%m-%d"),
             )
-            steps[lifesnaps_constants._STEPS_COL] = steps[
-                lifesnaps_constants._STEPS_COL
+            steps[constants._STEPS_STEPS_COL] = steps[
+                constants._STEPS_STEPS_COL
             ].astype("int64")
-            steps[lifesnaps_constants._TOTAL_STEPS_COL] = steps.groupby(
-                [lifesnaps_constants._CALENDAR_DATE_COL]
-            )[lifesnaps_constants._STEPS_COL].cumsum()
-            steps = steps.drop([lifesnaps_constants._CALENDAR_DATE_COL], axis=1)
+            steps[constants._STEPS_TOTAL_STEPS_COL] = steps.groupby(
+                [constants._CALENDAR_DATE_COL]
+            )[constants._STEPS_STEPS_COL].cumsum()
+            steps = steps.drop([constants._CALENDAR_DATE_COL], axis=1)
         return steps
 
     def _get_start_and_end_date_time_filter_dict(
@@ -726,47 +749,50 @@ class LifeSnapsLoader(BaseLoader):
 
         return date_filter
 
-    def _get_date_conversion_dict(self, start_date_key, end_date_key=None) -> dict:
+    def _get_date_conversion_dict(
+        self, start_date_key, end_date_key=None, date_format="%Y-%m-%dT%H:%M%S.%f"
+    ) -> dict:
         if start_date_key is None:
             date_conversion_dict = {"$addFields": {}}
-        elif (not start_date_key is None) and (not end_date_key is None):
-            date_conversion_dict = {
-                "$addFields": {
-                    start_date_key: {
-                        "$convert": {
-                            "input": f"${start_date_key}",
-                            "to": "date",
-                        }
-                    },
-                    end_date_key: {
-                        "$convert": {
-                            "input": f"${end_date_key}",
-                            "to": "date",
-                        }
-                    },
+        else:
+            if not end_date_key is None:
+                date_conversion_dict = {
+                    "$addFields": {
+                        start_date_key: {
+                            "$dateFromString": {
+                                "dateString": f"${start_date_key}",
+                                "format": date_format,
+                            }
+                        },
+                        end_date_key: {
+                            "$dateFromString": {
+                                "dateString": f"${end_date_key}",
+                                "format": date_format,
+                            }
+                        },
+                    }
                 }
-            }
-        elif (not start_date_key is None) and (end_date_key is None):
-            date_conversion_dict = {
-                "$addFields": {
-                    start_date_key: {
-                        "$convert": {
-                            "input": f"${start_date_key}",
-                            "to": "date",
-                        }
-                    },
+            else:
+                date_conversion_dict = {
+                    "$addFields": {
+                        start_date_key: {
+                            "$dateFromString": {
+                                "dateString": f"${start_date_key}",
+                                "format": date_format,
+                            }
+                        },
+                    }
                 }
-            }
         return date_conversion_dict
 
     def _setup_datetime_columns(self, df: pd.DataFrame, metric: str):
         if len(df) > 0:
-            if "start_date_key" in _METRIC_DICT[metric].keys():
-                if not (_METRIC_DICT[metric]["start_date_key"] is None):
+            if _METRIC_START_DATE_KEY in _METRIC_DICT[metric].keys():
+                if not (_METRIC_DICT[metric][_METRIC_START_DATE_KEY] is None):
                     df = df.rename(
                         columns={
                             _METRIC_DICT[metric][
-                                "start_date_key"
+                                _METRIC_START_DATE_KEY
                             ]: constants._ISODATE_COL
                         }
                     )
@@ -824,58 +850,101 @@ class LifeSnapsLoader(BaseLoader):
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        """_summary_
+        """Loads a questionnaire from LifeSnaps dataset.
 
-        _extended_summary_
+        This function loads a given questionnaire from the LifeSnaps
+        dataset, and returns it into a formatted :class:`pd.DataFrame`.
 
         Parameters
         ----------
-        user_id : str
-            _description_
-        questionnaire_name : str
-            _description_
-        start_date : Union[datetime.datetime, datetime.date, str, None], optional
-            _description_, by default None
-        end_date : Union[datetime.datetime, datetime.date, str, None], optional
-            _description_, by default None
+        user_id : :class:`str`
+            Ths identifier of the user for which the questionnaire have to be loaded.
+        questionnaire_name : :class:`str`
+            Name of the questionnaire to be loaded. The value must be the same
+            that is present in the MongoDB database.
+        start_date : :class:`datetime.datetime` or :class:`datetime.date` :class:`str` or None, optional
+            Start date for which the answers to the questionnaire have to be loaded, by default None
+        end_date : :class:`datetime.datetime` or :class:`datetime.date` :class:`str` or None, optional
+            End date for which the answers to the questionnaire have to be loaded, by default None
 
         Returns
         -------
-        pd.DataFrame
-            _description_
+        :class:`pd.DataFrame`
+            A formatted :class:`pd.DataFrame` with each row containing the answers to a given
+            questionnaire request. Each column represents a given question, and the row values
+            are the answer to the the question.
         """
+        questionnaire_df = self.load_metric(
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+            metric=questionnaire_name,
+        )
+        return questionnaire_df
 
     def load_breq_questionnaire(
         self,
         user_id: str,
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        map_questions: bool = True,
     ) -> pd.DataFrame:
-        return self.load_metric(
+        breq_questionnaire_df = self.load_metric(
             user_id=user_id,
             start_date=start_date,
             end_date=end_date,
-            metric="breq",
+            metric=lifesnaps_constants._METRIC_QUESTIONNAIRE_BREQ,
         )
+        if map_questions:
+            breq_questionnaire_df = breq_questionnaire_df.rename(
+                columns={
+                    "engage[SQ001]": "I exercise because other people say I should",
+                    "engage[SQ002]": "I feel guilty when I don't exercise",
+                    "engage[SQ003]": "I value the benefits of exercise",
+                    "engage[SQ004]": "I exercise because it's fun",
+                    "engage[SQ005]": "I don't see why I should have to exercise",
+                    "engage[SQ006]": "I take part in exercise because my friends/family/partner say I should",
+                    "engage[SQ007]": "I feel ashamed when I miss an exercise session",
+                    "engage[SQ008]": "It's important to me to exercise regularly",
+                    "engage[SQ009]": "I can't see why I should bother exercising",
+                    "engage[SQ010]": "I enjoy my exercise sessions",
+                    "engage[SQ011]": "I exercise because others will not be pleased with me if I don't",
+                    "engage[SQ012]": "I don't see the point in exercising",
+                    "engage[SQ013]": "I feel like a failure when I haven't exercised in a while",
+                    "engage[SQ014]": "I think it is important to make the effort to exercise regularly",
+                    "engage[SQ015]": "I find exercise a pleasurable activity",
+                    "engage[SQ016]": "I feel under pressure from my friends/family to exercise",
+                    "engage[SQ017]": "I get restless if I don't exercise regularly",
+                    "engage[SQ018]": "I get pleasure and satisfaction from participating in exercise",
+                    "engage[SQ019]": "I think exercising is a waste of time",
+                }
+            )
+
+        return breq_questionnaire_df
 
     def load_dq_questionnaire(
         self,
         user_id: str,
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        map_questions: bool = True,
     ) -> pd.DataFrame:
-        return self.load_questionnaire(
+        dq_questionnaire = self.load_questionnaire(
             user_id=user_id,
             start_date=start_date,
             end_date=end_date,
-            questionnaire_name="panas",
+            questionnaire_name="dq",
         )
+        if map_questions:
+            pass
+        return dq_questionnaire
 
     def load_panas_questionnaire(
         self,
         user_id: str,
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        map_questions: bool = True,
     ) -> pd.DataFrame:
         return self.load_questionnaire(
             user_id=user_id,
@@ -889,13 +958,40 @@ class LifeSnapsLoader(BaseLoader):
         user_id: str,
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        map_questions: bool = True,
     ) -> pd.DataFrame:
-        return self.load_questionnaire(
+        stai_questionnaire = self.load_questionnaire(
             user_id=user_id,
             start_date=start_date,
             end_date=end_date,
-            questionnaire_name="stai",
+            questionnaire_name=lifesnaps_constants._METRIC_QUESTIONNAIRE_STAI,
         )
+        if map_questions:
+            stai_questionnaire = stai_questionnaire.rename(
+                columns={
+                    "STAI[SQ001]": "I feel calm",
+                    "STAI[SQ002]": "I feel secure",
+                    "STAI[SQ003]": "I am tense",
+                    "STAI[SQ004]": "I feel strained",
+                    "STAI[SQ005]": "I feel at ease",
+                    "STAI[SQ006]": "I feel upset",
+                    "STAI[SQ007]": "I am presently worrying over possible misfortunes",
+                    "STAI[SQ008]": "I feel satisfied",
+                    "STAI[SQ009]": "I feel frightened",
+                    "STAI[SQ010]": "I feel comfortable",
+                    "STAI[SQ011]": "I feel self-confident",
+                    "STAI[SQ012]": "I feel nervous",
+                    "STAI[SQ013]": "I am jittery",
+                    "STAI[SQ014]": "I feel indecisive",
+                    "STAI[SQ015]": "I am relaxed",
+                    "STAI[SQ016]": "I feel content",
+                    "STAI[SQ017]": "I am worried",
+                    "STAI[SQ018]": "I feel confused",
+                    "STAI[SQ019]": "I feel steady",
+                    "STAI[SQ020]": "I feel pleasant",
+                }
+            )
+        return stai_questionnaire
 
     def load_sema(
         self,

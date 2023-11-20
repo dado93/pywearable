@@ -29,16 +29,8 @@ _METRIC_TIME_IN_HR_ZONES = "time-in-hr-zones"
 _METRIC_DEMOGRAPHIC_VO2_MAX = "demographic-vo2-max"
 _METRIC_ECG = "ecg"
 _METRIC_MINDFULNESS_GOALS = "mindfulness-goals"
-
-##################################
-#      General Columns           #
-##################################
-_UNIXTIMESTAMP_IN_MS_COL = "unixTimestampInMs"
-_ISODATE_COL = "isoDate"
-_TIMEZONEOFFSET_IN_MS_COL = "timezoneOffsetInMs"
-_STEPS_COL = "steps"
-_TOTAL_STEPS_COL = "totalSteps"
-_CALENDAR_DATE_COL = "calendarDate"
+_METRIC_QUESTIONNAIRE_BREQ = "questionnaire-breq"
+_METRIC_QUESTIONNAIRE_STAI = "questionnaire-stai"
 
 ##################################
 #        Sleep Columns           #
@@ -65,17 +57,28 @@ _ECG_SAMPLE_VALUE_COL = "value"
 _DB_NAME = "rais_anonymized"
 _DB_TYPE_KEY = "type"
 _DB_ID_KEY = "id"
+_DB_DATA_KEY = "data"
 
 ##################################
 #       Surveys Collection        #
 ##################################
 _DB_SURVEYS_COLLECTION_NAME = "surveys"
+_DB_SURVEYS_COLLECTION_DATE_FORMAT = "%d/%m/%Y %H:%M"
+_DB_SURVEYS_COLLECTION_DATE_KEY = "submitdate"
+_DB_SURVEYS_COLLECTION_USER_KEY = "user_id"
+
+
+# --------------------------------#
+#          Document types         #
+# --------------------------------#
+_DB_SURVEYS_COLLECTION_DATA_TYPE_BREQ = "breq"
+_DB_SURVEYS_COLLECTION_DATA_TYPE_STAI = "stai"
 
 ##################################
 #       FitBit Collection        #
 ##################################
 _DB_FITBIT_COLLECTION_NAME = "fitbit"
-_DB_FITBIT_COLLECTION_DATA_KEY = "data"
+_DB_FITBIT_DATE_FORMAT = "%d/%m/%Y %H:%M"
 
 # --------------------------------#
 #          Document types         #
