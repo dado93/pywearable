@@ -29,8 +29,14 @@ _METRIC_TIME_IN_HR_ZONES = "time-in-hr-zones"
 _METRIC_DEMOGRAPHIC_VO2_MAX = "demographic-vo2-max"
 _METRIC_ECG = "ecg"
 _METRIC_MINDFULNESS_GOALS = "mindfulness-goals"
+# Questionnaires
 _METRIC_QUESTIONNAIRE_BREQ = "questionnaire-breq"
 _METRIC_QUESTIONNAIRE_STAI = "questionnaire-stai"
+_METRIC_QUESTIONNAIRE_PANAS = "questionnaire-panas"
+_METRIC_QUESTIONNAIRE_PERSONALITY = "questionnaire-personality"
+_METRIC_QUESTIONNAIRE_TTM = "questionnaire-ttmspbf"
+# SEMA
+_METRIC_SEMA = "sema"
 
 ##################################
 #        Sleep Columns           #
@@ -73,6 +79,17 @@ _DB_SURVEYS_COLLECTION_USER_KEY = "user_id"
 # --------------------------------#
 _DB_SURVEYS_COLLECTION_DATA_TYPE_BREQ = "breq"
 _DB_SURVEYS_COLLECTION_DATA_TYPE_STAI = "stai"
+_DB_SURVEYS_COLLECTION_DATA_TYPE_PANAS = "panas"
+_DB_SURVEYS_COLLECTION_DATA_TYPE_BFPT = "bfpt"
+_DB_SURVEYS_COLLECTION_DATA_TYPE_TTMSPBF = "ttmspbf"
+
+##################################
+#       SEMA Collection        #
+##################################
+_DB_SEMA_COLLECTION_NAME = "sema"
+_DB_SEMA_COLLECTION_DATE_FORMAT = "%Y-%m-%dT%H:%M%S"
+_DB_SEMA_COLLECTION_DATE_KEY = "COMPLETED_TS"
+_DB_SEMA_COLLECTION_USER_KEY = "user_id"
 
 ##################################
 #       FitBit Collection        #

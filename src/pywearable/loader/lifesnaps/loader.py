@@ -37,7 +37,10 @@ _METRIC_DICT = {
     lifesnaps_constants._METRIC_STEPS: {
         "metric_key": lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_TYPE_STEPS,
         "start_date_key": lifesnaps_constants._DB_FITBIT_COLLECTION_STEPS_DATETIME_COL,
+        _METRIC_DATE_FORMAT_KEY: "%Y-%m-%dT%H:%M:%S",
     },
+    # Questionnaires
+    # - BREQ
     lifesnaps_constants._METRIC_QUESTIONNAIRE_BREQ: {
         _METRIC_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_DATA_TYPE_BREQ,
         _METRIC_START_DATE_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_DATE_KEY,
@@ -45,8 +48,33 @@ _METRIC_DICT = {
         _METRIC_ID_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_USER_KEY,
         _METRIC_DATE_FORMAT_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_DATE_FORMAT,
     },
+    # - STAI
     lifesnaps_constants._METRIC_QUESTIONNAIRE_STAI: {
         _METRIC_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_DATA_TYPE_STAI,
+        _METRIC_START_DATE_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_DATE_KEY,
+        _METRIC_COLLECTION_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_NAME,
+        _METRIC_ID_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_USER_KEY,
+        _METRIC_DATE_FORMAT_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_DATE_FORMAT,
+    },
+    # - PANAS
+    lifesnaps_constants._METRIC_QUESTIONNAIRE_PANAS: {
+        _METRIC_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_DATA_TYPE_PANAS,
+        _METRIC_START_DATE_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_DATE_KEY,
+        _METRIC_COLLECTION_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_NAME,
+        _METRIC_ID_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_USER_KEY,
+        _METRIC_DATE_FORMAT_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_DATE_FORMAT,
+    },
+    # - PERSONALITY
+    lifesnaps_constants._METRIC_QUESTIONNAIRE_PERSONALITY: {
+        _METRIC_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_DATA_TYPE_BFPT,
+        _METRIC_START_DATE_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_DATE_KEY,
+        _METRIC_COLLECTION_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_NAME,
+        _METRIC_ID_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_USER_KEY,
+        _METRIC_DATE_FORMAT_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_DATE_FORMAT,
+    },
+    # - STAGE AND PROCESSES OF CHANGE
+    lifesnaps_constants._METRIC_QUESTIONNAIRE_TTM: {
+        _METRIC_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_DATA_TYPE_TTMSPBF,
         _METRIC_START_DATE_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_DATE_KEY,
         _METRIC_COLLECTION_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_NAME,
         _METRIC_ID_KEY: lifesnaps_constants._DB_SURVEYS_COLLECTION_USER_KEY,
@@ -889,6 +917,56 @@ class LifeSnapsLoader(BaseLoader):
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
         map_questions: bool = True,
     ) -> pd.DataFrame:
+        """Load BREQ questionnaire.
+
+        This function loads the Behavioural Regulations in Exercise Questionnaire (BREQ)
+        from a given user and dates. The functions returns the answers to the
+        questionnaire in a :class:`pd.DataFrame`. The :class:`pd.DataFrame` contains
+        one column per each questionnaire question, and the column values
+        represent the answers to the questionaire. It is possible to map the
+        column names (i.e., the questions) to the proper questionnaire questions
+        by setting the ``map_questions`` parameter to ``True``. Otherwise, the default
+        encoding used in the LifeSnaps is used for the column names:
+
+            - engage[SQ001]: I exercise because other people say I should
+            - engage[SQ002]: I feel guilty when I don't exercise
+            - engage[SQ003]: I value the benefits of exercise
+            - engage[SQ004]: I exercise because it's fun
+            - engage[SQ005]: I don't see why I should have to exercise
+            - engage[SQ006]: I take part in exercise because my friends/family/partner say I should
+            - engage[SQ007]: I feel ashamed when I miss an exercise session
+            - engage[SQ008]: It's important to me to exercise regularly
+            - engage[SQ009]: I can't see why I should bother exercising
+            - engage[SQ010]: I enjoy my exercise sessions
+            - engage[SQ011]: I exercise because others will not be pleased with me if I don't
+            - engage[SQ012]: I don't see the point in exercising
+            - engage[SQ013]: I feel like a failure when I haven't exercised in a while
+            - engage[SQ014]: I think it is important to make the effort to exercise regularly
+            - engage[SQ015]: I find exercise a pleasurable activity
+            - engage[SQ016]: I feel under pressure from my friends/family to exercise
+            - engage[SQ017]: I get restless if I don't exercise regularly
+            - engage[SQ018]: I get pleasure and satisfaction from participating in exercise
+            - engage[SQ019]: I think exercising is a waste of time
+
+        Parameters
+        ----------
+        user_id : :class:`str`
+            Ths identifier of the user for which the BREQ questionnaire have to be loaded.
+        start_date : :class:`datetime.datetime` or :class:`datetime.date` :class:`str` or None, optional
+            Start date for which the answers to the BREQ questionnaire have to be loaded, by default None
+        end_date : :class:`datetime.datetime` or :class:`datetime.date` :class:`str` or None, optional
+            End date for which the answers to the BREQ questionnaire have to be loaded, by default None
+        map_questions: :class:`bool`, optional
+            Whether to map the BREQ questions (``True``) or leave the default
+            LifeSnaps encoding (``False``), by default True
+
+        Returns
+        -------
+        :class:`pd.DataFrame`
+            A formatted :class:`pd.DataFrame` with each row containing the answers to a given BREQ
+            questionnaire request. Each column represents a given question, and the row values
+            are the answer to the the question.
+        """
         breq_questionnaire_df = self.load_metric(
             user_id=user_id,
             start_date=start_date,
@@ -922,23 +1000,6 @@ class LifeSnapsLoader(BaseLoader):
 
         return breq_questionnaire_df
 
-    def load_dq_questionnaire(
-        self,
-        user_id: str,
-        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
-        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-        map_questions: bool = True,
-    ) -> pd.DataFrame:
-        dq_questionnaire = self.load_questionnaire(
-            user_id=user_id,
-            start_date=start_date,
-            end_date=end_date,
-            questionnaire_name="dq",
-        )
-        if map_questions:
-            pass
-        return dq_questionnaire
-
     def load_panas_questionnaire(
         self,
         user_id: str,
@@ -946,12 +1007,91 @@ class LifeSnapsLoader(BaseLoader):
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
         map_questions: bool = True,
     ) -> pd.DataFrame:
-        return self.load_questionnaire(
+        """Load PANAS questionnaire.
+
+        This function loads the Positive and Negative Affect Schedule (PANAS)
+        questionnaire from a given user and dates. The PANAS questionnaire asks
+        to *"Indicate the extent you have felt this way over the past week"*
+        on a 5-point Likert scale (from *Very slightly or not at all* to *Extremely*).
+        This function returns the answers to the questionnaire in a :class:`pd.DataFrame`.
+        The :class:`pd.DataFrame` contains one column per each questionnaire question,
+        and the column values represent the answers to the questionaire.
+        It is possible to map the column names (i.e., the questions) to the
+        proper questionnaire questions by setting the ``map_questions`` parameter to ``True``.
+        Otherwise, the default encoding used in the LifeSnaps is used for the column names:
+
+            - P1[SQ001]: Interested
+            - P1[SQ002]: Distressed
+            - P1[SQ003]: Excited
+            - P1[SQ004]: Upset
+            - P1[SQ005]: Strong
+            - P1[SQ006]: Guilty
+            - P1[SQ007]: Scared
+            - P1[SQ008]: Hostile
+            - P1[SQ009]: Enthusiastic
+            - P1[SQ010]: Proud
+            - P1[SQ011]: Irritable
+            - P1[SQ012]: Alert
+            - P1[SQ013]: Ashamed
+            - P1[SQ014]: Inspired
+            - P1[SQ015]: Nervous
+            - P1[SQ016]: Determined
+            - P1[SQ017]: Attentive
+            - P1[SQ018]: Jittery
+            - P1[SQ019]: Active
+            - P1[SQ020]: Afraid
+
+        Parameters
+        ----------
+        user_id : :class:`str`
+            Ths identifier of the user for which the PANAS questionnaire have to be loaded.
+        start_date : :class:`datetime.datetime` or :class:`datetime.date` :class:`str` or None, optional
+            Start date for which the answers to the PANAS questionnaire have to be loaded, by default None
+        end_date : :class:`datetime.datetime` or :class:`datetime.date` :class:`str` or None, optional
+            End date for which the answers to the PANAS questionnaire have to be loaded, by default None
+        map_questions: :class:`bool`, optional
+            Whether to map the PANAS questions (``True``) or leave the default
+            LifeSnaps encoding (``False``), by default True
+
+        Returns
+        -------
+        :class:`pd.DataFrame`
+            A formatted :class:`pd.DataFrame` with each row containing the answers to a given PANAS
+            questionnaire request. Each column represents a given question, and the row values
+            are the answer to the the question.
+        """
+        panas_questionnaire = self.load_questionnaire(
             user_id=user_id,
             start_date=start_date,
             end_date=end_date,
-            questionnaire_name="panas",
+            questionnaire_name=lifesnaps_constants._METRIC_QUESTIONNAIRE_PANAS,
         )
+        if map_questions:
+            panas_questionnaire = panas_questionnaire.rename(
+                columns={
+                    "P1[SQ001]": "Interested",
+                    "P1[SQ002]": "Distressed",
+                    "P1[SQ003]": "Excited",
+                    "P1[SQ004]": "Upset",
+                    "P1[SQ005]": "Strong",
+                    "P1[SQ006]": "Guilty",
+                    "P1[SQ007]": "Scared",
+                    "P1[SQ008]": "Hostile",
+                    "P1[SQ009]": "Enthusiastic",
+                    "P1[SQ010]": "Proud",
+                    "P1[SQ011]": "Irritable",
+                    "P1[SQ012]": "Alert",
+                    "P1[SQ013]": "Ashamed",
+                    "P1[SQ014]": "Inspired",
+                    "P1[SQ015]": "Nervous",
+                    "P1[SQ016]": "Determined",
+                    "P1[SQ017]": "Attentive",
+                    "P1[SQ018]": "Jittery",
+                    "P1[SQ019]": "Active",
+                    "P1[SQ020]": "Afraid",
+                }
+            )
+        return panas_questionnaire
 
     def load_stai_questionnaire(
         self,
@@ -960,6 +1100,57 @@ class LifeSnapsLoader(BaseLoader):
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
         map_questions: bool = True,
     ) -> pd.DataFrame:
+        """Load STAI questionnaire.
+
+        This function loads the State-Trait Anxiety Inventory (STAI)
+        questionnaire from a given user and dates. The functions returns the answers to the
+        questionnaire in a :class:`pd.DataFrame`. The :class:`pd.DataFrame` contains
+        one column per each questionnaire question, and the column values
+        represent the answers to the questionaire. It is possible to map the
+        column names (i.e., the questions) to the proper questionnaire questions
+        by setting the ``map_questions`` parameter to ``True``. Otherwise, the default
+        encoding used in the LifeSnaps is used for the column names:
+
+            - STAI[SQ001]: I feel calm
+            - STAI[SQ002]: I feel secure
+            - STAI[SQ003]: I am tense
+            - STAI[SQ004]: I feel strained
+            - STAI[SQ005]: I feel at ease
+            - STAI[SQ006]: I feel upset
+            - STAI[SQ007]: I am presently worrying over possible misfortunes
+            - STAI[SQ008]: I feel satisfied
+            - STAI[SQ009]: I feel frightened
+            - STAI[SQ010]: I feel comfortable
+            - STAI[SQ011]: I feel self-confident
+            - STAI[SQ012]: I feel nervous
+            - STAI[SQ013]: I am jittery
+            - STAI[SQ014]: I feel indecisive
+            - STAI[SQ015]: I am relaxed
+            - STAI[SQ016]: I feel content
+            - STAI[SQ017]: I am worried
+            - STAI[SQ018]: I feel confused
+            - STAI[SQ019]: I feel steady
+            - STAI[SQ020]: I feel pleasant
+
+        Parameters
+        ----------
+        user_id : :class:`str`
+            Ths identifier of the user for which the STAI questionnaire have to be loaded.
+        start_date : :class:`datetime.datetime` or :class:`datetime.date` :class:`str` or None, optional
+            Start date for which the answers to the STAI questionnaire have to be loaded, by default None
+        end_date : :class:`datetime.datetime` or :class:`datetime.date` :class:`str` or None, optional
+            End date for which the answers to the STAI questionnaire have to be loaded, by default None
+        map_questions: :class:`bool`, optional
+            Whether to map the STAI questions (``True``) or leave the default
+            LifeSnaps encoding (``False``), by default True
+
+        Returns
+        -------
+        :class:`pd.DataFrame`
+            A formatted :class:`pd.DataFrame` with each row containing the answers to a given STAI
+            questionnaire request. Each column represents a given question, and the row values
+            are the answer to the the question.
+        """
         stai_questionnaire = self.load_questionnaire(
             user_id=user_id,
             start_date=start_date,
@@ -992,6 +1183,266 @@ class LifeSnapsLoader(BaseLoader):
                 }
             )
         return stai_questionnaire
+
+    def load_personality_questionnaire(
+        self,
+        user_id: str,
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        map_questions: bool = True,
+    ) -> pd.DataFrame:
+        """Load Big Five Personality questionnaire.
+
+        This function loads the Big Five Personality Test (BFPT) from a given user and dates.
+        The functions returns the answers to the questionnaire in a :class:`pd.DataFrame`.
+        The :class:`pd.DataFrame` contains one column per each questionnaire question,
+        and the column values represent the answers to the questionaire. It is possible
+        to map the column names (i.e., the questions) to the proper questionnaire questions
+        by setting the ``map_questions`` parameter to ``True``. Otherwise, the default
+        encoding used in the LifeSnaps is used for the column names:
+
+            - ipip[SQ001]: Am the life of the party
+            - ipip[SQ002]: Feel little concern for others
+            - ipip[SQ003]: Am always prepared
+            - ipip[SQ004]: Get stressed out easily
+            - ipip[SQ005]: Have a rich vocabulary
+            - ipip[SQ006]: Don't talk a lot
+            - ipip[SQ007]: Am interested in people
+            - ipip[SQ008]: Leave my belongings around
+            - ipip[SQ009]: Am relaxed most of the time
+            - ipip[SQ010]: Have difficulty understanding abstract ideas
+            - ipip[SQ011]: Feel comfortable around people
+            - ipip[SQ012]: Insult people
+            - ipip[SQ013]: Pay attention to details
+            - ipip[SQ014]: Worry about things
+            - ipip[SQ015]: Have a vivid imagination
+            - ipip[SQ016]: Keep in the background
+            - ipip[SQ017]: Sympathize with others' feelings
+            - ipip[SQ018]: Make a mess of things
+            - ipip[SQ019]: Seldom feel blue
+            - ipip[SQ020]: Am not interested in abstract ideas
+            - ipip[SQ021]: Start conversations
+            - ipip[SQ022]: Am not interested in other people's problems
+            - ipip[SQ023]: Get chores done right away
+            - ipip[SQ024]: Am easily disturbed
+            - ipip[SQ025]: Have excellent ideas
+            - ipip[SQ026]: Have little to say
+            - ipip[SQ027]: Have a soft heart
+            - ipip[SQ028]: Often forget to put things back in their proper place
+            - ipip[SQ029]: Get upset easily
+            - ipip[SQ030]: Do not have a good imagination
+            - ipip[SQ031]: Talk to a lot of different people at parties
+            - ipip[SQ032]: Am not really interested in others
+            - ipip[SQ033]: Like order
+            - ipip[SQ034]: Change my mood a lot
+            - ipip[SQ035]: Am quick to understand things
+            - ipip[SQ036]: Don't like to draw attention to myself
+            - ipip[SQ037]: Take time out for others
+            - ipip[SQ038]: Shirk my duties
+            - ipip[SQ039]: Have frequent mood swings
+            - ipip[SQ040]: Use difficult words
+            - ipip[SQ041]: Don't mind being the centre of attention
+            - ipip[SQ042]: Feel others' emotions
+            - ipip[SQ043]: Follow a schedule
+            - ipip[SQ044]: Get irritated easily
+            - ipip[SQ045]: Spend time reflecting on things
+            - ipip[SQ046]: Am quiet around strangers
+            - ipip[SQ047]: Make people feel at ease
+            - ipip[SQ048]: Am exacting in my work
+            - ipip[SQ049]: Often feel blue
+            - ipip[SQ050]: Am full of ideas
+
+        Parameters
+        ----------
+        user_id : :class:`str`
+            Ths identifier of the user for which the BFPT have to be loaded.
+        start_date : :class:`datetime.datetime` or :class:`datetime.date` :class:`str` or None, optional
+            Start date for which the answers to the BFPT have to be loaded, by default None
+        end_date : :class:`datetime.datetime` or :class:`datetime.date` :class:`str` or None, optional
+            End date for which the answers to the BFPT have to be loaded, by default None
+        map_questions: :class:`bool`, optional
+            Whether to map the BFPT questions (``True``) or leave the default
+            LifeSnaps encoding (``False``), by default True
+
+        Returns
+        -------
+        :class:`pd.DataFrame`
+            A formatted :class:`pd.DataFrame` with each row containing the answers to a given BFPT
+            questionnaire request. Each column represents a given question, and the row values
+            are the answer to the the question.
+        """
+        bfpt_questionnaire = self.load_questionnaire(
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+            questionnaire_name=lifesnaps_constants._METRIC_QUESTIONNAIRE_PERSONALITY,
+        )
+        if map_questions:
+            bfpt_questionnaire = bfpt_questionnaire.rename(
+                columns={
+                    "ipip[SQ001]": "Am the life of the party",
+                    "ipip[SQ002]": "Feel little concern for others",
+                    "ipip[SQ003]": "Am always prepared",
+                    "ipip[SQ004]": "Get stressed out easily",
+                    "ipip[SQ005]": "Have a rich vocabulary",
+                    "ipip[SQ006]": "Don't talk a lot",
+                    "ipip[SQ007]": "Am interested in people",
+                    "ipip[SQ008]": "Leave my belongings around",
+                    "ipip[SQ009]": "Am relaxed most of the time",
+                    "ipip[SQ010]": "Have difficulty understanding abstract ideas",
+                    "ipip[SQ011]": "Feel comfortable around people",
+                    "ipip[SQ012]": "Insult people",
+                    "ipip[SQ013]": "Pay attention to details",
+                    "ipip[SQ014]": "Worry about things",
+                    "ipip[SQ015]": "Have a vivid imagination",
+                    "ipip[SQ016]": "Keep in the background",
+                    "ipip[SQ017]": "Sympathize with others' feelings",
+                    "ipip[SQ018]": "Make a mess of things",
+                    "ipip[SQ019]": "Seldom feel blue",
+                    "ipip[SQ020]": "Am not interested in abstract ideas",
+                    "ipip[SQ021]": "Start conversations",
+                    "ipip[SQ022]": "Am not interested in other people's problems",
+                    "ipip[SQ023]": "Get chores done right away",
+                    "ipip[SQ024]": "Am easily disturbed",
+                    "ipip[SQ025]": "Have excellent ideas",
+                    "ipip[SQ026]": "Have little to say",
+                    "ipip[SQ027]": "Have a soft heart",
+                    "ipip[SQ028]": "Often forget to put things back in their proper place",
+                    "ipip[SQ029]": "Get upset easily",
+                    "ipip[SQ030]": "Do not have a good imagination",
+                    "ipip[SQ031]": "Talk to a lot of different people at parties",
+                    "ipip[SQ032]": "Am not really interested in others",
+                    "ipip[SQ033]": "Like order",
+                    "ipip[SQ034]": "Change my mood a lot",
+                    "ipip[SQ035]": "Am quick to understand things",
+                    "ipip[SQ036]": "Don't like to draw attention to myself",
+                    "ipip[SQ037]": "Take time out for others",
+                    "ipip[SQ038]": "Shirk my duties",
+                    "ipip[SQ039]": "Have frequent mood swings",
+                    "ipip[SQ040]": "Use difficult words",
+                    "ipip[SQ041]": "Don't mind being the centre of attention",
+                    "ipip[SQ042]": "Feel others' emotions",
+                    "ipip[SQ043]": "Follow a schedule",
+                    "ipip[SQ044]": "Get irritated easily",
+                    "ipip[SQ045]": "Spend time reflecting on things",
+                    "ipip[SQ046]": "Am quiet around strangers",
+                    "ipip[SQ047]": "Make people feel at ease",
+                    "ipip[SQ048]": "Am exacting in my work",
+                    "ipip[SQ049]": "Often feel blue",
+                    "ipip[SQ050]": "Am full of ideas",
+                }
+            )
+        return bfpt_questionnaire
+
+    def load_ttm_questionnaire(
+        self,
+        user_id: str,
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        map_questions: bool = True,
+    ) -> pd.DataFrame:
+        """Load Stages and Processes of Change Questionnaire.
+
+        This function loads the Stages and Processes of Change (TTMSPBF) Questionnaire from a given user and dates.
+        The functions returns the answers to the questionnaire in a :class:`pd.DataFrame`.
+        The :class:`pd.DataFrame` contains one column per each questionnaire question,
+        and the column values represent the answers to the questionaire. It is possible
+        to map the column names (i.e., the questions) to the proper questionnaire questions
+        by setting the ``map_questions`` parameter to ``True``. Otherwise, the default
+        encoding used in the LifeSnaps is used for the column names:
+
+            - processes[SQ002]: I read articles to learn more about physical activity.
+            - processes[SQ003]: I get upset when I see people who would benefit from physical activity but choose not to do physical activity.
+            - processes[SQ004]: I realize that if I don't do physical activity regularly, I may get ill and be a burden to others.
+            - processes[SQ005]: I feel more confident when I do physical activity regularly.
+            - processes[SQ006]: I have noticed that many people know that physical activity is good for them.
+            - processes[SQ007]: When I feel tired, I make myself do physical activity anyway because I know I will feel better afterwards.
+            - processes[SQ008]: I have a friend who encourages me to do physical activity when I don't feel up to it.
+            - processes[SQ009]: One of the rewards of regular physical activity is that it improves my mood.
+            - processes[SQ010]: I tell myself that I can keep doing physically activity if I try hard enough.
+            - processes[SQ011]: I keep a set of physical activity clothes with me so I can do physical activity whenever I get the time.
+            - processes[SQ012]: I look for information related to physical activity.
+            - processes[SQ013]: I am afraid of the results to my health if I do not do physical activity.
+            - processes[SQ014]: I think that by doing regular physical activity I will not be a burden to the healthcare system.
+            - processes[SQ015]: I believe that regular physical activity will make me a healthier, happier person.
+            - processes[SQ016]: I am aware of more and more people who are making physical activity a part of their lives.
+            - processes[SQ017]: Instead of taking a nap after work, I do physical activity.
+            - processes[SQ018]: I have someone who encourages me to do physical activity.
+            - processes[SQ019]: I try to think of physical activity as a time to clear my mind as well as a workout for my body.
+            - processes[SQ020]: I make commitments to do physical activity.
+            - processes[SQ021]: I use my calendar to schedule my physical activity time.
+            - processes[SQ022]: I find out about new methods of being physically active.
+            - processes[SQ023]: I get upset when I realize that people I love would have better health if they were physically active.
+            - processes[SQ024]: I think that regular physical activity plays a role in reducing health care costs.
+            - processes[SQ025]: I feel better about myself when I do physical activity.
+            - processes[SQ026]: I notice that famous people often say that they do physical activity regularly.
+            - processes[SQ027]: Instead of relaxing by watching TV or eating, I take a walk or am physically active.
+            - processes[SQ028]: My friends encourage me to do physical activity.
+            - processes[SQ029]: If I engage in regular physical activity, I find that I get the benefit of having more energy.
+            - processes[SQ030]: I believe that I can do physical activity regularly.
+            - processes[SQ031]: I make sure I always have a clean set of physical activity clothes.
+
+        Parameters
+        ----------
+        user_id : :class:`str`
+            Ths identifier of the user for which the TTMSPBF have to be loaded.
+        start_date : :class:`datetime.datetime` or :class:`datetime.date` :class:`str` or None, optional
+            Start date for which the answers to the TTMSPBF have to be loaded, by default None
+        end_date : :class:`datetime.datetime` or :class:`datetime.date` :class:`str` or None, optional
+            End date for which the answers to the TTMSPBF have to be loaded, by default None
+        map_questions: :class:`bool`, optional
+            Whether to map the TTMSPBF questions (``True``) or leave the default
+            LifeSnaps encoding (``False``), by default True
+
+        Returns
+        -------
+        :class:`pd.DataFrame`
+            A formatted :class:`pd.DataFrame` with each row containing the answers to a given TTMSPBF
+            questionnaire request. Each column represents a given question, and the row values
+            are the answer to the the question.
+        """
+        ttm_questionnaire = self.load_questionnaire(
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+            questionnaire_name=lifesnaps_constants._METRIC_QUESTIONNAIRE_TTM,
+        )
+        if map_questions:
+            ttm_questionnaire = ttm_questionnaire.rename(
+                columns={
+                    "processes[SQ002]": "I read articles to learn more about physical activity.",
+                    "processes[SQ003]": "I get upset when I see people who would benefit from physical activity but choose not to do physical activity.",
+                    "processes[SQ004]": "I realize that if I don't do physical activity regularly, I may get ill and be a burden to others.",
+                    "processes[SQ005]": "I feel more confident when I do physical activity regularly.",
+                    "processes[SQ006]": "I have noticed that many people know that physical activity is good for them.",
+                    "processes[SQ007]": "When I feel tired, I make myself do physical activity anyway because I know I will feel better afterwards.",
+                    "processes[SQ008]": "I have a friend who encourages me to do physical activity when I don't feel up to it.",
+                    "processes[SQ009]": "One of the rewards of regular physical activity is that it improves my mood.",
+                    "processes[SQ010]": "I tell myself that I can keep doing physically activity if I try hard enough.",
+                    "processes[SQ011]": "I keep a set of physical activity clothes with me so I can do physical activity whenever I get the time.",
+                    "processes[SQ012]": "I look for information related to physical activity.",
+                    "processes[SQ013]": "I am afraid of the results to my health if I do not do physical activity.",
+                    "processes[SQ014]": "I think that by doing regular physical activity I will not be a burden to the healthcare system.",
+                    "processes[SQ015]": "I believe that regular physical activity will make me a healthier, happier person.",
+                    "processes[SQ016]": "I am aware of more and more people who are making physical activity a part of their lives.",
+                    "processes[SQ017]": "Instead of taking a nap after work, I do physical activity.",
+                    "processes[SQ018]": "I have someone who encourages me to do physical activity.",
+                    "processes[SQ019]": "I try to think of physical activity as a time to clear my mind as well as a workout for my body.",
+                    "processes[SQ020]": "I make commitments to do physical activity.",
+                    "processes[SQ021]": "I use my calendar to schedule my physical activity time.",
+                    "processes[SQ022]": "I find out about new methods of being physically active.",
+                    "processes[SQ023]": "I get upset when I realize that people I love would have better health if they were physically active.",
+                    "processes[SQ024]": "I think that regular physical activity plays a role in reducing health care costs.",
+                    "processes[SQ025]": "I feel better about myself when I do physical activity.",
+                    "processes[SQ026]": "I notice that famous people often say that they do physical activity regularly.",
+                    "processes[SQ027]": "Instead of relaxing by watching TV or eating, I take a walk or am physically active.",
+                    "processes[SQ028]": "My friends encourage me to do physical activity.",
+                    "processes[SQ029]": "If I engage in regular physical activity, I find that I get the benefit of having more energy.",
+                    "processes[SQ030]": "I believe that I can do physical activity regularly.",
+                    "processes[SQ031]": "I make sure I always have a clean set of physical activity clothes.",
+                }
+            )
+        return ttm_questionnaire
 
     def load_sema(
         self,
