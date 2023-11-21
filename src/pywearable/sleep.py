@@ -3591,10 +3591,11 @@ def get_sleep_statistic(
             sleep_stages = loader.load_sleep_stage(
                 user, sleep_summary_start_date, sleep_summary_end_date
             )
+
             # Keep only those belonging to sleep summaries
             sleep_stages = sleep_stages[
                 sleep_stages[constants._SLEEP_SUMMARY_SLEEP_SUMMARY_ID_COL].isin(
-                    sleep_summary.index
+                    sleep_summary.index.unique()
                 )
             ]
             # Compute metric -> pd.Series with sleepSummaryId as index
@@ -3620,9 +3621,7 @@ def get_sleep_statistic(
                 how="outer",
             )
             # Convert it to a pd.Series with calendarDate as index
-            # metric_data[constants._CALENDAR_DATE_COL] = sleep_summary[
-            #    constants._CALENDAR_DATE_COL
-            # ]
+
             data_dict[user] = pd.Series(
                 metric_data[metric].values,
                 index=metric_data[constants._CALENDAR_DATE_COL],
