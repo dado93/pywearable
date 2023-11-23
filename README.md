@@ -15,8 +15,6 @@ At this stage of development, the package is still not uploaded to PyPi, and thu
 
 1. Clone the repository with `git clone git@github.com:dado93/pywearable.git`
 2. `cd pywearable`
-3. `git branch pywearable && git checkout pywearable`
-4. `git pull origin pywearable`
 3. `pip install --editable .`
 
 ## Usage
