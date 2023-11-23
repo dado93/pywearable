@@ -23,11 +23,11 @@ At this stage of development, the package is still not uploaded to PyPi, and thu
 The package was designed to be used in the most straightforward way:
 
 ```
-import pywearable.loader.labfront
+import pywearable.loader
 
 _BASE_FOLDER = "..." # Path to folder with data downloaded from Labfront
 
-labfront_loader = pywearable.loader.labfront.LabfrontLoader()
+labfront_loader = pywearable.loader.LabfrontLoader()
 sleep_summaries = labfront_loader.load_garmin_connect_sleep_summary("user-01")
 ```
 
