@@ -11,10 +11,7 @@ import numpy as np
 import pandas as pd
 import pyhrv
 
-import pywearable.sleep as sleep
-import pywearable.utils as utils
-
-from . import constants
+from . import constants, sleep, utils
 
 _LABFRONT_SPO2_COLUMN = "spo2"
 
@@ -145,9 +142,7 @@ def get_cardiac_statistic(
 
     for user in user_id:
         try:
-            daily_summary_data = loader.load_daily_summary(
-                user, start_date, end_date
-            )
+            daily_summary_data = loader.load_daily_summary(user, start_date, end_date)
             if len(daily_summary_data) > 0:
                 daily_summary_data = daily_summary_data.groupby(
                     _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATA_COL
@@ -599,7 +594,7 @@ def get_night_rmssd(
     end_date=None,
     coverage=0.7,
     method="all night",
-    resolution=1
+    resolution=1,
 ):
     """Compute rmssd metrics considering night data for the specified participants and period.
 
@@ -638,8 +633,10 @@ def get_night_rmssd(
 
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
                 bbi_df = loader.load_garmin_device_bbi(user, start_hour, end_hour)
-                if (method == "filter awake"):
-                    bbi_df = utils.filter_out_awake_bbi(loader, user, bbi_df, date, resolution)
+                if method == "filter awake":
+                    bbi_df = utils.filter_out_awake_bbi(
+                        loader, user, bbi_df, date, resolution
+                    )
                 bbi_df = bbi_df.set_index(constants._ISODATE_COL)
                 counts = bbi_df.resample("5min").bbi.count()
                 means = bbi_df.resample("5min").bbi.mean()
@@ -667,7 +664,7 @@ def get_night_sdnn(
     end_date=None,
     coverage=0.7,
     method="all night",
-    resolution=1
+    resolution=1,
 ):
     """Compute SDNN metrics considering night data for the specified participants and period.
 
@@ -707,8 +704,10 @@ def get_night_sdnn(
 
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
                 bbi_df = loader.load_garmin_device_bbi(user, start_hour, end_hour)
-                if (method == "filter awake"):
-                    bbi_df = utils.filter_out_awake_bbi(loader, user, bbi_df, date, resolution)
+                if method == "filter awake":
+                    bbi_df = utils.filter_out_awake_bbi(
+                        loader, user, bbi_df, date, resolution
+                    )
                 bbi_df = bbi_df.set_index(constants._ISODATE_COL)
                 counts = bbi_df.resample("5min").bbi.count()
                 means = bbi_df.resample("5min").bbi.mean()
@@ -737,7 +736,7 @@ def get_night_lf(
     coverage=0.7,
     method="all night",
     minimal_periods=10,
-    resolution=1
+    resolution=1,
 ):
     """Compute LF power metrics considering night data for the specified participants and period.
 
@@ -776,8 +775,10 @@ def get_night_lf(
 
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
                 bbi_df = loader.load_garmin_device_bbi(user, start_hour, end_hour)
-                if (method == "filter awake"):
-                    bbi_df = utils.filter_out_awake_bbi(loader, user, bbi_df, date, resolution)
+                if method == "filter awake":
+                    bbi_df = utils.filter_out_awake_bbi(
+                        loader, user, bbi_df, date, resolution
+                    )
                 bbi_df = bbi_df.set_index(constants._ISODATE_COL)
                 counts = bbi_df.resample("5min").bbi.count()
                 means = bbi_df.resample("5min").bbi.mean()
@@ -811,7 +812,7 @@ def get_night_hf(
     coverage=0.7,
     method="all night",
     minimal_periods=10,
-    resolution=1
+    resolution=1,
 ):
     """Compute HF power metrics considering night data for the specified participants and period.
 
@@ -850,8 +851,10 @@ def get_night_hf(
 
             for date, (start_hour, end_hour) in sleeping_timestamps.items():
                 bbi_df = loader.load_garmin_device_bbi(user, start_hour, end_hour)
-                if (method == "filter awake"):
-                    bbi_df = utils.filter_out_awake_bbi(loader, user, bbi_df, date, resolution)
+                if method == "filter awake":
+                    bbi_df = utils.filter_out_awake_bbi(
+                        loader, user, bbi_df, date, resolution
+                    )
                 bbi_df = bbi_df.set_index(constants._ISODATE_COL)
                 counts = bbi_df.resample("5min").bbi.count()
                 means = bbi_df.resample("5min").bbi.mean()
@@ -884,7 +887,7 @@ def get_night_lfhf(
     end_date=None,
     coverage=0.7,
     method="all night",
-    resolution=1
+    resolution=1,
 ):
     """Compute LF/HF ratio metrics considering night data for the specified participants and period.
 
@@ -917,10 +920,22 @@ def get_night_lfhf(
     for user in user_id:
         try:
             lf_dict = get_night_lf(
-                loader, user, start_date, end_date, coverage=coverage, method=method, resolution=resolution
+                loader,
+                user,
+                start_date,
+                end_date,
+                coverage=coverage,
+                method=method,
+                resolution=resolution,
             )[user]
             hf_dict = get_night_hf(
-                loader, user, start_date, end_date, coverage=coverage, method=method, resolution=resolution
+                loader,
+                user,
+                start_date,
+                end_date,
+                coverage=coverage,
+                method=method,
+                resolution=resolution,
             )[user]
             lfhf_dict = {}
             for date in lf_dict.keys():
