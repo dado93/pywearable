@@ -4,6 +4,7 @@ of Labfront cardiac data.
 """
 
 import datetime
+from typing import Union
 
 import hrvanalysis
 import matplotlib.pyplot as plt
@@ -11,89 +12,14 @@ import numpy as np
 import pandas as pd
 import pyhrv
 
-from . import constants, sleep, utils
+from . import constants, loader, sleep, utils
 
-_LABFRONT_SPO2_COLUMN = "spo2"
-
-_LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATA_COL = "calendarDate"
 _LABFRONT_HR_COLUMN = "beatsPerMinute"
 
 _LABFRONT_RESTING_HR_COLUMN = "restingHeartRateInBeatsPerMinute"
 _LABFRONT_AVG_HR_COLUMN = "averageHeartRateInBeatsPerMinute"
 _LABFRONT_MAX_HR_COLUMN = "maxHeartRateInBeatsPerMinute"
 _LABFRONT_MIN_HR_COLUMN = "minHeartRateInBeatsPerMinute"
-
-
-def get_rest_spO2(
-    loader,
-    user_id="all",
-    start_date=None,
-    end_date=None,
-    average=False,
-):
-    """Get spO2 during sleep.
-
-    This function returns the mean rest spO2 computed for every day.
-
-    Parameters
-    ----------
-    loader: :class:`pylabfront.loader.Loader`
-        Initialized instance of data loader.
-    user_id: :class:`str`, optional
-        ID of the user for which spO2 must be computed, by default "all".
-    start_date: :class:`datetime.datetime`, optional
-        Start date from which rest spO2 must be computed, by default None.
-    end_date: :class:`datetime.datetime`, optional
-        End date to which rest spO2 must be computed, by default None.
-    average: :class:'bool', optional
-        Whether to average the statistic or not, by default False.
-        If set to True, then the statistic is returned as the average from
-        ``start_date`` to ``end_date``. If set to False, then a single value
-        is returned for each day from ``start_date`` to ``end_date``.
-
-    Returns
-    -------
-    :class:`dict`
-        Dictionary with participant id as primary key, calendar days as secondary keys, and rest spO2 as value.
-    """
-
-    user_id = utils.get_user_ids(loader, user_id)
-
-    data_dict = {}
-    if average:
-        average_dict = {}
-
-    for user in user_id:
-        try:
-            spo2_data = loader.load_garmin_connect_pulse_ox(
-                user, start_date=start_date, end_date=end_date
-            )
-            spo2_data = spo2_data[spo2_data.sleep == 1]
-            if len(spo2_data) > 0:
-                data_dict[user] = (
-                    spo2_data.groupby(spo2_data[loader.date_column].dt.date)[
-                        _LABFRONT_SPO2_COLUMN
-                    ]
-                    .mean()
-                    .to_dict()
-                )
-                if average:
-                    spo2_data_df = pd.DataFrame.from_dict(
-                        data_dict[user], orient="index"
-                    )
-                    average_dict[user] = {}
-                    average_dict[user]["values"] = np.nanmean(
-                        np.array(list(data_dict[user].values()))
-                    )
-                    average_dict[user]["days"] = [
-                        datetime.datetime.strftime(x, "%Y-%m-%d")
-                        for x in spo2_data_df.index
-                    ]
-        except:
-            data_dict[user] = None
-    if average:
-        return average_dict
-    return data_dict
 
 
 def get_cardiac_statistic(
@@ -145,13 +71,11 @@ def get_cardiac_statistic(
             daily_summary_data = loader.load_daily_summary(user, start_date, end_date)
             if len(daily_summary_data) > 0:
                 daily_summary_data = daily_summary_data.groupby(
-                    _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATA_COL
+                    constants._CALENDAR_DATE_COL
                 ).tail(1)
                 data_dict[user] = pd.Series(
                     daily_summary_data[statistic].values,
-                    index=daily_summary_data[
-                        _LABFRONT_GARMIN_CONNECT_DAILY_SUMMARY_CALENDAR_DATA_COL
-                    ].dt.date,
+                    index=daily_summary_data[constants._CALENDAR_DATE_COL].dt.date,
                 ).to_dict()
 
             if average:
