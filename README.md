@@ -4,6 +4,7 @@
 Do you need to deal with wearable data? Then you are in the right place!
 In this repository you will find a Python package that you can use to analyse all data collected with several data sources. At the moment, we support:
 - [Labfront](https://labfront.com/)
+- [LifeSnaps Dataset](https://zenodo.org/records/7229547)
 
 The aim of this Python package is to offer a series of functions for the loading and analysis of the data. Furthermore, the aim is to build a command line interface (CLI) for data extraction and a web-based dashboard for:
 - visualization of physiological data
