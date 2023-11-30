@@ -18,12 +18,16 @@ from . import constants as labfront_constants
 
 _LABFRONT_METRICS_DICT = {
     constants._METRIC_HEART_RATE: {
-        "garmin_health_api": labfront_constants._GARMIN_CONNECT_HEART_RATE_FOLDER,
-        "garmin_sdk": labfront_constants._GARMIN_DEVICE_HEART_RATE_FOLDER,
+        "health_api": labfront_constants._GARMIN_CONNECT_HEART_RATE_FOLDER,
+        "sdk": labfront_constants._GARMIN_DEVICE_HEART_RATE_FOLDER,
     },
     constants._METRIC_STRESS: {
-        "garmin_health_api": labfront_constants._GARMIN_CONNECT_STRESS_FOLDER,
-        "garmin_sdk": labfront_constants._GARMIN_DEVICE_HEART_RATE_FOLDER,
+        "health_api": labfront_constants._GARMIN_CONNECT_STRESS_FOLDER,
+        "sdk": labfront_constants._GARMIN_DEVICE_HEART_RATE_FOLDER,
+    },
+    constants._METRIC_PULSE_OX: {
+        "health_api": labfront_constants._GARMIN_CONNECT_DAILY_PULSE_OX_FOLDER,
+        "sdk": labfront_constants._GARMIN_DEVICE_PULSE_OX_FOLDER,
     },
 }
 
@@ -1522,6 +1526,7 @@ class LabfrontLoader(BaseLoader):
         pd.DataFrame
             Dataframe containing pulse ox data.
         """
+        # TODO we don't have sleep information here, need to add it
         data = self.get_data_from_datetime(
             user_id,
             labfront_constants._GARMIN_DEVICE_PULSE_OX_FOLDER,
@@ -2070,6 +2075,26 @@ class LabfrontLoader(BaseLoader):
             end_date=end_date,
             source=source,
         )
+
+    def load_pulse_ox(
+        self,
+        user_id: str,
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        source="health_api",
+    ) -> pd.DataFrame:
+        if source == "health_api":
+            return self.load_garmin_connect_pulse_ox(
+                user_id=user_id,
+                start_date=start_date,
+                end_date=end_date,
+            )
+        else:
+            return self.load_garmin_device_pulse_ox(
+                user_id=user_id,
+                start_date=start_date,
+                end_date=end_date,
+            )
 
     def load_stress(
         self,

@@ -135,18 +135,18 @@ def get_rest_pulse_ox_statistic(
     for user in user_id:
         data_dict[user] = {}
         pulse_ox_data = loader.load_pulse_ox(
-            user_id=user_id, start_date=start_date, end_date=end_date
+            user_id=user, start_date=start_date, end_date=end_date
         )
         # Get the data only when sleeping and reset index
         pulse_ox_data = pulse_ox_data[
             pulse_ox_data[constants._IS_SLEEPING_COL] == True
         ].reset_index(drop=True)
         if len(pulse_ox_data) > 0:
-            data_dict[user][metric] = (
+            data_dict[user] = (
                 pulse_ox_data.groupby(pulse_ox_data[constants._CALENDAR_DATE_COL])[
                     constants._SPO2_SPO2_COL
                 ]
-                .transform(kind, args)
+                .apply(kind, args)
                 .to_dict()
             )
 

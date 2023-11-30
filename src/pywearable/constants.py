@@ -2,7 +2,7 @@ _METRIC_HEART_RATE = "heart-rate"
 _METRIC_STRESS = "stress"
 _METRIC_SLEEP_SUMMARY = "sleep-summary"
 _METRIC_SLEEP_STAGE = "sleep-stage"
-
+_METRIC_PULSE_OX = "pulse-ox"
 #################################################
 #          CSV FILES - COLUMN NAMES             #
 #################################################
