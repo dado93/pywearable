@@ -1082,35 +1082,65 @@ class LabfrontLoader(BaseLoader):
         """
         # We need to load both sleep and daily pulse ox
         daily_data = self.get_data_from_datetime(
-            user_id,
-            labfront_constants._GARMIN_CONNECT_DAILY_PULSE_OX_FOLDER,
-            start_date,
-            end_date,
+            user_id=user_id,
+            metric=labfront_constants._GARMIN_CONNECT_DAILY_PULSE_OX_FOLDER,
+            start_date=start_date,
+            end_date=end_date,
         ).reset_index(drop=True)
-        # Add sleep label to sleep pulse ox
+        # Load sleep pulse ox data
         sleep_data = self.get_data_from_datetime(
-            user_id,
-            labfront_constants._GARMIN_CONNECT_SLEEP_PULSE_OX_FOLDER,
-            start_date,
-            end_date,
+            user_id=user_id,
+            metric=labfront_constants._GARMIN_CONNECT_SLEEP_PULSE_OX_FOLDER,
+            start_date=start_date,
+            end_date=end_date,
         ).reset_index(drop=True)
         if len(sleep_data) > 0:
-            sleep_data.loc[:, "sleep"] = 1
-        # Merge dataframes
-        # We need to merge the dataframes because the daily_data already contain sleep_data
-        if len(daily_data) > 0:
+            # Set information about sleep
+            sleep_data.loc[:, constants._IS_SLEEPING_COL] = True
+            # We need to add information about sleep summaries
+            sleep_summary = self.load_sleep_summary(
+                user_id=user_id,
+                start_date=start_date,
+                end_date=end_date,
+                same_day_filter=False,
+            )
+            sleep_summary = sleep_summary.loc[
+                :, [constants._CALENDAR_DATE_COL, constants._SLEEP_SUMMARY_ID_COL]
+            ]
+
+            sleep_data = sleep_data.merge(
+                right=sleep_summary,
+                left_on=constants._SLEEP_SUMMARY_ID_COL,
+                right_on=constants._SLEEP_SUMMARY_ID_COL,
+                how="left",
+            )
             sleep_data = sleep_data.drop(
                 [
                     x
                     for x in sleep_data.columns
-                    if (not x in ([constants._ISODATE_COL, "sleep"]))
+                    if (
+                        not x
+                        in (
+                            [
+                                constants._ISODATE_COL,
+                                constants._CALENDAR_DATE_COL,
+                                constants._IS_SLEEPING_COL,
+                            ]
+                        )
+                    )
                 ],
                 axis=1,
             )
+        # Merge dataframes
+        # We need to merge the dataframes because the daily_data already contain sleep_data
+        if len(daily_data) > 0:
             merged_data = daily_data.merge(
                 sleep_data, on=constants._ISODATE_COL, how="left"
             )
-            merged_data.loc[merged_data["sleep"] != 1, "sleep"] = 0
+            merged_data.loc[
+                merged_data[constants._IS_SLEEPING_COL] != True,
+                constants._IS_SLEEPING_COL,
+            ] = False
             return merged_data
         else:
             return sleep_data

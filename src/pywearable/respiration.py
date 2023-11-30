@@ -8,15 +8,153 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
-from . import constants, utils
-from .loader.base import BaseLoader
+from . import constants, loader, utils
 
 _RESPIRATION_DAY = "DAY"
 _RESPIRATION_NIGHT = "NIGHT"
 
+_RESPIRATION_METRIC_MEAN_PULSE_OX = "meanPulseOx"
+
+
+def get_mean_rest_pulse_ox(
+    loader: loader.BaseLoader,
+    user_id: Union[str, list, None] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+):
+    return get_rest_pulse_ox_statistic(
+        loader=loader,
+        metric=_RESPIRATION_METRIC_MEAN_PULSE_OX,
+        user_id=user_id,
+        start_date=start_date,
+        end_date=end_date,
+        kind="mean",
+    )
+
+
+def get_p10_rest_pulse_ox(
+    loader: loader.BaseLoader,
+    user_id: Union[str, list, None] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+):
+    return get_rest_pulse_ox_statistic(
+        loader=loader,
+        user_id=user_id,
+        start_date=start_date,
+        end_date=end_date,
+        kind="percentile",
+        args=(10),
+    )
+
+
+def get_p20_rest_pulse_ox(
+    loader: loader.BaseLoader,
+    user_id: Union[str, list, None] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+):
+    return get_rest_pulse_ox_statistic(
+        loader=loader,
+        user_id=user_id,
+        start_date=start_date,
+        end_date=end_date,
+        kind="percentile",
+        args=(20),
+    )
+
+
+def get_p30_rest_pulse_ox(
+    loader: loader.BaseLoader,
+    user_id: Union[str, list, None] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+):
+    return get_rest_pulse_ox_statistic(
+        loader=loader,
+        user_id=user_id,
+        start_date=start_date,
+        end_date=end_date,
+        kind="percentile",
+        args=(30),
+    )
+
+
+def get_rest_pulse_ox_statistic(
+    loader: loader.BaseLoader,
+    metric: str,
+    user_id: Union[str, list, None] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind: str = "mean",
+    args: Union[tuple, list] = (),
+):
+    """Get pulse ox during sleep.
+
+    This function returns a rest pulse ox statistic for each day. Depending on the value
+    of the ``kind`` parameter, the function returns a statistic for rest pulse ox data.
+    The value of the ``kind`` parameter can be any value that is accepted by
+    a transform operation by pandas. By default, the function returns the ``mean``
+    pulse ox at rest.
+
+    Parameters
+    ----------
+    loader: :class:`pywearable.loader.BaseLoader`
+        Instance of a data loader.
+    user_id: :class:`str`, optional
+        Unique identifier of the user for which pulse ox must be computed, by default ``"all"``.
+        If the parameter is set to ``all``, then the function is applied to all the
+        users for which the ``loader`` has data.
+    start_date: :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date from which rest pulse ox must be computed, by default None.
+        If set to ``None``, then the function relies on the implementation of the ``loader``
+        to appropriately handle it.
+    end_date: :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date to which rest rest pulse ox must be computed, by default None.
+        If set to ``None``, then the function relies on the implementation of the ``loader``
+        to appropriately handle it.
+    kind: function or :class:'str', optional
+        The transform operation to compute on the rest pulse ox data, by default ``mean``.
+
+    Returns
+    -------
+    :class:`dict`
+        The ouput dictionary is a nested dictionary that always contains
+        the ``user_id`` values as primary keys.
+        For each ``user_id``, the nested dictionary contains
+        ``metric`` and ``"days"``as secondary keys. The value of the ``metric`` is the
+        result of the transformation applied to rest pulse ox,
+        while the value of the ``"days"`` key contains the list of
+        days over which this transformation was computed.
+    """
+    # Get user id from the loader
+    user_id = utils.get_user_ids(loader, user_id)
+
+    data_dict = {}
+
+    for user in user_id:
+        data_dict[user] = {}
+        pulse_ox_data = loader.load_pulse_ox(
+            user_id=user_id, start_date=start_date, end_date=end_date
+        )
+        # Get the data only when sleeping and reset index
+        pulse_ox_data = pulse_ox_data[
+            pulse_ox_data[constants._IS_SLEEPING_COL] == True
+        ].reset_index(drop=True)
+        if len(pulse_ox_data) > 0:
+            data_dict[user][metric] = (
+                pulse_ox_data.groupby(pulse_ox_data[constants._CALENDAR_DATE_COL])[
+                    constants._SPO2_SPO2_COL
+                ]
+                .transform(kind, args)
+                .to_dict()
+            )
+
+    return data_dict
+
 
 def get_breaths_per_minute(
-    loader: BaseLoader,
+    loader: loader.BaseLoader,
     day_or_night: Union[str, None] = None,
     user_id: Union[str, list] = "all",
     start_date: datetime.datetime = None,
@@ -125,7 +263,7 @@ def get_breaths_per_minute(
 
 
 def get_rest_breaths_per_minute(
-    loader: BaseLoader,
+    loader: loader.BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, None] = None,
     end_date: Union[datetime.datetime, datetime.date, None] = None,
@@ -174,7 +312,7 @@ def get_rest_breaths_per_minute(
 
 
 def get_waking_breaths_per_minute(
-    loader: BaseLoader,
+    loader: loader.BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, None] = None,
     end_date: Union[datetime.datetime, datetime.date, None] = None,
@@ -219,3 +357,11 @@ def get_waking_breaths_per_minute(
         remove_zero=remove_zero,
         return_days=return_days,
     )
+
+
+def get_respiration_statistic():
+    pass
+
+
+def get_respiration_statistics():
+    pass

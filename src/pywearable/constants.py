@@ -16,9 +16,19 @@ _UNIXTIMESTAMP_IN_MS_COL = "unixTimestampInMs"
 
 #: Column for timezone offset in milliseconds
 _TIMEZONEOFFSET_IN_MS_COL = "timezoneOffsetInMs"
+
+#: Column for calendar date
 _CALENDAR_DATE_COL = "calendarDate"
 _SLEEP_SUMMARY_ID_COL = "sleepSummaryId"
+
+#: Column duration expressed in milliseconds
 _DURATION_IN_MS_COL = "durationInMs"
+
+#: Column for entries in which sleep is detected
+_IS_SLEEPING_COL = "isSleeping"
+
+# spo2 columns #
+_SPO2_SPO2_COL = "spo2"
 
 # Sleep summary columns #
 _SLEEP_SUMMARY_OVERALL_SLEEP_SCORE_COL = "overallSleepScore"
