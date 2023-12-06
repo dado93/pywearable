@@ -3560,6 +3560,8 @@ def get_sleep_statistic(
         An instance of a data loader.
     user_id : :class:`str` or :class:`list`
         The id(s) for which the sleep statistic must be computed.
+    metric : :class:`str`
+        The name of the sleep statistic which must be computed.
     start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
