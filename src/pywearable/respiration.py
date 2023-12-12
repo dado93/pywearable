@@ -21,6 +21,8 @@ def get_mean_rest_pulse_ox(
     user_id: Union[str, list, None] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind: Union[str, None] = None,
+    args=(),
 ):
     return get_rest_pulse_ox_statistic(
         loader=loader,
@@ -28,7 +30,9 @@ def get_mean_rest_pulse_ox(
         user_id=user_id,
         start_date=start_date,
         end_date=end_date,
-        kind="mean",
+        transform="mean",
+        kind=kind,
+        kind_args=args,
     )
 
 
@@ -44,7 +48,7 @@ def get_p10_rest_pulse_ox(
         start_date=start_date,
         end_date=end_date,
         kind="percentile",
-        args=(10),
+        kind_args=(10),
     )
 
 
@@ -60,7 +64,7 @@ def get_p20_rest_pulse_ox(
         start_date=start_date,
         end_date=end_date,
         kind="percentile",
-        args=(20),
+        kind_args=(20),
     )
 
 
@@ -76,7 +80,7 @@ def get_p30_rest_pulse_ox(
         start_date=start_date,
         end_date=end_date,
         kind="percentile",
-        args=(30),
+        kind_args=(30),
     )
 
 
@@ -86,8 +90,10 @@ def get_rest_pulse_ox_statistic(
     user_id: Union[str, list, None] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    kind: str = "mean",
-    args: Union[tuple, list] = (),
+    transform: str = "mean",
+    transform_args: Union[tuple, list] = (),
+    kind: Union[str, None] = None,
+    kind_args: Union[tuple, list] = (),
 ):
     """Get pulse ox during sleep.
 
@@ -134,21 +140,31 @@ def get_rest_pulse_ox_statistic(
 
     for user in user_id:
         data_dict[user] = {}
+        # TODO add +/- 1 day to account for sleep start and end
         pulse_ox_data = loader.load_pulse_ox(
             user_id=user, start_date=start_date, end_date=end_date
         )
+        # TODO filter based on start and end_date
         # Get the data only when sleeping and reset index
         pulse_ox_data = pulse_ox_data[
             pulse_ox_data[constants._IS_SLEEPING_COL] == True
         ].reset_index(drop=True)
         if len(pulse_ox_data) > 0:
-            data_dict[user] = (
-                pulse_ox_data.groupby(pulse_ox_data[constants._CALENDAR_DATE_COL])[
-                    constants._SPO2_SPO2_COL
-                ]
-                .apply(kind, args)
-                .to_dict()
-            )
+            if not (kind is None):
+                # Apply double transformation
+                transformed_series = pulse_ox_data.groupby(
+                    pulse_ox_data[constants._CALENDAR_DATE_COL]
+                )[constants._SPO2_SPO2_COL].apply(transform, transform_args)
+                data_dict[user][metric] = transformed_series.apply(kind, kind_args)
+                data_dict[user]["days"] = transformed_series.index.values.tolist()
+            else:
+                data_dict[user] = (
+                    pulse_ox_data.groupby(pulse_ox_data[constants._CALENDAR_DATE_COL])[
+                        constants._SPO2_SPO2_COL
+                    ]
+                    .apply(transform, transform_args)
+                    .to_dict()
+                )
 
     return data_dict
 
