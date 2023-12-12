@@ -31,6 +31,11 @@ _METRIC_DICT = {
         "metric_key": lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_TYPE_STEPS,
         "start_date_key": lifesnaps_constants._DB_FITBIT_COLLECTION_STEPS_DATETIME_COL,
     },
+    "breq": {
+        "metric_key": "breq",
+        "start_date_key": "startdate",
+        "collection": "surveys",
+    },
 }
 
 
@@ -55,6 +60,10 @@ class LifeSnapsLoader(BaseLoader):
         self.client = pymongo.MongoClient(self.host, self.port)
         self.db = self.client[lifesnaps_constants._DB_NAME]
         self.fitbit_collection = self.db[lifesnaps_constants._DB_FITBIT_COLLECTION_NAME]
+        self.surveys_collection = self.db[
+            lifesnaps_constants._DB_SURVEYS_COLLECTION_NAME
+        ]
+        # self.sema_collection =
 
     def get_user_ids(self) -> list:
         """Get available user ids.
@@ -135,8 +144,8 @@ class LifeSnapsLoader(BaseLoader):
             [
                 {
                     "$match": {
-                        lifesnaps_constants._DB_FITBIT_COLLECTION_TYPE_KEY: lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_TYPE_SLEEP,
-                        lifesnaps_constants._DB_FITBIT_COLLECTION_ID_KEY: user_id,
+                        lifesnaps_constants._DB_TYPE_KEY: lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_TYPE_SLEEP,
+                        lifesnaps_constants._DB_ID_KEY: user_id,
                     }
                 },
                 {
@@ -479,8 +488,8 @@ class LifeSnapsLoader(BaseLoader):
             [
                 {
                     "$match": {
-                        lifesnaps_constants._DB_FITBIT_COLLECTION_TYPE_KEY: lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_TYPE_SLEEP,
-                        lifesnaps_constants._DB_FITBIT_COLLECTION_ID_KEY: user_id,
+                        lifesnaps_constants._DB_TYPE_KEY: lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_TYPE_SLEEP,
+                        lifesnaps_constants._DB_ID_KEY: user_id,
                     }
                 },
                 {
@@ -622,16 +631,23 @@ class LifeSnapsLoader(BaseLoader):
         date_conversion_dict = self._get_date_conversion_dict(
             start_date_key=metric_start_date_key_db, end_date_key=metric_end_date_key_db
         )
-        filtered_coll = self.fitbit_collection.aggregate(
+        if not "collection" in _METRIC_DICT[metric].keys():
+            collection = self.fitbit_collection
+        else:
+            if _METRIC_DICT[metric]["collection"] == "surveys":
+                collection = self.surveys_collection
+            elif _METRIC_DICT[metric]["collection"] == "fitbit":
+                collection = self.fitbit_collection
+            else:
+                raise ValueError("Could not find valid collection for metric {metric}")
+        filtered_coll = collection.aggregate(
             [
                 {
                     "$match": {
-                        lifesnaps_constants._DB_FITBIT_COLLECTION_TYPE_KEY: _METRIC_DICT[
-                            metric
-                        ][
+                        lifesnaps_constants._DB_TYPE_KEY: _METRIC_DICT[metric][
                             "metric_key"
                         ],
-                        lifesnaps_constants._DB_FITBIT_COLLECTION_ID_KEY: user_id,
+                        lifesnaps_constants._DB_ID_KEY: user_id,
                     }
                 },
                 date_conversion_dict,
@@ -643,12 +659,13 @@ class LifeSnapsLoader(BaseLoader):
             entry[lifesnaps_constants._DB_FITBIT_COLLECTION_DATA_KEY]
             for entry in filtered_coll
         ]
-
+        print(list_of_metric_dict)
         metric_df = pd.json_normalize(list_of_metric_dict)
-        if len(metric_df) > 0 and (metric_start_key is not None):
-            metric_df = metric_df.sort_values(by=metric_start_key).reset_index(
-                drop=True
-            )
+        if len(metric_df) > 0:
+            if metric_start_key is not None:
+                metric_df = metric_df.sort_values(by=metric_start_key).reset_index(
+                    drop=True
+                )
         metric_df = self._setup_datetime_columns(df=metric_df, metric=metric)
         return metric_df
 
@@ -799,3 +816,91 @@ class LifeSnapsLoader(BaseLoader):
         if not isinstance(user_id, ObjectId):
             user_id = ObjectId(user_id)
         return user_id
+
+    def load_questionnaire(
+        self,
+        user_id: str,
+        questionnaire_name: str,
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    ) -> pd.DataFrame:
+        """_summary_
+
+        _extended_summary_
+
+        Parameters
+        ----------
+        user_id : str
+            _description_
+        questionnaire_name : str
+            _description_
+        start_date : Union[datetime.datetime, datetime.date, str, None], optional
+            _description_, by default None
+        end_date : Union[datetime.datetime, datetime.date, str, None], optional
+            _description_, by default None
+
+        Returns
+        -------
+        pd.DataFrame
+            _description_
+        """
+
+    def load_breq_questionnaire(
+        self,
+        user_id: str,
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    ) -> pd.DataFrame:
+        return self.load_metric(
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+            metric="breq",
+        )
+
+    def load_dq_questionnaire(
+        self,
+        user_id: str,
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    ) -> pd.DataFrame:
+        return self.load_questionnaire(
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+            questionnaire_name="panas",
+        )
+
+    def load_panas_questionnaire(
+        self,
+        user_id: str,
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    ) -> pd.DataFrame:
+        return self.load_questionnaire(
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+            questionnaire_name="panas",
+        )
+
+    def load_stai_questionnaire(
+        self,
+        user_id: str,
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    ) -> pd.DataFrame:
+        return self.load_questionnaire(
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+            questionnaire_name="stai",
+        )
+
+    def load_sema(
+        self,
+        user_id: str,
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    ) -> pd.DataFrame:
+        pass

@@ -631,7 +631,6 @@ class LabfrontLoader(BaseLoader):
                 temp_pd[labfront_constants._LAST_SAMPLE_UNIXTIMESTAMP_IN_MS_COL]
                 - end_date_unix_ms
             )
-        print(temp_pd)
         if start_date == None:
             min_row = 0
         else:

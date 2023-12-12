@@ -5,16 +5,17 @@ This module contains utility functions that don't directly load/compute metrics.
 import datetime
 import time
 from cmath import phase, rect
-from math import degrees, radians
+from math import degrees, floor, radians
 from typing import Union
 
 import dateutil.parser
 import hrvanalysis
 import numpy as np
 import pandas as pd
+import scipy.stats
 
-from .loader.base import BaseLoader
 from . import constants
+from .loader.base import BaseLoader
 
 _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY = "lastSampleUnixTimestampInMs"
 _LABFRONT_QUESTIONNAIRE_STRING = "questionnaire"
@@ -243,15 +244,15 @@ def find_nearest_timestamp(timestamp, timestamp_array):
 
 
 def trend_analysis(
-    data_dict : dict,
-    start_date : datetime.datetime,
-    end_date : datetime.datetime,
-    ma_kind : str ="normal",
-    baseline_periods : int = 7,
-    min_periods_baseline : int = 3,
-    normal_range_periods : int = 30,
-    min_periods_normal_range : int = 20,
-    std_multiplier : float = 1.,
+    data_dict: dict,
+    start_date: datetime.datetime,
+    end_date: datetime.datetime,
+    ma_kind: str = "normal",
+    baseline_periods: int = 7,
+    min_periods_baseline: int = 3,
+    normal_range_periods: int = 30,
+    min_periods_normal_range: int = 20,
+    std_multiplier: float = 1.0,
 ):
     """Performs trend analysis on daily data for a pre-loaded metric.
 
@@ -456,7 +457,24 @@ def get_latest_wakeup_time(times: list) -> str:
 
 
 def std_time(times):
-    pass
+    # Get seconds
+    t = (time.split(":") for time in times)
+    seconds = [(int(m) * 60 + int(h) * 3600) for h, m in t]
+
+    # Get angle in degrees
+    day = 24 * 60 * 60
+    to_angles = [s * 360.0 / day for s in seconds]
+    # Get angles in radiants
+    angles = np.deg2rad(to_angles)
+
+    # Apply circular mean and std
+    circstd = scipy.stats.circstd(angles)
+
+    circstd_degrees = np.rad2deg(circstd)
+
+    h_std = floor((circstd_degrees / 15) % 24)
+    m_std = ((circstd_degrees / 15) % 24 - h_std) * 60
+    return "%02i:%02i" % (h_std, m_std)
 
 
 def filter_bbi(
@@ -535,35 +553,38 @@ def filter_out_awake(loader : BaseLoader,
         Filtered version of the original `df`, including only data of periods when the participant is asleep.
     """
     # we get the hypnogram for that day
-    hypnogram = loader.load_hypnogram(user_id = user,
-                                     start_date = date,
-                                     end_date= date,
-                                     resolution=resolution)[date]
+    hypnogram = loader.load_hypnogram(
+        user_id=user, start_date=date, end_date=date, resolution=resolution
+    )[date]
     hypnogram_start = hypnogram["start_time"]
     hypnogram_end = hypnogram["end_time"]
     hypnogram = hypnogram["values"]
 
     # stage differences
-    hypnogram_diff = np.concatenate(
-        [
-            [0],
-            np.diff(hypnogram)
-        ]
-    ) 
+    hypnogram_diff = np.concatenate([[0], np.diff(hypnogram)])
     # if there has been a negative change and the current stage is awake, then count it as awakening start
     awakening_starts = np.logical_and(hypnogram == 0, hypnogram_diff < 0)
     # if there has been a positive change and the previous stage was awake, then count it as awakening end
-    awakening_ends = np.concatenate([[0],np.logical_and(hypnogram[:-1] == 0, hypnogram_diff[1:] > 0)])
+    awakening_ends = np.concatenate(
+        [[0], np.logical_and(hypnogram[:-1] == 0, hypnogram_diff[1:] > 0)]
+    )
     # get the indexes of starts and ends
     idx_starts = [idx for idx, start in enumerate(awakening_starts) if start]
     idx_ends = [idx for idx, end in enumerate(awakening_ends) if end]
     # based on the start of the sleep and the indexes of the awakenings, get the datetimes
-    datetime_starts = [hypnogram_start + datetime.timedelta(minutes=idx*resolution) for idx in idx_starts]
-    datetime_ends = [hypnogram_start + datetime.timedelta(minutes=idx*resolution) for idx in idx_ends]
+    datetime_starts = [
+        hypnogram_start + datetime.timedelta(minutes=idx * resolution)
+        for idx in idx_starts
+    ]
+    datetime_ends = [
+        hypnogram_start + datetime.timedelta(minutes=idx * resolution)
+        for idx in idx_ends
+    ]
 
     for start, end in zip(datetime_starts, datetime_ends):
-        df = df.loc[
-            (df[constants._ISODATE_COL] < start) | (df[constants._ISODATE_COL] > end)
+        bbi_df = bbi_df.loc[
+            (bbi_df[constants._ISODATE_COL] < start)
+            | (bbi_df[constants._ISODATE_COL] > end)
         ]
 
     return df
