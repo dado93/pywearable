@@ -9,7 +9,6 @@ from math import degrees, floor, radians
 from typing import Union
 
 import dateutil.parser
-import hrvanalysis
 import numpy as np
 import pandas as pd
 import scipy.stats
@@ -477,56 +476,6 @@ def std_time(times):
     return "%02i:%02i" % (h_std, m_std)
 
 
-def filter_bbi(
-    bbi,
-    remove_outliers=True,
-    remove_ectopic=True,
-    verbose=False,
-    low_rri=300,
-    high_rri=2000,
-    ectopic_method="malik",
-    interpolation_method="linear",
-):
-    """Get filtered bbi data.
-
-    This function returns bbi data filtered out from outliers and/or ectopic beats.
-
-    Parameters
-    ----------
-    bbi : list
-        series of beat to beat interval
-    remove_outliers : bool, optional
-        determines if outliers below ``low_rri`` and above ``high_rri`` should be filtered out, by default True
-    remove_ectopic : bool, optional
-        determines if ectopic beats should be removed from the bbi series, by default True
-    verbose : bool, optional
-        whether the function should print out data about the amount of outliers/ectopic beats removed, by default False
-    low_rri : int, optional
-        lower threshold for outlier detection, by default 300
-    high_rri : int, optional
-        upper threshold for outlier detection, by default 2000
-    ectopic_method : str, optional
-        method used to determine and filter out ectopic beats, by default "malik"
-    interpolation_method : str, optional
-        method used to interpolate missing values after the removal of outliers/ectopic beats, by default "linear"
-    """
-    if remove_outliers:
-        bbi = hrvanalysis.remove_outliers(
-            bbi, low_rri=low_rri, high_rri=high_rri, verbose=verbose
-        )
-        bbi = hrvanalysis.interpolate_nan_values(
-            bbi, interpolation_method=interpolation_method
-        )
-    if remove_ectopic:
-        bbi = hrvanalysis.remove_ectopic_beats(
-            bbi, method=ectopic_method, verbose=verbose
-        )
-        bbi = hrvanalysis.interpolate_nan_values(
-            bbi, interpolation_method=interpolation_method
-        )
-    return bbi
-
-
 def filter_out_awake(loader : BaseLoader,
                          user : str,
                          df : pd.DataFrame,
@@ -553,38 +502,35 @@ def filter_out_awake(loader : BaseLoader,
         Filtered version of the original `df`, including only data of periods when the participant is asleep.
     """
     # we get the hypnogram for that day
-    hypnogram = loader.load_hypnogram(
-        user_id=user, start_date=date, end_date=date, resolution=resolution
-    )[date]
+    hypnogram = loader.load_hypnogram(user_id = user,
+                                     start_date = date,
+                                     end_date= date,
+                                     resolution=resolution)[date]
     hypnogram_start = hypnogram["start_time"]
     hypnogram_end = hypnogram["end_time"]
     hypnogram = hypnogram["values"]
 
     # stage differences
-    hypnogram_diff = np.concatenate([[0], np.diff(hypnogram)])
+    hypnogram_diff = np.concatenate(
+        [
+            [0],
+            np.diff(hypnogram)
+        ]
+    ) 
     # if there has been a negative change and the current stage is awake, then count it as awakening start
     awakening_starts = np.logical_and(hypnogram == 0, hypnogram_diff < 0)
     # if there has been a positive change and the previous stage was awake, then count it as awakening end
-    awakening_ends = np.concatenate(
-        [[0], np.logical_and(hypnogram[:-1] == 0, hypnogram_diff[1:] > 0)]
-    )
+    awakening_ends = np.concatenate([[0],np.logical_and(hypnogram[:-1] == 0, hypnogram_diff[1:] > 0)])
     # get the indexes of starts and ends
     idx_starts = [idx for idx, start in enumerate(awakening_starts) if start]
     idx_ends = [idx for idx, end in enumerate(awakening_ends) if end]
     # based on the start of the sleep and the indexes of the awakenings, get the datetimes
-    datetime_starts = [
-        hypnogram_start + datetime.timedelta(minutes=idx * resolution)
-        for idx in idx_starts
-    ]
-    datetime_ends = [
-        hypnogram_start + datetime.timedelta(minutes=idx * resolution)
-        for idx in idx_ends
-    ]
+    datetime_starts = [hypnogram_start + datetime.timedelta(minutes=idx*resolution) for idx in idx_starts]
+    datetime_ends = [hypnogram_start + datetime.timedelta(minutes=idx*resolution) for idx in idx_ends]
 
     for start, end in zip(datetime_starts, datetime_ends):
-        bbi_df = bbi_df.loc[
-            (bbi_df[constants._ISODATE_COL] < start)
-            | (bbi_df[constants._ISODATE_COL] > end)
+        df = df.loc[
+            (df[constants._ISODATE_COL] < start) | (df[constants._ISODATE_COL] > end)
         ]
 
     return df
