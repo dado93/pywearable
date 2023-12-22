@@ -213,16 +213,12 @@ def get_cardiac_line_graph_and_stats(
     # get stats
     avg_resting_hr = round(
         cardiac.get_rest_heart_rate(
-            loader, user_id, start_date, end_date, average=True
-        )[user_id]["values"]
+            loader, user_id, start_date, end_date, kind="mean"
+        )[user_id]["RHR"]
     )
-    max_hr_recorded = np.nanmax(
-        list(
-            cardiac.get_max_heart_rate(
-                loader, user_id, start_date, end_date, average=False
-            )[user_id].values()
-        )
-    )
+    max_hr_recorded = cardiac.get_max_heart_rate(
+        loader, user_id, start_date, end_date, kind="max"
+            )[user_id]["MHR"]
     stats_dict = {
         "Mean resting HR": avg_resting_hr,
         "Maximum HR overall": max_hr_recorded,
@@ -233,7 +229,6 @@ def get_cardiac_line_graph_and_stats(
             user_id
         ].items()
     )
-    # avg_hr = list(cardiac.get_avg_heart_rate(loader,start_date,end_date,user)[user].values())
     max_hr = list(
         cardiac.get_max_heart_rate(loader, user_id, start_date, end_date)[
             user_id
@@ -347,7 +342,7 @@ def get_rest_spo2_graph(
     sleep_spo2_df = spo2_df[spo2_df.sleep == 1].loc[:, ["isoDate", "spo2"]]
     unique_dates = pd.to_datetime(sleep_spo2_df.isoDate.dt.date.unique())
     # in order to avoid plotting lines between nights, we need to plot separately each sleep occurrence
-    # unfortunately this takes some time (~6-7s/month), to find appropriate night for every row, maybe try to improve?
+    # unfortunately this takes some time (~6-7s/month), to find appropriate night for every row, maybe try to improve? #TODO
     sleep_spo2_df["date"] = sleep_spo2_df.isoDate.apply(
         lambda x: utils.find_nearest_timestamp(x, unique_dates)
     )
@@ -743,7 +738,7 @@ def get_sleep_summary_graph(
     user_id: str,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    save_to: str = None,
+    save_to: Union[str, None] = None,
     show: bool = True,
     alpha: float = 0.25,
     title: str = "Sleep stages and score",
@@ -756,10 +751,10 @@ def get_sleep_summary_graph(
     figsize: tuple = (15, 30),
     bottom_offset: int = 500,
     vertical_offset: float = -0.0,
-    sleep_metric: Union[str, None] = None,
+    show_chronotype: bool = False,
     chronotype_sleep_start: Union[str, None] = None,
     chronotype_sleep_end: Union[str, None] = None,
-    show_chronotype: bool = False,
+    sleep_metric: Union[str, None] = None,
 ):
     """
     Generates a graph of all hypnograms of main sleeps of `user_id` for the period of interest
@@ -800,14 +795,14 @@ def get_sleep_summary_graph(
         distance of the scores from the bottom of the hypnograms, by default 500
     vertical_offset : :class:`float`, optional
         vertical offset of the scores at the bottom of the hypnograms, by default -0.
-    sleep_metric : :class:`str` or None, optional
-        metric used for circadian variability ("midpoint" or "duration"), by default None
+    show_chronotype : :class:`bool`, optional
+        whether to show chronotype dashed vertical lines over the hypnograms, by default False
     chronotype_sleep_start : :class:`str` or None, optional
         usual sleeping time for `user_id` in format HH:MM, by default None
     chronotype_sleep_end : :class:`str` or None, optional
         usual waking time for `user_id` in format HH:MM, by default None
-    show_chronotype : :class:`bool`, optional
-        whether to show chronotype dashed vertical lines over the hypnograms, by default False
+    sleep_metric : :class:`str` or None, optional
+        metric used for circadian variability ("midpoint" or "duration"), by default None
     """
 
     if sleep_metric is not None:
