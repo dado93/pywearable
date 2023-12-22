@@ -959,7 +959,7 @@ def get_cardiac_statistic(
                                                           end_date)[user]
             # load the whole bbi history required, with some room (+- 12 hrs at start/end)
             bbi_dict = {}
-            bbi_df = loader.load_garmin_device_bbi(user_id = user,
+            bbi_df = loader.load_bbi(user_id = user,
                                                start_date = utils.check_date(start_date)-datetime.timedelta(hours=12),
                                                end_date = utils.check_date(end_date)+datetime.timedelta(hours=12))
             for date, (start_hour, end_hour) in sleep_timestamps.items():
@@ -1074,7 +1074,7 @@ def get_cardiac_statistics(
                                                       end_date)[user]
         # load the whole bbi history required, with some room (+- 12 hrs at start/end)
         bbi_dict = {}
-        bbi_df = loader.load_garmin_device_bbi(user_id = user,
+        bbi_df = loader.load_bbi(user_id = user,
                                                start_date = utils.check_date(start_date)-datetime.timedelta(hours=12),
                                                end_date = utils.check_date(end_date)+datetime.timedelta(hours=12))
         for date, (start_hour, end_hour) in sleep_timestamps.items():

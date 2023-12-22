@@ -1599,7 +1599,7 @@ class LabfrontLoader(BaseLoader):
         )
         return data
 
-    def load_garmin_device_bbi(
+    def load_bbi(
         self,
         user_id: str,
         start_date: Union[str, datetime.date, datetime.date] = None,
