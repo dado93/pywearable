@@ -524,6 +524,9 @@ def _compute_hr_statistic(
             f"sleep_summary must be a pd.DataFrame. {type(daily_summary)} is not a valid type."
         )
     
+    if len(daily_summary) == 0:
+        return {}
+    
     if metric == _CARDIAC_METRIC_RESTING_HEART_RATE:
         col = constants._RESTING_HR_COLUMN
     elif metric == _CARDIAC_METRIC_MAXIMUM_HEART_RATE:
@@ -1077,14 +1080,15 @@ def get_cardiac_statistics(
         bbi_df = loader.load_bbi(user_id = user,
                                                start_date = utils.check_date(start_date)-datetime.timedelta(hours=12),
                                                end_date = utils.check_date(end_date)+datetime.timedelta(hours=12))
-        for date, (start_hour, end_hour) in sleep_timestamps.items():
-            night_bbi = bbi_df.loc[(bbi_df[constants._ISODATE_COL] > start_hour) & (bbi_df[constants._ISODATE_COL] < end_hour)]
-            filtered_night_bbi = utils.filter_out_awake(loader, 
-                                                        user, 
-                                                        night_bbi, 
-                                                        date, 
-                                                        resolution=1)
-            bbi_dict[date] = filtered_night_bbi
+        if sleep_timestamps: # check that at least one night is present
+            for date, (start_hour, end_hour) in sleep_timestamps.items():
+                night_bbi = bbi_df.loc[(bbi_df[constants._ISODATE_COL] > start_hour) & (bbi_df[constants._ISODATE_COL] < end_hour)]
+                filtered_night_bbi = utils.filter_out_awake(loader, 
+                                                            user, 
+                                                            night_bbi, 
+                                                            date, 
+                                                            resolution=1)
+                bbi_dict[date] = filtered_night_bbi
         
         # get all cardiac metrics in a single DataFrame for the user
         user_cardiac_metrics_df = pd.DataFrame(index=pd.Index([],name=constants._CALENDAR_DATE_COL))
