@@ -86,7 +86,7 @@ def get_steps_line_graph_and_stats(
         dictionary of daily activity statistics
         (Mean daily steps, Mean daily distance, Percentage goal completion)
     """
-    user_id = loader.get_full_id(user_id)
+
     # get dates,steps,goals,compare steps to goal to get goal completion
     dates, steps = zip(
         *activity.get_daily_steps(loader, user_id, start_date, end_date)[
@@ -208,7 +208,7 @@ def get_cardiac_line_graph_and_stats(
         dictionary of cardiac statistics for the period of interest
         (Average resting heart rate, Maximum heart rate overall)
     """
-    user_id = loader.get_full_id(user_id)
+    
     # get stats
     avg_resting_hr = round(
         cardiac.get_rest_heart_rate(
@@ -330,7 +330,6 @@ def get_rest_spo2_graph(
     fontsize : :class:`int`, optional
         Font size for the plot, by default 18
     """
-    user_id = loader.get_full_id(user_id)
 
     timedelta = datetime.timedelta(
         hours=12
@@ -450,8 +449,7 @@ def get_stress_grid_and_stats(
     :class:`int`
         Average stress score for the period of interest
     """
-    user_id = loader.get_full_id(user_id)
-
+    
     # get stats
     dates, metrics = zip(
         *stress.get_daily_stress_statistics(loader, user_id, start_date, end_date)[
@@ -560,7 +558,7 @@ def get_respiration_line_graph_and_stats(
     :class:`dict`
         Dictionary reporting average breaths per minute during the day and the night
     """
-    user_id = loader.get_full_id(user_id)
+    
     # get series, note that we're inclusive wrt the whole last day
     rest_dates, rest_resp = zip(
         *respiration.get_rest_breaths_per_minute(
@@ -661,7 +659,6 @@ def get_sleep_grid_and_stats(
     :class:`dict`
         Dictionary of sleep stats (averages of sleep stages durations, awakenings, and sleep score)
     """
-    user_id = loader.get_full_id(user_id)
 
     dates, scores = zip(
         *sleep.get_sleep_score(loader, user_id, start_date, end_date)[user_id].items()
@@ -803,8 +800,6 @@ def get_sleep_summary_graph(
     sleep_metric : :class:`str` or None, optional
         metric used for circadian variability ("midpoint" or "duration"), by default None
     """
-
-    user_id = loader.get_full_id(user_id)
 
     # Define parameters for plotting
     ALPHA = alpha
@@ -1485,16 +1480,9 @@ def plot_trend_analysis(
     ax.plot(baseline, linestyle="-", linewidth=3, color="red", label="Baseline")
     if normal_range is not None:
         assert type(normal_range) == tuple and len(normal_range) == 2
-        ax.fill_between(
-            dates,
-            normal_range[0],
-            normal_range[1],
-            alpha=alpha,
-            color="green",
-            label="Normal range",
-        )
-    else:
-        ax.fill_between(dates, LB, UB, alpha=alpha, color="green")
+        LB = normal_range[0]
+        UB = normal_range[1]
+    ax.fill_between(dates, LB, UB, alpha=alpha, color="green",label="Normal range")
     ax.grid("on")
     ax.set_xticks(dates[::xticks_frequency])
     ax.tick_params(axis="x", labelrotation=xticks_rotation)
