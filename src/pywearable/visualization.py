@@ -805,12 +805,6 @@ def get_sleep_summary_graph(
         metric used for circadian variability ("midpoint" or "duration"), by default None
     """
 
-    if sleep_metric is not None:
-        assertion_msg = "Must specify chronotype when plotting circadian measures"
-        assert (
-            chronotype_sleep_start is not None and chronotype_sleep_end is not None
-        ), assertion_msg
-
     user_id = loader.get_full_id(user_id)
 
     # Define parameters for plotting
@@ -827,6 +821,22 @@ def get_sleep_summary_graph(
     # Check for start and end dates and convert them appropriately
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
+
+    # check chronotype and infer it from data if missing
+    if sleep_metric is not None or show_chronotype is not None:
+        if chronotype_sleep_start is None or chronotype_sleep_end is None:
+            infer_chronotype = sleep.get_sleep_timestamps(loader=loader,
+                                                            user_id=user_id,
+                                                            start_date=start_date,
+                                                            end_date=end_date,
+                                                            kind="mean")
+            chronotype_sleep_start = infer_chronotype[user_id][0]
+            chronotype_sleep_end = infer_chronotype[user_id][1]
+        else:
+            assertion_msg = "Must specify chronotype in format 'HH:MM' when plotting circadian measures"
+            assert (
+                type(chronotype_sleep_start) == str and type(chronotype_sleep_end) == str
+            ), assertion_msg
 
     sleep_summaries["isoDate-Min"] = pd.to_datetime(
         sleep_summaries["calendarDate"].apply(
