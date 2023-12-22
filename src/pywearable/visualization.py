@@ -7,7 +7,6 @@ import datetime
 from pathlib import Path
 from typing import Union
 
-import hrvanalysis
 import july
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -1317,7 +1316,7 @@ def plot_bbi_distribution(bbi: np.array, bin_length: int = 20):
         length of bins in the histogram, by default 20
     """
 
-    hrvanalysis.plot.plot_distrib(np.array(bbi, dtype=np.int16), bin_length=bin_length)
+    pass
 
 
 def plot_comparison_radar_chart():
