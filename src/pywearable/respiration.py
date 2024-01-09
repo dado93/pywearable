@@ -14,6 +14,11 @@ _RESPIRATION_DAY = "DAY"
 _RESPIRATION_NIGHT = "NIGHT"
 
 _RESPIRATION_METRIC_MEAN_PULSE_OX = "meanPulseOx"
+_RESPIRATION_METRIC_P10_PULSE_OX = "p10PulseOx"
+_RESPIRATION_METRIC_P20_PULSE_OX = "p20PulseOx"
+_RESPIRATION_METRIC_P30_PULSE_OX = "p30PulseOx"
+_RESPIRATION_METRIC_WAKING_BREATHS_PER_MINUTE = "meanWakingBreathsPerMinute"
+_RESPIRATION_METRIC_REST_BREATHS_PER_MINUTE = "meanRestBreathsPerMinute"
 
 
 def get_mean_rest_pulse_ox(
@@ -24,13 +29,47 @@ def get_mean_rest_pulse_ox(
     kind: Union[str, None] = None,
     args=(),
 ):
+    """Get mean pulse ox value at rest.
+
+    This function computes the mean pulse ox value during
+    resting periods (i.e., sleep) for the given ``user_id``
+    and for the required time interval from ``start_date`` to
+    ``end_date``. It is possible to perform a
+    transformation of the retrieved mean pulse ox values
+    by setting the ``kind`` parameters. For example, it is
+    possible to obtain the mean of the mean values by
+    setting the ``kind`` parameter to ``"mean``. If this
+    following transformation requires additional
+    arguments, then it is possible to set them in the
+    ``args`` argument.
+
+    Parameters
+    ----------
+    loader : :class:`loader.BaseLoader`
+        An initialized data loader.
+    user_id : Union[str, list, None], optional
+        _description_, by default "all"
+    start_date : Union[datetime.datetime, datetime.date, str, None], optional
+        _description_, by default None
+    end_date : Union[datetime.datetime, datetime.date, str, None], optional
+        _description_, by default None
+    kind : Union[str, None], optional
+        _description_, by default None
+    args : tuple, optional
+        _description_, by default ()
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     return get_rest_pulse_ox_statistic(
         loader=loader,
         metric=_RESPIRATION_METRIC_MEAN_PULSE_OX,
         user_id=user_id,
         start_date=start_date,
         end_date=end_date,
-        transform="mean",
+        aggregate="mean",
         kind=kind,
         kind_args=args,
     )
@@ -41,14 +80,19 @@ def get_p10_rest_pulse_ox(
     user_id: Union[str, list, None] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind: Union[str, None] = None,
+    args=(),
 ):
     return get_rest_pulse_ox_statistic(
         loader=loader,
+        metric=_RESPIRATION_METRIC_P10_PULSE_OX,
         user_id=user_id,
         start_date=start_date,
         end_date=end_date,
-        kind="percentile",
-        kind_args=(10),
+        aggregate=np.percentile,
+        aggregate_args=(10),
+        kind=kind,
+        kind_args=args,
     )
 
 
@@ -57,14 +101,19 @@ def get_p20_rest_pulse_ox(
     user_id: Union[str, list, None] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind: Union[str, None] = None,
+    args=(),
 ):
     return get_rest_pulse_ox_statistic(
         loader=loader,
+        metric=_RESPIRATION_METRIC_P20_PULSE_OX,
         user_id=user_id,
         start_date=start_date,
         end_date=end_date,
-        kind="percentile",
-        kind_args=(20),
+        aggregate=np.percentile,
+        aggregate_args=(20),
+        kind=kind,
+        kind_args=args,
     )
 
 
@@ -73,14 +122,19 @@ def get_p30_rest_pulse_ox(
     user_id: Union[str, list, None] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind: Union[str, None] = None,
+    args=(),
 ):
     return get_rest_pulse_ox_statistic(
         loader=loader,
+        metric=_RESPIRATION_METRIC_P30_PULSE_OX,
         user_id=user_id,
         start_date=start_date,
         end_date=end_date,
-        kind="percentile",
-        kind_args=(30),
+        aggregate=np.percentile,
+        aggregate_args=(30),
+        kind=kind,
+        kind_args=args,
     )
 
 
@@ -90,8 +144,8 @@ def get_rest_pulse_ox_statistic(
     user_id: Union[str, list, None] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    transform: str = "mean",
-    transform_args: Union[tuple, list] = (),
+    aggregate: str = "mean",
+    aggregate_args: Union[tuple, list] = (),
     kind: Union[str, None] = None,
     kind_args: Union[tuple, list] = (),
 ):
@@ -135,26 +189,44 @@ def get_rest_pulse_ox_statistic(
     """
     # Get user id from the loader
     user_id = utils.get_user_ids(loader, user_id)
-
+    # Convert to datetime
+    start_date = utils.check_date(start_date)
+    end_date = utils.check_date(end_date)
+    # Extend range to account for sleep start in prev day and ending next day
+    if not (start_date is None):
+        ext_start_date = start_date - datetime.timedelta(days=1)
+    else:
+        ext_start_date = None
+    if not (end_date is None):
+        ext_end_date = end_date + datetime.timedelta(days=1)
+    else:
+        ext_end_date = None
     data_dict = {}
 
     for user in user_id:
         data_dict[user] = {}
-        # TODO add +/- 1 day to account for sleep start and end
         pulse_ox_data = loader.load_pulse_ox(
-            user_id=user, start_date=start_date, end_date=end_date
+            user_id=user, start_date=ext_start_date, end_date=ext_end_date
         )
-        # TODO filter based on start and end_date
-        # Get the data only when sleeping and reset index
-        pulse_ox_data = pulse_ox_data[
-            pulse_ox_data[constants._IS_SLEEPING_COL] == True
-        ].reset_index(drop=True)
         if len(pulse_ox_data) > 0:
+            # Get the data only when sleeping and reset index
+            pulse_ox_data = pulse_ox_data[
+                pulse_ox_data[constants._IS_SLEEPING_COL] == True
+            ].reset_index(drop=True)
+            # Get only data with calendar day between start and end date and reset index
+            if not (start_date is None):
+                pulse_ox_data = pulse_ox_data[
+                    pulse_ox_data[constants._CALENDAR_DATE_COL] >= start_date.date()
+                ].reset_index(drop=True)
+            if not (end_date is None):
+                pulse_ox_data = pulse_ox_data[
+                    pulse_ox_data[constants._CALENDAR_DATE_COL] <= end_date.date()
+                ].reset_index(drop=True)
             if not (kind is None):
                 # Apply double transformation
                 transformed_series = pulse_ox_data.groupby(
                     pulse_ox_data[constants._CALENDAR_DATE_COL]
-                )[constants._SPO2_SPO2_COL].apply(transform, transform_args)
+                )[constants._SPO2_SPO2_COL].aggregate(aggregate, aggregate_args)
                 data_dict[user][metric] = transformed_series.apply(kind, kind_args)
                 data_dict[user]["days"] = transformed_series.index.values.tolist()
             else:
@@ -162,7 +234,7 @@ def get_rest_pulse_ox_statistic(
                     pulse_ox_data.groupby(pulse_ox_data[constants._CALENDAR_DATE_COL])[
                         constants._SPO2_SPO2_COL
                     ]
-                    .apply(transform, transform_args)
+                    .aggregate(aggregate, aggregate_args)
                     .to_dict()
                 )
 
