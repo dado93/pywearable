@@ -1098,9 +1098,9 @@ class LabfrontLoader(BaseLoader):
             start_date=start_date,
             end_date=end_date,
         ).reset_index(drop=True)
+
         if len(sleep_data) > 0:
             # Set information about sleep
-            sleep_data.loc[:, constants._IS_SLEEPING_COL] = True
             # We need to add information about sleep summaries
             sleep_summary = self.load_sleep_summary(
                 user_id=user_id,
@@ -1118,6 +1118,8 @@ class LabfrontLoader(BaseLoader):
                 right_on=constants._SLEEP_SUMMARY_ID_COL,
                 how="left",
             )
+
+            sleep_data[constants._IS_SLEEPING_COL] = True
             sleep_data = sleep_data.drop(
                 [
                     x
@@ -1135,19 +1137,20 @@ class LabfrontLoader(BaseLoader):
                 ],
                 axis=1,
             )
-        # Merge dataframes
-        # We need to merge the dataframes because the daily_data already contain sleep_data
-        if len(daily_data) > 0:
-            merged_data = daily_data.merge(
-                sleep_data, on=constants._ISODATE_COL, how="left"
-            )
-            merged_data.loc[
-                merged_data[constants._IS_SLEEPING_COL] != True,
-                constants._IS_SLEEPING_COL,
-            ] = False
-            return merged_data
+
+            # Merge dataframes
+            # We need to merge the dataframes because the daily_data already contain sleep_data
+            if len(daily_data) > 0:
+                merged_data = daily_data.merge(
+                    sleep_data, on=constants._ISODATE_COL, how="left"
+                )
+                merged_data[constants._IS_SLEEPING_COL] = merged_data[
+                    constants._IS_SLEEPING_COL
+                ].fillna(value=False)
+                return merged_data
         else:
-            return sleep_data
+            daily_data[daily_data[constants._IS_SLEEPING_COL]] = False
+            return daily_data
 
     def load_garmin_connect_respiration(
         self,
