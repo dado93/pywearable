@@ -112,6 +112,8 @@ def get_steps_line_graph_and_stats(
     stats_dict = {
         "Mean daily steps": mean_steps,
         "Mean daily distance": mean_distance,
+        "goal_reached": goal_reached,
+        "number_of_days": number_of_days,
         "Percentage goal completion": f"{goal_reached}/{number_of_days} {percentage_goal}%",
     }
 
@@ -751,6 +753,10 @@ def get_sleep_summary_graph(
     chronotype_sleep_start: Union[str, None] = None,
     chronotype_sleep_end: Union[str, None] = None,
     sleep_metric: Union[str, None] = None,
+    legend_fontsize : int = 14,
+    axis_fontsize : int = 14,
+    title_fontsize : int = 20,
+    score_fontsize : int = 15
 ):
     """
     Generates a graph of all hypnograms of main sleeps of `user_id` for the period of interest
@@ -799,6 +805,14 @@ def get_sleep_summary_graph(
         usual waking time for `user_id` in format HH:MM, by default None
     sleep_metric : :class:`str` or None, optional
         metric used for circadian variability ("midpoint" or "duration"), by default None
+    legend_fontsize: :class:`int`, optional
+        fontsize of the sleep stages legend, by default 14
+    axis_fontsize: :class:`int`, optional
+        fontsize of the axis ticks, by default 14
+    title_fontsize: :class:`int`, optional
+        fontsize of the title, by default 20
+    score_fontsize: :class:`int`, optional
+        fontsize of the score on the hypnograms, by default 
     """
 
     # Define parameters for plotting
@@ -1017,7 +1031,7 @@ def get_sleep_summary_graph(
                 str(score),
                 xy=(bottom + bottom_offset, j * POSITION + vertical_offset),
                 color=appropriate_color,
-                fontsize=15,
+                fontsize=score_fontsize,
             )
         except Exception as e:  # skip missing dates
             continue
@@ -1056,15 +1070,15 @@ def get_sleep_summary_graph(
     ax.set_axisbelow(True)
     ax.xaxis.grid(True, color="#EEEEEE")
     ax.yaxis.grid(False)
-    ax.set_ylabel(ylabel, labelpad=15, color="#333333", fontsize=16)
-    ax.set_xlabel(xlabel, labelpad=15, color="#333333", fontsize=16)
+    ax.set_ylabel(ylabel, labelpad=axis_fontsize+1, color="#333333", fontsize=16)
+    ax.set_xlabel(xlabel, labelpad=axis_fontsize+1, color="#333333", fontsize=16)
     ax.set_yticks(
         [i * POSITION for i in range(len(time_period))],
         [date.strftime("%d/%m") for date in time_period],
         rotation=0,
-        fontsize=14,
+        fontsize=axis_fontsize,
     )
-    ax.set_title(title, pad=25, color="#333333", weight="bold", fontsize=20)
+    ax.set_title(title, pad=25, color="#333333", weight="bold", fontsize=title_fontsize)
     # ordinarly the yaxis starts from below, but it's better to visualize earlier dates on top instead
     ax.set_ylim([-POSITION, (len(time_period)) * POSITION])
     ax.invert_yaxis()
@@ -1076,14 +1090,14 @@ def get_sleep_summary_graph(
         labels=legend_labels,
         loc="upper center",
         bbox_to_anchor=(0.97, 0.45),
-        fontsize=14,
+        fontsize=legend_fontsize,
     )
     # take care of opacity of of the colors selected
     for i, lh in enumerate(lgd.legendHandles):
         lh.set_color(colors[i])
         lh.set_alpha(alphas[i])
     lgd.get_frame().set_alpha(0.0)
-    lgd.set_title(legend_title, prop={"size": 15})
+    lgd.set_title(legend_title, prop={"size": legend_fontsize+1})
 
     # habitual sleep times lines
     if show_chronotype:
@@ -1178,13 +1192,13 @@ def get_sleep_summary_graph(
     cbar = plt.colorbar(
         plt.cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax, ticks=midpoints, pad=0.10
     )
-    cbar.ax.set_yticklabels(colorbar_labels, fontsize=14)
+    cbar.ax.set_yticklabels(colorbar_labels, fontsize=legend_fontsize)
     plt.annotate(
         colorbar_title,
         xy=(1.2, 1.1),
         xycoords="axes fraction",
         ha="center",
-        fontsize=14,
+        fontsize=legend_fontsize+1,
     )
 
     if save_to:
