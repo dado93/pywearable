@@ -1070,8 +1070,8 @@ def get_sleep_summary_graph(
     ax.set_axisbelow(True)
     ax.xaxis.grid(True, color="#EEEEEE")
     ax.yaxis.grid(False)
-    ax.set_ylabel(ylabel, labelpad=axis_fontsize+1, color="#333333", fontsize=16)
-    ax.set_xlabel(xlabel, labelpad=axis_fontsize+1, color="#333333", fontsize=16)
+    ax.set_ylabel(ylabel, labelpad=15, color="#333333", fontsize=axis_fontsize+1)
+    ax.set_xlabel(xlabel, labelpad=15, color="#333333", fontsize=axis_fontsize+1)
     ax.set_yticks(
         [i * POSITION for i in range(len(time_period))],
         [date.strftime("%d/%m") for date in time_period],
