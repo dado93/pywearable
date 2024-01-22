@@ -815,8 +815,6 @@ def get_sleep_summary_graph(
             chronotype_sleep_start is not None and chronotype_sleep_end is not None
         ), assertion_msg
 
-    user_id = utils.get_user_ids(loader, user_id)
-
     # Define parameters for plotting
     ALPHA = alpha
     POSITION = 1.3
