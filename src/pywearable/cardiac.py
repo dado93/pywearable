@@ -543,7 +543,7 @@ def _compute_hr_statistic(
                 daily_summary[col].values,
                 index=daily_summary[
                     constants._CALENDAR_DATE_COL
-                ].dt.date,
+                ],
             ).to_dict()
 
     return statistic_dict
