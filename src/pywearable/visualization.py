@@ -858,7 +858,7 @@ def get_sleep_summary_graph(
     ).dt.total_seconds()
 
     time_period = pd.date_range(
-        start_date + datetime.timedelta(days=1),
+        start_date,
         periods=(end_date - start_date).days,
         freq="D",
     )
