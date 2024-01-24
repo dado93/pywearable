@@ -2,6 +2,11 @@
 This module contains all the functions related to analysis
 of respiration data.
 """
+
+# TODO Return pd.DataFrame with multindex (user-date) and statistics
+# TODO get_breaths_per_minute_statistics
+# TODO get_respiration_statistics
+
 import datetime
 from typing import Union
 
@@ -30,6 +35,7 @@ def get_mean_rest_pulse_ox(
     kind_args: Union[list, int] = None,
     kind_kwargs: dict = None,
     loader_kwargs: dict = {},
+    return_dict: bool = True,
 ):
     """Get mean pulse ox value at rest.
 
@@ -68,13 +74,17 @@ def get_mean_rest_pulse_ox(
         by the ``kind`` method, by default None
     kind_kwargs : :class:`dict`, optional
         Additional keyword to be passed to the function used by the ``kind`` method, by default None
-    loader_kwargs:
+    loader_kwargs: :class:`dict`
         Keyword arguemnts for the ``load_sleep_pulse_ox`` loading function of the ``loader``
+    return_dict: :class:`bool`
+        Whether to return a :class:`dict` or a :class:`pd.DataFrame`
 
     Returns
     -------
-    :class:`dict`
-        Dictionary with mean rest pulse ox values.
+    :class:`dict` or :class:`pd.DataFrame`
+        the return type can be:
+            - :class:`dict` if ``return_dict`` is ``True``
+            - :class:`pd.DataFrame` if ``return_dict`` is ``False``
     """
     return get_rest_pulse_ox_statistic(
         loader=loader,
@@ -86,6 +96,7 @@ def get_mean_rest_pulse_ox(
         kind_args=kind_args,
         kind_kwargs=kind_kwargs,
         loader_kwargs=loader_kwargs,
+        return_dict=return_dict,
     )
 
 
@@ -94,9 +105,63 @@ def get_p10_rest_pulse_ox(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    kind: Union[str, None] = None,
-    args=(),
+    kind=None,
+    kind_args: Union[list, int] = None,
+    kind_kwargs: dict = None,
+    loader_kwargs: dict = {},
+    return_dict: bool = True,
 ):
+    """Get 10th percentile pulse ox value at rest.
+
+    This function computes the 10-th percentile of
+    pulse ox value during resting sleep periods for the given
+    ``user_id`` and for the required time interval from ``start_date`` to
+    ``end_date``.
+    It is also possible to perform a
+    transformation of the retrieved p10 values
+    by setting the ``kind`` parameter to a valid function
+    accepted by :func:`~pandas.Series.agg`. For example, it is
+    possible to obtain the mean of the mean values by
+    setting the ``kind`` parameter to ``"mean"``. If the
+    ``kind`` argument requires additional positional
+    arguments or keyword arguments, it is possible to set them
+    by passing them to the ``kind_args`` and
+    ``kind_kwargs`` arguments.
+    The function used to load pulse_ox data is the
+    :func:`~loader.BaseLoader.load_sleep_pulse_ox`. If
+    loader-specific arguments are required, you can
+    pass them using the ``loader_kwargs`` argument
+    in a :class:`dict` format.
+
+    Parameters
+    ----------
+    loader : :class:`loader.BaseLoader`
+        Initialized data loader
+    user_id : :class:`str` or :class:`list` or `None`, optional
+        User id for which the metric must be computed, by default "all"
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or `None`, optional
+        Start date for the computation of the metric, by default ``None``
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or `None`, optional
+        End date for the computation of the metric, by default ``None``
+    kind : :class:`str` or ``None``, optional
+        Additional transformation to be performed on the metric, by default ``None``
+    kind_args : :class:`tuple` or :class:`list`, optional
+        Additional positional arguments to be passed to the function used
+        by the ``kind`` method, by default None
+    kind_kwargs : :class:`dict`, optional
+        Additional keyword to be passed to the function used by the ``kind`` method, by default None
+    loader_kwargs: :class:`dict`
+        Keyword arguemnts for the ``load_sleep_pulse_ox`` loading function of the ``loader``
+    return_dict: :class:`bool`
+        Whether to return a :class:`dict` or a :class:`pd.DataFrame`
+
+    Returns
+    -------
+    :class:`dict` or :class:`pd.DataFrame`
+        the return type can be:
+            - :class:`dict` if ``return_dict`` is ``True``
+            - :class:`pd.DataFrame` if ``return_dict`` is ``False``
+    """
     return get_rest_pulse_ox_statistic(
         loader=loader,
         metric=_RESPIRATION_METRIC_P10_PULSE_OX,
@@ -104,7 +169,10 @@ def get_p10_rest_pulse_ox(
         start_date=start_date,
         end_date=end_date,
         kind=kind,
-        kind_args=args,
+        kind_args=kind_args,
+        kind_kwargs=kind_kwargs,
+        loader_kwargs=loader_kwargs,
+        return_dict=return_dict,
     )
 
 
@@ -116,6 +184,57 @@ def get_p20_rest_pulse_ox(
     kind: Union[str, None] = None,
     args=(),
 ):
+    """Get 20th percentile pulse ox value at rest.
+
+    This function computes the 20-th percentile of
+    pulse ox value during resting sleep periods for the given
+    ``user_id`` and for the required time interval from ``start_date`` to
+    ``end_date``.
+    It is also possible to perform a
+    transformation of the retrieved p20 values
+    by setting the ``kind`` parameter to a valid function
+    accepted by :func:`~pandas.Series.agg`. For example, it is
+    possible to obtain the mean of the mean values by
+    setting the ``kind`` parameter to ``"mean"``. If the
+    ``kind`` argument requires additional positional
+    arguments or keyword arguments, it is possible to set them
+    by passing them to the ``kind_args`` and
+    ``kind_kwargs`` arguments.
+    The function used to load pulse_ox data is the
+    :func:`~loader.BaseLoader.load_sleep_pulse_ox`. If
+    loader-specific arguments are required, you can
+    pass them using the ``loader_kwargs`` argument
+    in a :class:`dict` format.
+
+    Parameters
+    ----------
+    loader : :class:`loader.BaseLoader`
+        Initialized data loader
+    user_id : :class:`str` or :class:`list` or `None`, optional
+        User id for which the metric must be computed, by default "all"
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or `None`, optional
+        Start date for the computation of the metric, by default ``None``
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or `None`, optional
+        End date for the computation of the metric, by default ``None``
+    kind : :class:`str` or ``None``, optional
+        Additional transformation to be performed on the metric, by default ``None``
+    kind_args : :class:`tuple` or :class:`list`, optional
+        Additional positional arguments to be passed to the function used
+        by the ``kind`` method, by default None
+    kind_kwargs : :class:`dict`, optional
+        Additional keyword to be passed to the function used by the ``kind`` method, by default None
+    loader_kwargs: :class:`dict`
+        Keyword arguemnts for the ``load_sleep_pulse_ox`` loading function of the ``loader``
+    return_dict: :class:`bool`
+        Whether to return a :class:`dict` or a :class:`pd.DataFrame`
+
+    Returns
+    -------
+    :class:`dict` or :class:`pd.DataFrame`
+        the return type can be:
+            - :class:`dict` if ``return_dict`` is ``True``
+            - :class:`pd.DataFrame` if ``return_dict`` is ``False``
+    """
     return get_rest_pulse_ox_statistic(
         loader=loader,
         metric=_RESPIRATION_METRIC_P20_PULSE_OX,
@@ -135,6 +254,57 @@ def get_p30_rest_pulse_ox(
     kind: Union[str, None] = None,
     args=(),
 ):
+    """Get 30th percentile pulse ox value at rest.
+
+    This function computes the 30-th percentile of
+    pulse ox value during resting sleep periods for the given
+    ``user_id`` and for the required time interval from ``start_date`` to
+    ``end_date``.
+    It is also possible to perform a
+    transformation of the retrieved p30 values
+    by setting the ``kind`` parameter to a valid function
+    accepted by :func:`~pandas.Series.agg`. For example, it is
+    possible to obtain the mean of the mean values by
+    setting the ``kind`` parameter to ``"mean"``. If the
+    ``kind`` argument requires additional positional
+    arguments or keyword arguments, it is possible to set them
+    by passing them to the ``kind_args`` and
+    ``kind_kwargs`` arguments.
+    The function used to load pulse_ox data is the
+    :func:`~loader.BaseLoader.load_sleep_pulse_ox`. If
+    loader-specific arguments are required, you can
+    pass them using the ``loader_kwargs`` argument
+    in a :class:`dict` format.
+
+    Parameters
+    ----------
+    loader : :class:`loader.BaseLoader`
+        Initialized data loader
+    user_id : :class:`str` or :class:`list` or `None`, optional
+        User id for which the metric must be computed, by default "all"
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or `None`, optional
+        Start date for the computation of the metric, by default ``None``
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or `None`, optional
+        End date for the computation of the metric, by default ``None``
+    kind : :class:`str` or ``None``, optional
+        Additional transformation to be performed on the metric, by default ``None``
+    kind_args : :class:`tuple` or :class:`list`, optional
+        Additional positional arguments to be passed to the function used
+        by the ``kind`` method, by default None
+    kind_kwargs : :class:`dict`, optional
+        Additional keyword to be passed to the function used by the ``kind`` method, by default None
+    loader_kwargs: :class:`dict`
+        Keyword arguemnts for the ``load_sleep_pulse_ox`` loading function of the ``loader``
+    return_dict: :class:`bool`
+        Whether to return a :class:`dict` or a :class:`pd.DataFrame`
+
+    Returns
+    -------
+    :class:`dict` or :class:`pd.DataFrame`
+        the return type can be:
+            - :class:`dict` if ``return_dict`` is ``True``
+            - :class:`pd.DataFrame` if ``return_dict`` is ``False``
+    """
     return get_rest_pulse_ox_statistic(
         loader=loader,
         metric=_RESPIRATION_METRIC_P30_PULSE_OX,
@@ -200,11 +370,71 @@ def get_rest_pulse_ox_statistic(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    kind: Union[str, None] = None,
-    kind_args=None,
+    kind: str = None,
+    kind_args: list = None,
     kind_kwargs: dict = None,
     loader_kwargs: dict = {},
+    return_dict: bool = True,
 ):
+    """Get a rest pulse ox statistic.
+
+    This function computes a statistic of
+    pulse ox value during resting sleep periods for the given
+    ``user_id`` and for the required time interval from ``start_date`` to
+    ``end_date``.
+    It is also possible to perform a
+    transformation of the retrieved statistic
+    by setting the ``kind`` parameter to a valid function
+    accepted by :func:`~pandas.Series.agg`. For example, it is
+    possible to obtain the mean of the mean values by
+    setting the ``kind`` parameter to ``"mean"``. If the
+    ``kind`` argument requires additional positional
+    arguments or keyword arguments, it is possible to set them
+    by passing them to the ``kind_args`` and
+    ``kind_kwargs`` arguments.
+    The function used to load pulse_ox data is the
+    :func:`~loader.BaseLoader.load_sleep_pulse_ox`. If
+    loader-specific arguments are required, you can
+    pass them using the ``loader_kwargs`` argument
+    in a :class:`dict` format.
+
+    Parameters
+    ----------
+    loader : :class:`loader.BaseLoader`
+        Initialized data loader
+    metric : :class:`str`
+        The statistic that needs to be computed. Available options are:
+
+            - ``"meanPulseOx"``
+            - ``"p10PulseOx"``
+            - ``"p20PulseOx"``
+            - ``"p30PulseOx"``
+
+    user_id : :class:`str` or :class:`list` or `None`, optional
+        User id for which the metric must be computed, by default "all"
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or `None`, optional
+        Start date for the computation of the metric, by default ``None``
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or `None`, optional
+        End date for the computation of the metric, by default ``None``
+    kind : :class:`str` or function, optional
+        Additional transformation to be performed on the metric, by default ``None``
+    kind_args : :class:`list`, optional
+        Additional positional arguments to be passed to the function used
+        by the ``kind`` method, by default None
+    kind_kwargs : :class:`dict`, optional
+        Additional keyword arguments to be passed to the function used by the ``kind`` method, by default None
+    loader_kwargs: :class:`dict`
+        Keyword arguemnts for the ``load_sleep_pulse_ox`` loading function of the ``loader``
+    return_dict: :class:`bool`
+        Whether to return a :class:`dict` or a :class:`pd.DataFrame`
+
+    Returns
+    -------
+    :class:`dict` or :class:`pd.DataFrame`
+        the return type can be:
+            - :class:`dict` if ``return_dict`` is ``True``
+            - :class:`pd.DataFrame` if ``return_dict`` is ``False``
+    """
     return get_rest_pulse_ox_statistics(
         loader=loader,
         metrics=metric,
@@ -215,6 +445,7 @@ def get_rest_pulse_ox_statistic(
         kind_args=kind_args,
         kind_kwargs=kind_kwargs,
         loader_kwargs=loader_kwargs,
+        return_dict=return_dict,
     )
 
 
@@ -226,8 +457,9 @@ def get_rest_pulse_ox_statistics(
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     kind: Union[str, None] = None,
     kind_args=None,
-    kind_kwargs: dict = {},
+    kind_kwargs: dict = None,
     loader_kwargs: dict = {},
+    return_dict: bool = True,
 ):
     """Get rest pulse ox statistics.
 
@@ -241,8 +473,17 @@ def get_rest_pulse_ox_statistics(
     ----------
     loader: :class:`pywearable.loader.BaseLoader`
         Instance of a data loader.
+    metrics: :class:`str` or :class:`list`
+        List of rest pulse ox statistic(s) that needs to be retrived. Available options are:
+
+            - ``"meanPulseOx"``
+            - ``"p10PulseOx"``
+            - ``"p20PulseOx"``
+            - ``"p30PulseOx"``
+            - ``None``: compute all statistics
+
     user_id: :class:`str`, optional
-        Unique identifier of the user for which pulse ox must be computed, by default ``"all"``.
+        Unique identifier of the user for which pulse ox statistics must be computed, by default ``"all"``.
         If the parameter is set to ``all``, then the function is applied to all the
         users for which the ``loader`` has data.
     start_date: :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
@@ -253,19 +494,24 @@ def get_rest_pulse_ox_statistics(
         End date to which rest rest pulse ox must be computed, by default None.
         If set to ``None``, then the function relies on the implementation of the ``loader``
         to appropriately handle it.
-    kind: function or :class:'str', optional
-        The transform operation to compute on the rest pulse ox data, by default ``mean``.
+    kind : :class:`str` or function, optional
+        Additional transformation to be performed on the metric, by default ``None``
+    kind_args : :class:`list`, optional
+        Additional positional arguments to be passed to the function used
+        by the ``kind`` method, by default None
+    kind_kwargs : :class:`dict`, optional
+        Additional keyword arguments to be passed to the function used by the ``kind`` method, by default None
+    loader_kwargs: :class:`dict`
+        Keyword arguemnts for the ``load_sleep_pulse_ox`` loading function of the ``loader``
+    return_dict: :class:`bool`
+        Whether to return a :class:`dict` or a :class:`pd.DataFrame`
 
     Returns
     -------
-    :class:`dict`
-        The ouput dictionary is a nested dictionary that always contains
-        the ``user_id`` values as primary keys.
-        For each ``user_id``, the nested dictionary contains
-        ``metric`` and ``"days"``as secondary keys. The value of the ``metric`` is the
-        result of the transformation applied to rest pulse ox,
-        while the value of the ``"days"`` key contains the list of
-        days over which this transformation was computed.
+    :class:`dict` or :class:`pd.DataFrame`
+        the return type can be:
+            - :class:`dict` if ``return_dict`` is ``True``
+            - :class:`pd.DataFrame` if ``return_dict`` is ``False``
     """
     # Get user id from the loader
     user_id = utils.get_user_ids(loader, user_id)
@@ -301,7 +547,7 @@ def get_rest_pulse_ox_statistics(
                 rest_pulse_ox[constants._IS_SLEEPING_COL] == True
             ].reset_index(drop=True)
             # Get only data with calendar day between start and end date and reset index
-            if not (rest_pulse_ox is None):
+            if not (start_date is None):
                 rest_pulse_ox = rest_pulse_ox[
                     rest_pulse_ox[constants._CALENDAR_DATE_COL] >= start_date.date()
                 ].reset_index(drop=True)
@@ -367,7 +613,7 @@ def get_rest_pulse_ox_statistics(
 
                 else:
                     # We only have one metric
-                    data_dict[user] = _REST_PULSE_OX_STATISTICS_DICT[metric](
+                    data_dict[user] = _REST_PULSE_OX_STATISTICS_DICT[metrics[0]](
                         rest_pulse_ox=rest_pulse_ox
                     ).to_dict()
 
