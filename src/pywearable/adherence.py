@@ -399,7 +399,7 @@ def get_garmin_device_adherence(
 
     for user in user_id:
         try:
-            df = loader.load_garmin_device_bbi(user, start_date, end_date)
+            df = loader.load_bbi(user, start_date, end_date)
             data_dict[user] = (
                 df.groupby(df["isoDate"].dt.date).bbi.sum() / _MS_TO_HOURS_CONVERSION
             ).to_dict()

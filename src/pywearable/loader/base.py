@@ -39,5 +39,13 @@ class BaseLoader:
     ) -> pd.DataFrame:
         pass
 
+    def load_bbi(
+        self,
+        user_id: str,
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None
+    ):
+        pass
+
     def get_user_ids(self) -> list:
         pass
