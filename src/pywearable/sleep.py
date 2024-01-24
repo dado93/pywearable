@@ -1705,6 +1705,14 @@ def get_sleep_timestamps(
 
     return data_dict
 
+def get_bedtime():
+    pass
+
+def get_wakeup_time():
+    pass
+
+def get_sleep_midpoint():
+    pass
 
 def get_sleep_midpoints(
     loader: BaseLoader,
@@ -3320,6 +3328,14 @@ def _compute_stage_count(
             count_df[col] = np.nan
     return count_df
 
+def _compute_bedtme():
+    pass
+
+def _compute_wakeup_time():
+    pass
+
+def _compute_sleep_midpoint():
+    pass
 
 def _compute_cpd_midpoint(
     sleep_summary: pd.DataFrame, chronotype: Union[tuple, None], **kwargs
