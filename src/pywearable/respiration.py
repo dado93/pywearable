@@ -26,23 +26,30 @@ def get_mean_rest_pulse_ox(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    kind: Union[str, None] = None,
-    args=(),
-    loader_kwargs=(),
+    kind=None,
+    kind_args: Union[list, int] = None,
+    kind_kwargs: dict = None,
+    loader_kwargs: dict = {},
 ):
     """Get mean pulse ox value at rest.
 
     This function computes the mean pulse ox value during
-    resting periods (i.e., sleep) for the given ``user_id``
+    resting sleep periods for the given ``user_id``
     and for the required time interval from ``start_date`` to
     ``end_date``. It is also possible to perform a
     transformation of the retrieved mean pulse ox values
-    by setting the ``kind`` parameters. For example, it is
+    by setting the ``kind`` parameter to a valid function
+    accepted by :func:`~pandas.Series.agg`. For example, it is
     possible to obtain the mean of the mean values by
-    setting the ``kind`` parameter to ``"mean"``. If this
-    following transformation requires additional
-    arguments, then it is possible to set them in the
-    ``args`` argument.
+    setting the ``kind`` parameter to ``"mean"``. If the
+    ``kind`` argument requires additional positional
+    arguments or keyword arguments, it is possible to set them
+    by passing them to the ``kind_args`` and
+    ``kind_kwargs`` arguments.
+    The function used to load pulse_ox data is the
+    :func:`~loader.BaseLoader.load_sleep_pulse_ox`. If
+    loader-specific arguments are required, you can
+    pass them using the ``loader_kwargs`` argument.
 
     Parameters
     ----------
@@ -56,10 +63,13 @@ def get_mean_rest_pulse_ox(
         End date for the computation of the metric, by default ``None``
     kind : :class:`str` or ``None``, optional
         Additional transformation to be performed on the metric, by default ``None``
-    args : :class:`tuple`, optional
-        Additional arguments to be passed to the function used by the ``kind`` method, by default ()
+    kind_args : :class:`tuple` or :class:`list`, optional
+        Additional positional arguments to be passed to the function used
+        by the ``kind`` method, by default None
+    kind_kwargs : :class:`dict`, optional
+        Additional keyword to be passed to the function used by the ``kind`` method, by default None
     loader_kwargs:
-        keyword arguemnts for the loading function of the ``loader``
+        Keyword arguemnts for the ``load_sleep_pulse_ox`` loading function of the ``loader``
 
     Returns
     -------
@@ -72,9 +82,9 @@ def get_mean_rest_pulse_ox(
         user_id=user_id,
         start_date=start_date,
         end_date=end_date,
-        aggregate="mean",
         kind=kind,
-        kind_args=args,
+        kind_args=kind_args,
+        kind_kwargs=kind_kwargs,
         loader_kwargs=loader_kwargs,
     )
 
@@ -93,8 +103,6 @@ def get_p10_rest_pulse_ox(
         user_id=user_id,
         start_date=start_date,
         end_date=end_date,
-        aggregate=np.percentile,
-        aggregate_args=(10),
         kind=kind,
         kind_args=args,
     )
@@ -114,8 +122,6 @@ def get_p20_rest_pulse_ox(
         user_id=user_id,
         start_date=start_date,
         end_date=end_date,
-        aggregate=np.percentile,
-        aggregate_args=(20),
         kind=kind,
         kind_args=args,
     )
@@ -135,28 +141,97 @@ def get_p30_rest_pulse_ox(
         user_id=user_id,
         start_date=start_date,
         end_date=end_date,
-        aggregate=np.percentile,
-        aggregate_args=(30),
         kind=kind,
         kind_args=args,
     )
 
 
+def _compute_mean_rest_pulse_ox(rest_pulse_ox: pd.DataFrame) -> pd.Series:
+    return _compute_rest_pulse_ox_statistic(rest_pulse_ox, "mean")
+
+
+def _compute_p10_rest_pulse_ox(rest_pulse_ox: pd.DataFrame) -> pd.Series:
+    return _compute_rest_pulse_ox_statistic(rest_pulse_ox, np.percentile, 10)
+
+
+def _compute_p20_rest_pulse_ox(rest_pulse_ox: pd.DataFrame) -> pd.Series:
+    return _compute_rest_pulse_ox_statistic(rest_pulse_ox, np.percentile, 20)
+
+
+def _compute_p30_rest_pulse_ox(rest_pulse_ox: pd.DataFrame) -> pd.Series:
+    return _compute_rest_pulse_ox_statistic(rest_pulse_ox, np.percentile, 30)
+
+
+def _compute_rest_pulse_ox_statistic(
+    rest_pulse_ox: pd.DataFrame,
+    agg,
+    *agg_args,
+    **agg_kwargs,
+) -> pd.Series:
+    if type(rest_pulse_ox) != pd.DataFrame:
+        raise ValueError(
+            f"rest_pulse_ox must be of type pd.DataFrame and not {type(rest_pulse_ox)}"
+        )
+    if constants._CALENDAR_DATE_COL not in rest_pulse_ox.columns:
+        raise ValueError(
+            f"{constants._CALENDAR_DATE_COL} not found among rest_pulse_ox columns {rest_pulse_ox.columns}"
+        )
+    if constants._SPO2_SPO2_COL not in rest_pulse_ox.columns:
+        raise ValueError(
+            f"{constants._SPO2_SPO2_COL} not found among rest_pulse_ox columns {rest_pulse_ox.columns}"
+        )
+    agg_series = rest_pulse_ox.groupby(constants._CALENDAR_DATE_COL)[
+        constants._SPO2_SPO2_COL
+    ].agg(agg, *agg_args, **agg_kwargs)
+    return agg_series
+
+
+_REST_PULSE_OX_STATISTICS_DICT = {
+    _RESPIRATION_METRIC_MEAN_PULSE_OX: _compute_mean_rest_pulse_ox,
+    _RESPIRATION_METRIC_P10_PULSE_OX: _compute_p10_rest_pulse_ox,
+    _RESPIRATION_METRIC_P20_PULSE_OX: _compute_p20_rest_pulse_ox,
+    _RESPIRATION_METRIC_P30_PULSE_OX: _compute_p30_rest_pulse_ox,
+}
+
+
 def get_rest_pulse_ox_statistic(
     loader: loader.BaseLoader,
-    metric: str,
+    metric: Union[str, list, tuple, None] = None,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    aggregate: str = "mean",
-    aggregate_args: Union[tuple, list] = (),
     kind: Union[str, None] = None,
-    kind_args: Union[tuple, list] = (),
-    loader_kwargs: Union[tuple, list] = (),
+    kind_args=None,
+    kind_kwargs: dict = None,
+    loader_kwargs: dict = {},
 ):
-    """Get rest pulse ox statistic.
+    return get_rest_pulse_ox_statistics(
+        loader=loader,
+        metrics=metric,
+        user_id=user_id,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
+        kind_args=kind_args,
+        kind_kwargs=kind_kwargs,
+        loader_kwargs=loader_kwargs,
+    )
 
-    This function returns a rest pulse ox statistic for each day. Depending on the value
+
+def get_rest_pulse_ox_statistics(
+    loader: loader.BaseLoader,
+    metrics: Union[str, list, tuple, None] = None,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind: Union[str, None] = None,
+    kind_args=None,
+    kind_kwargs: dict = {},
+    loader_kwargs: dict = {},
+):
+    """Get rest pulse ox statistics.
+
+    This function returns a rest pulse ox statistics for each day. Depending on the value
     of the ``kind`` parameter, the function returns a statistic for rest pulse ox data.
     The value of the ``kind`` parameter can be any value that is accepted by
     a transform operation by pandas. By default, the function returns the ``mean``
@@ -207,44 +282,94 @@ def get_rest_pulse_ox_statistic(
     else:
         ext_end_date = None
     data_dict = {}
-
+    if metrics is None:
+        # Consider all metrics
+        metrics = list(_REST_PULSE_OX_STATISTICS_DICT.keys())
+    if type(metrics) == str:
+        metrics = [metrics]
     for user in user_id:
         data_dict[user] = {}
-        pulse_ox_data = loader.load_pulse_ox(
+        rest_pulse_ox = loader.load_pulse_ox(
             user_id=user,
             start_date=ext_start_date,
             end_date=ext_end_date,
-            **loader_kwargs
+            **loader_kwargs,
         )
-        if len(pulse_ox_data) > 0:
+        if len(rest_pulse_ox) > 0:
             # Get the data only when sleeping and reset index
-            pulse_ox_data = pulse_ox_data[
-                pulse_ox_data[constants._IS_SLEEPING_COL] == True
+            rest_pulse_ox = rest_pulse_ox[
+                rest_pulse_ox[constants._IS_SLEEPING_COL] == True
             ].reset_index(drop=True)
             # Get only data with calendar day between start and end date and reset index
-            if not (start_date is None):
-                pulse_ox_data = pulse_ox_data[
-                    pulse_ox_data[constants._CALENDAR_DATE_COL] >= start_date.date()
+            if not (rest_pulse_ox is None):
+                rest_pulse_ox = rest_pulse_ox[
+                    rest_pulse_ox[constants._CALENDAR_DATE_COL] >= start_date.date()
                 ].reset_index(drop=True)
             if not (end_date is None):
-                pulse_ox_data = pulse_ox_data[
-                    pulse_ox_data[constants._CALENDAR_DATE_COL] <= end_date.date()
+                rest_pulse_ox = rest_pulse_ox[
+                    rest_pulse_ox[constants._CALENDAR_DATE_COL] <= end_date.date()
                 ].reset_index(drop=True)
             if not (kind is None):
-                # Apply double transformation
-                transformed_series = pulse_ox_data.groupby(
-                    pulse_ox_data[constants._CALENDAR_DATE_COL]
-                )[constants._SPO2_SPO2_COL].aggregate(aggregate, aggregate_args)
-                data_dict[user][metric] = transformed_series.apply(kind, kind_args)
-                data_dict[user]["days"] = transformed_series.index.values.tolist()
+                for metric in metrics:
+                    transformed_series = _REST_PULSE_OX_STATISTICS_DICT[metric](
+                        rest_pulse_ox=rest_pulse_ox
+                    )
+                    # Apply double transformation
+                    if (not kind_args is None) and (not kind_kwargs is None):
+                        data_dict[user][metric] = transformed_series.agg(
+                            kind,
+                            0,
+                            *kind_args,
+                            **kind_kwargs,
+                        )
+                    else:
+                        if not kind_args is None:
+                            data_dict[user][metric] = transformed_series.agg(
+                                kind,
+                                0,
+                                *kind_args,
+                            )
+                        elif not kind_kwargs is None:
+                            data_dict[user][metric] = transformed_series.agg(
+                                kind,
+                                0,
+                                **kind_kwargs,
+                            )
+                        else:
+                            data_dict[user][metric] = transformed_series.agg(
+                                kind,
+                            )
+                    data_dict[user]["days"] = transformed_series.index.values.tolist()
             else:
-                data_dict[user] = (
-                    pulse_ox_data.groupby(pulse_ox_data[constants._CALENDAR_DATE_COL])[
-                        constants._SPO2_SPO2_COL
-                    ]
-                    .aggregate(aggregate, aggregate_args)
-                    .to_dict()
-                )
+                if len(metrics) > 1:
+                    # Let's set up a temporary dataframe to store data
+                    first_metric = True
+                    for metric in metrics:
+                        # Save as [user][date][metric]
+                        if first_metric:
+                            user_temp_df = (
+                                _REST_PULSE_OX_STATISTICS_DICT[metric](
+                                    rest_pulse_ox=rest_pulse_ox
+                                )
+                                .rename(metric)
+                                .to_frame()
+                            )
+                            first_metric = False
+                        else:
+                            user_temp_df = user_temp_df.merge(
+                                _REST_PULSE_OX_STATISTICS_DICT[metric](
+                                    rest_pulse_ox=rest_pulse_ox
+                                ).rename(metric),
+                                left_on=constants._CALENDAR_DATE_COL,
+                                right_index=True,
+                            )
+                    data_dict[user] = user_temp_df.to_dict(orient="index")
+
+                else:
+                    # We only have one metric
+                    data_dict[user] = _REST_PULSE_OX_STATISTICS_DICT[metric](
+                        rest_pulse_ox=rest_pulse_ox
+                    ).to_dict()
 
     return data_dict
 
@@ -455,11 +580,7 @@ def get_waking_breaths_per_minute(
     )
 
 
-_RESPIRATION_STATISTICS_DICT = {
-    _RESPIRATION_METRIC_MEAN_PULSE_OX: get_mean_rest_pulse_ox,
-    _RESPIRATION_METRIC_P10_PULSE_OX: get_p10_rest_pulse_ox,
-    _RESPIRATION_METRIC_P20_PULSE_OX: get_p20_rest_pulse_ox,
-    _RESPIRATION_METRIC_P30_PULSE_OX: get_p30_rest_pulse_ox,
+_BREATHS_PER_MINUTE_STATISTICS_DICT = {
     _RESPIRATION_METRIC_REST_BREATHS_PER_MINUTE: get_rest_breaths_per_minute,
     _RESPIRATION_METRIC_WAKING_BREATHS_PER_MINUTE: get_waking_breaths_per_minute,
 }
@@ -472,6 +593,7 @@ def get_respiration_statistic(
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     kind=None,
     kind_args=(),
+    kind_kwargs=(),
     loader_kwargs=(),
 ):
     pass
