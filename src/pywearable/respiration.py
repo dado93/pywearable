@@ -339,7 +339,7 @@ def get_rest_pulse_ox_statistics(
                             data_dict[user][metric] = transformed_series.agg(
                                 kind,
                             )
-                    data_dict[user]["days"] = transformed_series.index.values.tolist()
+                data_dict[user]["days"] = transformed_series.index.values.tolist()
             else:
                 if len(metrics) > 1:
                     # Let's set up a temporary dataframe to store data
