@@ -1668,14 +1668,14 @@ def get_sleep_timestamps(
 
     Parameters
     ----------
-    loader : :class:`pylabfront.loader.Loader`
-        Initialized instance of a data loader.
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        An instance of a data loader.
     user_id : :class:`str` or :class:`list`, optional
-        ID of the user(s) for which sleep timestamps are computed, by default "all".
+        The id(s) for which N1 sleep latency must be retrieved, by default "all"
     start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
-        Start date for data retrieval, by default None
+        Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
-        End date for data retrieval, by default None.
+        End date for data retrieval, by default None
 
     Returns
     -------
@@ -1713,6 +1713,38 @@ def get_bedtime(
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     kind: Union[str, None] = None,
 ) -> dict:
+    """Get bedtime sleep metric.
+
+    This function computes the bedtime metric. 
+    The value is reported in a datetime.datetime format.
+
+    Depending on the value of the ``kind`` parameter, this function
+    returns bedtime for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter.
+
+    Parameters
+    ----------
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        An instance of a data loader.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) for which bedtime must be retrieved, by default "all"
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None.
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None
+    kind : :class:`str` or None, optional
+        Whether to transform bedtime over days, or to return the value for each day, by default None.
+
+    Returns
+    -------
+    :class:`dict`
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and bedtime as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `bedtime`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
+    """
     return get_sleep_statistic(
         loader=loader,
         user_id=user_id,
@@ -1730,6 +1762,38 @@ def get_wakeup_time(
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     kind: Union[str, None] = None,
 ) -> dict:
+    """Get wake-up time sleep metric.
+
+    This function computes the wake-up time metric. 
+    The value is reported in a datetime.datetime format.
+
+    Depending on the value of the ``kind`` parameter, this function
+    returns wakeup time for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter.
+
+    Parameters
+    ----------
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        An instance of a data loader.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) for which bedtime must be retrieved, by default "all"
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None.
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None
+    kind : :class:`str` or None, optional
+        Whether to transform wakeup time over days, or to return the value for each day, by default None.
+
+    Returns
+    -------
+    :class:`dict`
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and wakeup times as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `wakeupTime`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
+    """
     return get_sleep_statistic(
         loader=loader,
         user_id=user_id,
@@ -1747,6 +1811,39 @@ def get_sleep_midpoint(
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     kind: Union[str, None] = None,
 ) -> dict:
+    """Get midpoint sleep metric.
+
+    This function computes the sleep midpoint metric. 
+    For every night of sleep the midpoint between bedtime and wakeup time is computed. 
+    The value is reported in a datetime.datetime format.
+
+    Depending on the value of the ``kind`` parameter, this function
+    returns midpoint for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter.
+
+    Parameters
+    ----------
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        An instance of a data loader.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) for which midpoints must be retrieved, by default "all"
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None.
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None
+    kind : :class:`str` or None, optional
+        Whether to transform midpoints over days, or to return the value for each day, by default None.
+
+    Returns
+    -------
+    :class:`dict`
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and midpoints as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `midpoint`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
+    """
     return get_sleep_statistic(
         loader=loader,
         user_id=user_id,
@@ -3585,11 +3682,11 @@ def get_sleep_statistic(
                 sleep_data_df = pd.DataFrame.from_dict(data_dict[user], orient="index")
                 transformed_dict[user] = {}
                 if len(sleep_data_df[~sleep_data_df[0].isna()]) > 0:
-                    kind_dict = _SLEEP_KIND_MAPPING.get(kind, None)
-                    if kind_dict is None: # if the kind function is not among the common ones
-                        kind_fn = kind # assume it's something that can be directly applied to metric
-                    else: # otherwise get the specific version for the metric
-                        kind_fn = kind_dict[metric if metric in _SLEEP_DATETIME_METRICS else "default"]
+                    # if the kind function is not among the common ones
+                    # assume it's something that can be directly applied to metric
+                    # otherwise get the specific version for the metric through the kind mapping
+                    kind_fn = _SLEEP_KIND_MAPPING.get(kind, {"default":kind}).get(metric if 
+                                metric in _SLEEP_DATETIME_METRICS else "default", kind)
                     transformed_dict[user][metric] = kind_fn(
                             np.array(list(data_dict[user].values()))
                     )
@@ -3796,8 +3893,20 @@ def get_sleep_statistics(
 
             if not (kind is None):
                 transformed_dict[user] = {}
-                transformed_dict[user]["values"] = user_sleep_metrics_df.apply(
-                    kind
+                # if the kind function is not among the common ones
+                # assume it's something that can be directly applied to metric
+                # otherwise get the specific version for each metric in the df through kind mapping
+                agg_dict = {
+                    metric:_SLEEP_KIND_MAPPING.get(kind,{"default":kind}).get(
+                        metric if metric in _SLEEP_DATETIME_METRICS else "default", kind) 
+                    for metric in user_sleep_metrics_df.columns
+                    }
+                # Assume that all transformations require the datetime metrics to be in "HH:MM" format:
+                for metric in user_sleep_metrics_df.columns:
+                    if metric in _SLEEP_DATETIME_METRICS:
+                        user_sleep_metrics_df[metric] = user_sleep_metrics_df.loc[:,metric].dt.strftime("%H:%M").values 
+                transformed_dict[user]["values"] = user_sleep_metrics_df.agg(
+                    agg_dict
                 ).to_dict()
                 transformed_dict[user]["days"] = [
                     x for x in user_sleep_metrics_df.index
