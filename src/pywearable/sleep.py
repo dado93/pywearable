@@ -42,6 +42,9 @@ _SLEEP_METRIC_N1_COUNT = "countN1"
 _SLEEP_METRIC_N2_COUNT = "countN2"
 _SLEEP_METRIC_N3_COUNT = "countN3"
 _SLEEP_METRIC_REM_COUNT = "countREM"
+_SLEEP_METRIC_BEDTIME = "bedTime"
+_SLEEP_METRIC_WAKEUP_TIME = "wakeupTime"
+_SLEEP_METRIC_MIDPOINT = "midpoint"
 _SLEEP_METRIC_CPD_MIDPOINT = "CPD_midpoint"
 _SLEEP_METRIC_CPD_DURATION = "CPD_duration"
 
@@ -1705,14 +1708,53 @@ def get_sleep_timestamps(
 
     return data_dict
 
-def get_bedtime():
-    pass
+def get_bedtime(
+    loader: BaseLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind: Union[str, None] = None,
+):
+    return get_sleep_statistic(
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_BEDTIME,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
+    )
 
-def get_wakeup_time():
-    pass
+def get_wakeup_time(
+    loader: BaseLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind: Union[str, None] = None,
+):
+    return get_sleep_statistic(
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_WAKEUP_TIME,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
+    )
 
-def get_sleep_midpoint():
-    pass
+def get_sleep_midpoint(
+    loader: BaseLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind: Union[str, None] = None,
+):
+    return get_sleep_statistic(
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_MIDPOINT,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
+    )
 
 def get_sleep_midpoints(
     loader: BaseLoader,
