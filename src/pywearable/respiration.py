@@ -3,9 +3,7 @@ This module contains all the functions related to analysis
 of respiration data.
 """
 
-# TODO Return pd.DataFrame with multindex (user-date) and statistics
-# TODO get_breaths_per_minute_statistics
-# TODO get_respiration_statistics
+# TODO Create function in utils to convert multiindex dataframe to dictionary
 
 import datetime
 from typing import Union
@@ -15,15 +13,12 @@ import pandas as pd
 
 from . import constants, loader, utils
 
-_RESPIRATION_DAY = "DAY"
-_RESPIRATION_NIGHT = "NIGHT"
-
 _RESPIRATION_METRIC_MEAN_PULSE_OX = "meanPulseOx"
 _RESPIRATION_METRIC_P10_PULSE_OX = "p10PulseOx"
 _RESPIRATION_METRIC_P20_PULSE_OX = "p20PulseOx"
 _RESPIRATION_METRIC_P30_PULSE_OX = "p30PulseOx"
-_RESPIRATION_METRIC_WAKING_BREATHS_PER_MINUTE = "meanWakingBreathsPerMinute"
-_RESPIRATION_METRIC_REST_BREATHS_PER_MINUTE = "meanRestBreathsPerMinute"
+_RESPIRATION_METRIC_MEAN_AWAKE_BREATHS_PER_MINUTE = "meanAwakeBreathsPerMinute"
+_RESPIRATION_METRIC_MEAN_REST_BREATHS_PER_MINUTE = "meanRestBreathsPerMinute"
 
 
 def get_mean_rest_pulse_ox(
@@ -32,8 +27,8 @@ def get_mean_rest_pulse_ox(
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     kind=None,
-    kind_args: Union[list, int] = None,
-    kind_kwargs: dict = None,
+    kind_args: list = [],
+    kind_kwargs: dict = {},
     loader_kwargs: dict = {},
     return_dict: bool = True,
 ):
@@ -106,8 +101,8 @@ def get_p10_rest_pulse_ox(
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     kind=None,
-    kind_args: Union[list, int] = None,
-    kind_kwargs: dict = None,
+    kind_args: list = [],
+    kind_kwargs: dict = {},
     loader_kwargs: dict = {},
     return_dict: bool = True,
 ):
@@ -181,8 +176,11 @@ def get_p20_rest_pulse_ox(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    kind: Union[str, None] = None,
-    args=(),
+    kind=None,
+    kind_args: list = [],
+    kind_kwargs: dict = {},
+    loader_kwargs: dict = {},
+    return_dict: bool = True,
 ):
     """Get 20th percentile pulse ox value at rest.
 
@@ -242,7 +240,10 @@ def get_p20_rest_pulse_ox(
         start_date=start_date,
         end_date=end_date,
         kind=kind,
-        kind_args=args,
+        kind_args=kind_args,
+        kind_kwargs=kind_kwargs,
+        loader_kwargs=loader_kwargs,
+        return_dict=return_dict,
     )
 
 
@@ -251,8 +252,11 @@ def get_p30_rest_pulse_ox(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    kind: Union[str, None] = None,
-    args=(),
+    kind=None,
+    kind_args: list = [],
+    kind_kwargs: dict = {},
+    loader_kwargs: dict = {},
+    return_dict: bool = True,
 ):
     """Get 30th percentile pulse ox value at rest.
 
@@ -312,7 +316,10 @@ def get_p30_rest_pulse_ox(
         start_date=start_date,
         end_date=end_date,
         kind=kind,
-        kind_args=args,
+        kind_args=kind_args,
+        kind_kwargs=kind_kwargs,
+        loader_kwargs=loader_kwargs,
+        return_dict=return_dict,
     )
 
 
@@ -371,8 +378,8 @@ def get_rest_pulse_ox_statistic(
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     kind: str = None,
-    kind_args: list = None,
-    kind_kwargs: dict = None,
+    kind_args: list = [],
+    kind_kwargs: dict = {},
     loader_kwargs: dict = {},
     return_dict: bool = True,
 ):
@@ -456,8 +463,8 @@ def get_rest_pulse_ox_statistics(
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     kind: Union[str, None] = None,
-    kind_args=None,
-    kind_kwargs: dict = None,
+    kind_args=[],
+    kind_kwargs: dict = {},
     loader_kwargs: dict = {},
     return_dict: bool = True,
 ):
@@ -527,218 +534,166 @@ def get_rest_pulse_ox_statistics(
         ext_end_date = end_date + datetime.timedelta(days=1)
     else:
         ext_end_date = None
-    data_dict = {}
+    # Check metrics
     if metrics is None:
         # Consider all metrics
         metrics = list(_REST_PULSE_OX_STATISTICS_DICT.keys())
     if type(metrics) == str:
         metrics = [metrics]
+
+    # Check args and kwargs
+    if type(kind_args) != list:
+        raise ValueError(f"kind_args must be an iterable, not {type(kind_args)}")
+    if type(kind_kwargs) != dict:
+        raise ValueError(f"kind_kwargs must be of type dict, not {type(kind_kwargs)}")
+    if type(loader_kwargs) != dict:
+        raise ValueError(
+            f"loader_kwargs must be of type dict, not {type(loader_kwargs)}"
+        )
+    both_dates_valid = False
+    if (not (start_date is None)) and (not (end_date is None)):
+        # Let's set up a dataframe in which we will store all the data
+        date_periods = pd.date_range(start_date, end_date, freq="D")
+        multi_index = pd.MultiIndex.from_product(
+            [user_id, date_periods], names=["user", constants._CALENDAR_DATE_COL]
+        )
+        rest_pulse_ox_stat_df = pd.DataFrame(index=multi_index, columns=metrics)
+        both_dates_valid = True
+    else:
+        rest_pulse_ox_stat_df = pd.DataFrame()
     for user in user_id:
-        data_dict[user] = {}
-        rest_pulse_ox = loader.load_pulse_ox(
+        if not (both_dates_valid):
+            user_rest_pulse_ox_stat_df = pd.DataFrame()
+        rest_pulse_ox = loader.load_sleep_pulse_ox(
             user_id=user,
             start_date=ext_start_date,
             end_date=ext_end_date,
             **loader_kwargs,
         )
         if len(rest_pulse_ox) > 0:
-            # Get the data only when sleeping and reset index
-            rest_pulse_ox = rest_pulse_ox[
-                rest_pulse_ox[constants._IS_SLEEPING_COL] == True
-            ].reset_index(drop=True)
-            # Get only data with calendar day between start and end date and reset index
+            # Get only data with calendar date between start and end date and reset index
             if not (start_date is None):
                 rest_pulse_ox = rest_pulse_ox[
-                    rest_pulse_ox[constants._CALENDAR_DATE_COL] >= start_date.date()
+                    rest_pulse_ox[constants._CALENDAR_DATE_COL] >= start_date
                 ].reset_index(drop=True)
             if not (end_date is None):
                 rest_pulse_ox = rest_pulse_ox[
-                    rest_pulse_ox[constants._CALENDAR_DATE_COL] <= end_date.date()
+                    rest_pulse_ox[constants._CALENDAR_DATE_COL] <= end_date
                 ].reset_index(drop=True)
-            if not (kind is None):
-                for metric in metrics:
-                    transformed_series = _REST_PULSE_OX_STATISTICS_DICT[metric](
-                        rest_pulse_ox=rest_pulse_ox
-                    )
-                    # Apply double transformation
-                    if (not kind_args is None) and (not kind_kwargs is None):
-                        data_dict[user][metric] = transformed_series.agg(
-                            kind,
-                            0,
-                            *kind_args,
-                            **kind_kwargs,
-                        )
-                    else:
-                        if not kind_args is None:
-                            data_dict[user][metric] = transformed_series.agg(
-                                kind,
-                                0,
-                                *kind_args,
-                            )
-                        elif not kind_kwargs is None:
-                            data_dict[user][metric] = transformed_series.agg(
-                                kind,
-                                0,
-                                **kind_kwargs,
-                            )
-                        else:
-                            data_dict[user][metric] = transformed_series.agg(
-                                kind,
-                            )
-                data_dict[user]["days"] = transformed_series.index.values.tolist()
-            else:
-                if len(metrics) > 1:
-                    # Let's set up a temporary dataframe to store data
-                    first_metric = True
-                    for metric in metrics:
-                        # Save as [user][date][metric]
-                        if first_metric:
-                            user_temp_df = (
-                                _REST_PULSE_OX_STATISTICS_DICT[metric](
-                                    rest_pulse_ox=rest_pulse_ox
-                                )
-                                .rename(metric)
-                                .to_frame()
-                            )
-                            first_metric = False
-                        else:
-                            user_temp_df = user_temp_df.merge(
-                                _REST_PULSE_OX_STATISTICS_DICT[metric](
-                                    rest_pulse_ox=rest_pulse_ox
-                                ).rename(metric),
-                                left_on=constants._CALENDAR_DATE_COL,
-                                right_index=True,
-                            )
-                    data_dict[user] = user_temp_df.to_dict(orient="index")
-
+            for metric in metrics:
+                # Get series with metrics by calendarDate
+                ser = _REST_PULSE_OX_STATISTICS_DICT[metric](
+                    rest_pulse_ox=rest_pulse_ox
+                )
+                if both_dates_valid:
+                    rest_pulse_ox_stat_df.loc[(user, ser.index), metric] = ser.values
                 else:
-                    # We only have one metric
-                    data_dict[user] = _REST_PULSE_OX_STATISTICS_DICT[metrics[0]](
-                        rest_pulse_ox=rest_pulse_ox
-                    ).to_dict()
-
-    return data_dict
-
-
-def get_breaths_per_minute(
-    loader: loader.BaseLoader,
-    day_or_night: Union[str, None] = None,
-    user_id: Union[str, list] = "all",
-    start_date: datetime.datetime = None,
-    end_date: datetime.datetime = None,
-    average: bool = False,
-    remove_zero: bool = False,
-    return_days: bool = False,
-):
-    """Get breaths per minute.
-
-    This function returns the breaths per minute computed per
-    each day or night. Depending on whether the `day_or_night` parameter
-    is set to 'DAY' or 'NIGHT', the average value is computed for daily
-    data or for sleep data, respectively.
-
-    Parameters
-    ----------
-    loader: :class:`pylabfront.loader.Loader`
-        Initialized instance of data loader.
-    day_or_night: :class:`str`, optional
-        Whether to compute breath per minute only during waking or rest states, or during both, by default None.
-        If set to 'DAY', compute average breaths per minute in waking state.
-        If set to 'NIGHT', compute average breaths per minute in rest state.
-        If None, compute average breaths per minute across waking and rest states
-    start_date: :class:`datetime.datetime`, optional
-        Start date from which breaths per minute must be computed, by default None.
-    end_date: :class:`datetime.datetime`, optional
-        End date to which breaths per minute must be computed, by default None.
-    user_id: :class:`str`, optional
-        ID of the user for which breaths per minute must be computed, by default "all".
-    average: :class:`bool`, optional
-        Whether to return the average across days/nights or return the average per day/night, by default False.
-    remove_zero: :class:`bool`, optional
-        Whether to remove data with breathsPerMinute equal to 0 from the data, by default False.
-    return_days: :class:`bool`, optional
-        Whether to return the days over which the average value was computed, by default False.
-
-    Returns
-    -------
-    :class:`dict`
-        Dictionary with participant id as primary key, calendar days as secondary keys, and average breaths per minute as value.
-    """
-
-    user_id = utils.get_user_ids(loader, user_id)
-
-    data_dict = {}
-    if average:
-        average_dict = {}
-
-    for user in user_id:
-        try:
-            respiratory_data = loader.load_respiration(
-                user, start_date=start_date, end_date=end_date
-            )
-            if remove_zero:
-                respiratory_data = respiratory_data[
-                    respiratory_data[constants._RESPIRATION_BREATHS_PER_MINUTE_COL] > 0
-                ]
-            if day_or_night == _RESPIRATION_DAY:
-                respiratory_data = respiratory_data[respiratory_data.sleep == 0]
-            elif day_or_night == _RESPIRATION_NIGHT:
-                respiratory_data = respiratory_data[respiratory_data.sleep == 1]
-
-            if len(respiratory_data) > 0:
-                if day_or_night == _RESPIRATION_DAY:
-                    respiratory_data["Date"] = respiratory_data[
-                        constants._ISODATE_COL
-                    ].dt.date
-                    data_dict[user] = (
-                        respiratory_data.groupby("Date")[
-                            constants._RESPIRATION_BREATHS_PER_MINUTE_COL
-                        ]
-                        .mean()
-                        .to_dict()
-                    )
-                else:
-                    data_dict[user] = (
-                        respiratory_data.groupby(
-                            constants._RESPIRATION_CALENDAR_DATE_COL
-                        )[constants._RESPIRATION_BREATHS_PER_MINUTE_COL]
-                        .mean()
-                        .to_dict()
-                    )
-                if average:
-                    respiration_data_df = pd.DataFrame.from_dict(
-                        data_dict[user], orient="index"
-                    )
-                    average_dict[user] = {}
-                    if return_days:
-                        average_dict[user]["values"] = np.nanmean(
-                            np.array(list(data_dict[user].values()))
+                    min_date = ser.index.min() if start_date is None else start_date
+                    max_date = ser.index.max() if end_date is None else end_date
+                    user_date_range = pd.date_range(min_date, max_date, freq="D")
+                    ser = ser.reindex(user_date_range)
+                    # We have different dates based on user
+                    ser = ser.set_axis(
+                        pd.MultiIndex.from_product(
+                            [[user], user_date_range],
+                            names=["user", constants._CALENDAR_DATE_COL],
                         )
-                        average_dict[user]["days"] = [
-                            datetime.datetime.strftime(x, "%Y-%m-%d")
-                            for x in respiration_data_df.index
-                        ]
+                    ).rename(metric)
+                    if len(user_rest_pulse_ox_stat_df) == 0:
+                        # Empty df, first metric
+                        user_rest_pulse_ox_stat_df = ser.to_frame()
                     else:
-                        average_dict[user] = np.nanmean(
-                            np.array(list(data_dict[user].values()))
+                        user_rest_pulse_ox_stat_df = pd.merge(
+                            user_rest_pulse_ox_stat_df,
+                            ser,
+                            left_index=True,
+                            right_index=True,
+                            how="outer",
                         )
-        except:
-            data_dict[user] = None
-    if average:
-        return average_dict
-    return data_dict
+            if not both_dates_valid:
+                rest_pulse_ox_stat_df = pd.concat(
+                    (rest_pulse_ox_stat_df, user_rest_pulse_ox_stat_df)
+                )
+    # Perform kind operation by user
+    if not (kind is None):
+        rest_pulse_ox_stat_df = rest_pulse_ox_stat_df.groupby(level="user").agg(
+            kind, *kind_args, **kind_kwargs
+        )
+    if return_dict:
+        # We need to perform some changes to return dictionary with dates
+        # and not pd.Timestamp as keys
+        if len(metrics) > 1:
+            """
+            More than one metric, dictionary will be:
+            {
+                user_id1: {
+                    datetime.date1: {
+                        metric1: value1,
+                        metric2: value2,
+                        ...
+                    },
+                    datetime.date2: {
+                        metric1: value1,
+                        metric2: value2,
+                    }
+                },
+                user_id2: {
+                    datetime.date1: {
+                        ...
+                    }
+                }
+            }
+
+            """
+            return {
+                user: {
+                    date.to_pydatetime()
+                    .date(): rest_pulse_ox_stat_df.xs((user, date))
+                    .to_dict()
+                    for date in rest_pulse_ox_stat_df.index.levels[1]
+                }
+                for user in rest_pulse_ox_stat_df.index.levels[0]
+            }
+        else:
+            """
+            Single metric, dictionary will be:
+            {
+                user_id1: {
+                    datetime.date1: value1,
+                    datetime.date2: value2
+                },
+                user_id2: {
+                    datetime.date1: value1,
+                    datetime.date2: value2
+                }
+            }
+            """
+            return {
+                level: {
+                    k.to_pydatetime().date(): v
+                    for k, v in rest_pulse_ox_stat_df.xs(level)
+                    .loc[:, metrics[0]]
+                    .to_dict()
+                    .items()
+                }
+                for level in rest_pulse_ox_stat_df.index.levels[0]
+            }
+    return rest_pulse_ox_stat_df
 
 
-def get_rest_breaths_per_minute(
+def get_mean_rest_breaths_per_minute(
     loader: loader.BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, None] = None,
     end_date: Union[datetime.datetime, datetime.date, None] = None,
-    average: bool = False,
     remove_zero: bool = False,
-    return_days: bool = False,
+    kind=None,
+    kind_args: list = [],
+    kind_kwargs: dict = {},
+    loader_kwargs: dict = {},
+    return_dict: bool = True,
 ):
-    """Get rest breaths per minute.
+    """Get mean rest breaths per minute.
 
     Parameters
     ----------
@@ -766,26 +721,32 @@ def get_rest_breaths_per_minute(
     :class:`dict`
         Dictionary with user id as primary key, calendar days as secondary keys, and breaths per minute as value.
     """
-    return get_breaths_per_minute(
-        loader,
-        day_or_night=_RESPIRATION_NIGHT,
+    return get_breaths_per_minute_statistic(
+        loader=loader,
+        metric=_RESPIRATION_METRIC_MEAN_REST_BREATHS_PER_MINUTE,
         user_id=user_id,
         start_date=start_date,
         end_date=end_date,
-        average=average,
+        kind=kind,
+        kind_args=kind_args,
+        kind_kwargs=kind_kwargs,
+        loader_kwargs=loader_kwargs,
         remove_zero=remove_zero,
-        return_days=return_days,
+        return_dict=return_dict,
     )
 
 
-def get_waking_breaths_per_minute(
+def get_mean_awake_breaths_per_minute(
     loader: loader.BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, None] = None,
     end_date: Union[datetime.datetime, datetime.date, None] = None,
-    average: bool = False,
     remove_zero: bool = False,
-    return_days: bool = False,
+    kind=None,
+    kind_args: list = [],
+    kind_kwargs: dict = {},
+    loader_kwargs: dict = {},
+    return_dict: bool = True,
 ):
     """Get average waking breaths per minute across time-range.
 
@@ -814,36 +775,244 @@ def get_waking_breaths_per_minute(
         :class:`dict`
         Dictionary with participant id as primary key, calendar days as secondary keys, and average breaths per minute as value.
     """
-    return get_breaths_per_minute(
-        loader,
-        day_or_night=_RESPIRATION_DAY,
+    return get_breaths_per_minute_statistic(
+        loader=loader,
+        metric=_RESPIRATION_METRIC_MEAN_AWAKE_BREATHS_PER_MINUTE,
         user_id=user_id,
         start_date=start_date,
         end_date=end_date,
-        average=average,
+        kind=kind,
+        kind_args=kind_args,
+        kind_kwargs=kind_kwargs,
+        loader_kwargs=loader_kwargs,
         remove_zero=remove_zero,
-        return_days=return_days,
+        return_dict=return_dict,
     )
 
 
+def _compute_mean_rest_breaths_per_minute(
+    awake_breaths_per_minute, rest_breaths_per_minute
+):
+    return _compute_breaths_per_minute_statistic(rest_breaths_per_minute, agg="mean")
+
+
+def _compute_mean_awake_breaths_per_minute(
+    awake_breths_per_minute, rest_breaths_per_minute
+):
+    return _compute_breaths_per_minute_statistic(awake_breths_per_minute, agg="mean")
+
+
+def _compute_breaths_per_minute_statistic(
+    breaths_per_minute: pd.DataFrame,
+    agg,
+    *agg_args,
+    **agg_kwargs,
+) -> pd.Series:
+    if type(breaths_per_minute) != pd.DataFrame:
+        raise ValueError(
+            f"breaths_per_minute must be of type pd.DataFrame and not {type(breaths_per_minute)}"
+        )
+    if constants._CALENDAR_DATE_COL not in breaths_per_minute.columns:
+        return pd.Series()
+    if constants._RESPIRATION_BREATHS_PER_MINUTE_COL not in breaths_per_minute.columns:
+        return pd.Series()
+    agg_series = breaths_per_minute.groupby(constants._CALENDAR_DATE_COL)[
+        constants._RESPIRATION_BREATHS_PER_MINUTE_COL
+    ].agg(agg, *agg_args, **agg_kwargs)
+    return agg_series
+
+
 _BREATHS_PER_MINUTE_STATISTICS_DICT = {
-    _RESPIRATION_METRIC_REST_BREATHS_PER_MINUTE: get_rest_breaths_per_minute,
-    _RESPIRATION_METRIC_WAKING_BREATHS_PER_MINUTE: get_waking_breaths_per_minute,
+    _RESPIRATION_METRIC_MEAN_REST_BREATHS_PER_MINUTE: _compute_mean_rest_breaths_per_minute,
+    _RESPIRATION_METRIC_MEAN_AWAKE_BREATHS_PER_MINUTE: _compute_mean_awake_breaths_per_minute,
 }
 
 
-def get_respiration_statistic(
+def get_breaths_per_minute_statistic(
+    loader: loader.BaseLoader,
+    metric: str,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    remove_zero: bool = False,
+    kind=None,
+    kind_args: list = [],
+    kind_kwargs: dict = {},
+    loader_kwargs: dict = {},
+    return_dict: bool = True,
+):
+    return get_breaths_per_minute_statistics(
+        loader=loader,
+        metrics=metric,
+        user_id=user_id,
+        start_date=start_date,
+        end_date=end_date,
+        remove_zero=remove_zero,
+        kind=kind,
+        kind_args=kind_args,
+        kind_kwargs=kind_kwargs,
+        loader_kwargs=loader_kwargs,
+        return_dict=return_dict,
+    )
+
+
+def get_breaths_per_minute_statistics(
+    loader: loader.BaseLoader,
+    metrics: Union[str, list] = None,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    remove_zero: bool = False,
+    kind=None,
+    kind_args: list = [],
+    kind_kwargs: dict = {},
+    loader_kwargs: dict = {},
+    return_dict: bool = True,
+):
+    # Get user id from the loader
+    user_id = utils.get_user_ids(loader, user_id)
+    # Convert to datetime
+    start_date = utils.check_date(start_date)
+    end_date = utils.check_date(end_date)
+    # Extend range to account for sleep start in prev day and ending next day
+    if not (start_date is None):
+        ext_start_date = start_date - datetime.timedelta(days=1)
+    else:
+        ext_start_date = None
+    if not (end_date is None):
+        ext_end_date = end_date + datetime.timedelta(days=1)
+    else:
+        ext_end_date = None
+    # Check metrics
+    if metrics is None:
+        # Consider all metrics
+        metrics = list(_BREATHS_PER_MINUTE_STATISTICS_DICT.keys())
+    if type(metrics) == str:
+        metrics = [metrics]
+
+    # Check args and kwargs
+    if type(kind_args) != list:
+        raise ValueError(f"kind_args must be an iterable, not {type(kind_args)}")
+    if type(kind_kwargs) != dict:
+        raise ValueError(f"kind_kwargs must be of type dict, not {type(kind_kwargs)}")
+    if type(loader_kwargs) != dict:
+        raise ValueError(
+            f"loader_kwargs must be of type dict, not {type(loader_kwargs)}"
+        )
+    both_dates_valid = False
+    if (not (start_date is None)) and (not (end_date is None)):
+        # Let's set up a dataframe in which we will store all the data
+        date_periods = pd.date_range(start_date, end_date, freq="D")
+        multi_index = pd.MultiIndex.from_product(
+            [user_id, date_periods], names=["user", constants._CALENDAR_DATE_COL]
+        )
+        breaths_per_minute_stats_df = pd.DataFrame(index=multi_index, columns=metrics)
+        both_dates_valid = True
+    else:
+        breaths_per_minute_stats_df = pd.DataFrame()
+    for user in user_id:
+        if not (both_dates_valid):
+            user_breaths_per_minute_stats_df = pd.DataFrame()
+        breaths_per_minute = loader.load_respiration(
+            user_id=user,
+            start_date=start_date,
+            end_date=end_date,
+            **loader_kwargs,
+        )
+        # Load daily respiration
+        if len(breaths_per_minute) > 0:
+            # Get only data when no sleeping is occurring
+            breaths_per_minute = breaths_per_minute[
+                breaths_per_minute[constants._IS_SLEEPING_COL] == False
+            ].reset_index(drop=True)
+            # Add calendar Date information
+            breaths_per_minute[constants._CALENDAR_DATE_COL] = breaths_per_minute[
+                constants._ISODATE_COL
+            ].dt.normalize()
+            if remove_zero:
+                breaths_per_minute = breaths_per_minute[
+                    breaths_per_minute[constants._RESPIRATION_BREATHS_PER_MINUTE_COL]
+                    > 0
+                ].reset_index(drop=True)
+        # Load sleep respiration
+        rest_breaths_per_minute = loader.load_sleep_respiration(
+            user_id=user,
+            start_date=ext_start_date,
+            end_date=ext_end_date,
+            **loader_kwargs,
+        )
+        if len(rest_breaths_per_minute) > 0:
+            # Get only data with calendar date between start and end date and reset index
+            if not (start_date is None):
+                rest_breaths_per_minute = rest_breaths_per_minute[
+                    rest_breaths_per_minute[constants._CALENDAR_DATE_COL] >= start_date
+                ].reset_index(drop=True)
+            if not (end_date is None):
+                rest_breaths_per_minute = rest_breaths_per_minute[
+                    rest_breaths_per_minute[constants._CALENDAR_DATE_COL] <= end_date
+                ].reset_index(drop=True)
+            if remove_zero:
+                rest_breaths_per_minute = rest_breaths_per_minute[
+                    rest_breaths_per_minute[
+                        constants._RESPIRATION_BREATHS_PER_MINUTE_COL
+                    ]
+                    > 0
+                ].reset_index(drop=True)
+        for metric in metrics:
+            # Get series with metrics by calendarDate
+            ser = _BREATHS_PER_MINUTE_STATISTICS_DICT[metric](
+                breaths_per_minute, rest_breaths_per_minute
+            )
+            breaths_per_minute_stats_df.loc[(user, ser.index), metric] = ser.values
+    # Perform kind operation by user
+    if not (kind is None):
+        breaths_per_minute_stats_df = breaths_per_minute_stats_df.groupby(
+            level="user"
+        ).agg(kind, *kind_args, **kind_kwargs)
+    if return_dict:
+        return breaths_per_minute_stats_df.to_dict(orient="index")
+    return breaths_per_minute_stats_df
+
+
+def get_respiration_statistics(
     loader: loader.BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     kind=None,
-    kind_args=(),
-    kind_kwargs=(),
-    loader_kwargs=(),
+    kind_args: list = [],
+    kind_kwargs: dict = {},
+    loader_kwargs: dict = {},
+    return_dict: bool = True,
 ):
-    pass
-
-
-def get_respiration_statistics():
-    pass
+    rest_pulse_ox_statistics = get_rest_pulse_ox_statistics(
+        loader=loader,
+        metrics=None,
+        user_id=user_id,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
+        kind_args=kind_args,
+        kind_kwargs=kind_kwargs,
+        loader_kwargs=loader_kwargs,
+        return_dict=False,
+    )
+    breaths_per_minute_statistics = get_breaths_per_minute_statistics(
+        loader=loader,
+        metrics=None,
+        user_id=user_id,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
+        kind_args=kind_args,
+        kind_kwargs=kind_kwargs,
+        loader_kwargs=loader_kwargs,
+        return_dict=False,
+    )
+    return pd.merge(
+        left=rest_pulse_ox_statistics,
+        right=breaths_per_minute_statistics,
+        right_index=True,
+        left_index=True,
+        how="outer",
+    )
