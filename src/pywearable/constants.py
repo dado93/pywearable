@@ -3,6 +3,9 @@ _METRIC_STRESS = "stress"
 _METRIC_SLEEP_SUMMARY = "sleep-summary"
 _METRIC_SLEEP_STAGE = "sleep-stage"
 _METRIC_PULSE_OX = "pulse-ox"
+_METRIC_RESPIRATION = "respiration"
+_METRIC_SLEEP_RESPIRATION = "sleep-respiration"
+_METRIC_SLEEP_PULSE_OX = "sleep-pulse-ox"
 #################################################
 #          CSV FILES - COLUMN NAMES             #
 #################################################
@@ -84,6 +87,9 @@ _QUESTIONNAIRE_QUESTION_TYPE_COL = "questionType"
 _QUESTIONNAIRE_SECTION_INDEX_COL = "sectionIndex"
 _QUESTIONNAIRE_QUESTION_INDEX_COL = "questionIndex"
 _TASK_SCHEDULE_COL = "taskScheduleRepeat"
+
+# User column (for index and related)
+_USER_COL = "user"
 
 #################################################
 #           CSV FILES - COLUMN VALUES          #

@@ -92,15 +92,15 @@ def check_is_df(input, raise_name="input"):
     return input
 
 
-def get_user_ids(loader: "BaseLoader", user_id: Union[str, list]):
+def get_user_ids(loader: "BaseLoader", user_id: Union[str, list] = "all"):
     """Returns user ids in the appropriate format required by pywearable functions
 
     Parameters
     ----------
     loader : :class:`loader.base.BaseLoader`
-        An instance of a data loader
-    user_id : :class:`str` or :class:`list`
-        The id(s) of the user(s) of interest
+        An instance of a data loader.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) of the user(s) of interest, by default "all".
 
     Returns
     -------
@@ -117,6 +117,83 @@ def get_user_ids(loader: "BaseLoader", user_id: Union[str, list]):
         raise TypeError("user_id has to be a list.")
 
     return user_id
+
+
+def return_multiindex_df(
+    df: pd.DataFrame, return_df: bool, return_multi_index: bool
+) -> dict:
+    # Check if df is pd.DataFrame
+    if not (type(df) == pd.DataFrame):
+        raise ValueError(f"df must be of type pd.DataFrame, not of {type(df)}")
+    # Check if we have multilevel index
+    if not (type(df.index) == pd.MultiIndex):
+        raise ValueError(
+            f"df.index must be of type pd.MultiIndex, not of {type(df.index)}"
+        )
+    if not return_df:
+        # We need to perform some changes to return dictionary with dates
+        # and not pd.Timestamp as keys
+        if len(df.columns) > 1:
+            """
+            More than one column, dictionary will be:
+            {
+                user_id1: {
+                    datetime.date1: {
+                        metric1: value1,
+                        metric2: value2,
+                        ...
+                    },
+                    datetime.date2: {
+                        metric1: value1,
+                        metric2: value2,
+                    }
+                },
+                user_id2: {
+                    datetime.date1: {
+                        ...
+                    }
+                }
+            }
+
+            """
+            return {
+                user: {
+                    date.to_pydatetime().date(): df.xs((user, date)).to_dict()
+                    for date in df.index.levels[1]
+                }
+                for user in df.index.levels[0]
+            }
+        else:
+            """
+            Single metric, dictionary will be:
+            {
+                user_id1: {
+                    datetime.date1: value1,
+                    datetime.date2: value2
+                },
+                user_id2: {
+                    datetime.date1: value1,
+                    datetime.date2: value2
+                }
+            }
+            """
+            return {
+                level: {
+                    k.to_pydatetime().date(): v
+                    for k, v in df.xs(level).loc[:, df.columns[0]].to_dict().items()
+                }
+                for level in df.index.levels[0]
+            }
+    else:
+        # We return a dataframe
+        if return_multi_index:
+            # Standard multi-index dataframe
+            return df
+        else:
+            # Single index dataframe
+            return df.reset_index(
+                level=[constants._USER_COL, constants._CALENDAR_DATE_COL]
+            )
 
 
 def get_summary(loader: "BaseLoader", comparison_date=time.time()):

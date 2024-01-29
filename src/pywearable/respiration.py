@@ -3,7 +3,16 @@ This module contains all the functions related to analysis
 of respiration data.
 """
 
-# TODO Create function in utils to convert multiindex dataframe to dictionary
+# TODO Create function in utils to convert multiindex dataframe to dictionary OK
+# TODO add return multi_index or not OK
+# TODO Use function in get_breaths_per_minute_statistics OK
+
+# TODO should we allow to drop na? -> Probably no, post-processing step
+
+
+# TODO find more efficient way to get sleep timestamps
+# TODO kwargs to pass to specific functions with aggregate function -> remove_zero with get_respiration_statistics OR see below
+# TODO remove_zero parameter specific to loader function and not for statistics
 
 import datetime
 from typing import Union
@@ -30,7 +39,8 @@ def get_mean_rest_pulse_ox(
     kind_args: list = [],
     kind_kwargs: dict = {},
     loader_kwargs: dict = {},
-    return_dict: bool = True,
+    return_df: bool = True,
+    return_multi_index: bool = True,
 ):
     """Get mean pulse ox value at rest.
 
@@ -91,7 +101,8 @@ def get_mean_rest_pulse_ox(
         kind_args=kind_args,
         kind_kwargs=kind_kwargs,
         loader_kwargs=loader_kwargs,
-        return_dict=return_dict,
+        return_df=return_df,
+        return_multi_index=return_multi_index,
     )
 
 
@@ -104,7 +115,8 @@ def get_p10_rest_pulse_ox(
     kind_args: list = [],
     kind_kwargs: dict = {},
     loader_kwargs: dict = {},
-    return_dict: bool = True,
+    return_df: bool = True,
+    return_multi_index: bool = False,
 ):
     """Get 10th percentile pulse ox value at rest.
 
@@ -167,7 +179,8 @@ def get_p10_rest_pulse_ox(
         kind_args=kind_args,
         kind_kwargs=kind_kwargs,
         loader_kwargs=loader_kwargs,
-        return_dict=return_dict,
+        return_df=return_df,
+        return_multi_index=return_multi_index,
     )
 
 
@@ -180,7 +193,8 @@ def get_p20_rest_pulse_ox(
     kind_args: list = [],
     kind_kwargs: dict = {},
     loader_kwargs: dict = {},
-    return_dict: bool = True,
+    return_df: bool = True,
+    return_multi_index: bool = False,
 ):
     """Get 20th percentile pulse ox value at rest.
 
@@ -243,7 +257,8 @@ def get_p20_rest_pulse_ox(
         kind_args=kind_args,
         kind_kwargs=kind_kwargs,
         loader_kwargs=loader_kwargs,
-        return_dict=return_dict,
+        return_df=return_df,
+        return_multi_index=return_multi_index,
     )
 
 
@@ -256,7 +271,8 @@ def get_p30_rest_pulse_ox(
     kind_args: list = [],
     kind_kwargs: dict = {},
     loader_kwargs: dict = {},
-    return_dict: bool = True,
+    return_df: bool = True,
+    return_multi_index: bool = True,
 ):
     """Get 30th percentile pulse ox value at rest.
 
@@ -319,7 +335,8 @@ def get_p30_rest_pulse_ox(
         kind_args=kind_args,
         kind_kwargs=kind_kwargs,
         loader_kwargs=loader_kwargs,
-        return_dict=return_dict,
+        return_dict=return_df,
+        return_multi_index=return_multi_index,
     )
 
 
@@ -381,7 +398,8 @@ def get_rest_pulse_ox_statistic(
     kind_args: list = [],
     kind_kwargs: dict = {},
     loader_kwargs: dict = {},
-    return_dict: bool = True,
+    return_df: bool = True,
+    return_multi_index: bool = True,
 ):
     """Get a rest pulse ox statistic.
 
@@ -452,7 +470,8 @@ def get_rest_pulse_ox_statistic(
         kind_args=kind_args,
         kind_kwargs=kind_kwargs,
         loader_kwargs=loader_kwargs,
-        return_dict=return_dict,
+        return_df=return_df,
+        return_multi_index=return_multi_index,
     )
 
 
@@ -466,7 +485,8 @@ def get_rest_pulse_ox_statistics(
     kind_args=[],
     kind_kwargs: dict = {},
     loader_kwargs: dict = {},
-    return_dict: bool = True,
+    return_df: bool = True,
+    return_multi_index: bool = True,
 ):
     """Get rest pulse ox statistics.
 
@@ -555,11 +575,13 @@ def get_rest_pulse_ox_statistics(
         # Let's set up a dataframe in which we will store all the data
         date_periods = pd.date_range(start_date, end_date, freq="D")
         multi_index = pd.MultiIndex.from_product(
-            [user_id, date_periods], names=["user", constants._CALENDAR_DATE_COL]
+            [user_id, date_periods],
+            names=[constants._USER_COL, constants._CALENDAR_DATE_COL],
         )
         rest_pulse_ox_stat_df = pd.DataFrame(index=multi_index, columns=metrics)
         both_dates_valid = True
     else:
+        # Set up a standard df and we will populate it later with indexes
         rest_pulse_ox_stat_df = pd.DataFrame()
     for user in user_id:
         if not (both_dates_valid):
@@ -596,7 +618,7 @@ def get_rest_pulse_ox_statistics(
                     ser = ser.set_axis(
                         pd.MultiIndex.from_product(
                             [[user], user_date_range],
-                            names=["user", constants._CALENDAR_DATE_COL],
+                            names=[constants._USER_COL, constants._CALENDAR_DATE_COL],
                         )
                     ).rename(metric)
                     if len(user_rest_pulse_ox_stat_df) == 0:
@@ -616,69 +638,13 @@ def get_rest_pulse_ox_statistics(
                 )
     # Perform kind operation by user
     if not (kind is None):
-        rest_pulse_ox_stat_df = rest_pulse_ox_stat_df.groupby(level="user").agg(
-            kind, *kind_args, **kind_kwargs
-        )
-    if return_dict:
-        # We need to perform some changes to return dictionary with dates
-        # and not pd.Timestamp as keys
-        if len(metrics) > 1:
-            """
-            More than one metric, dictionary will be:
-            {
-                user_id1: {
-                    datetime.date1: {
-                        metric1: value1,
-                        metric2: value2,
-                        ...
-                    },
-                    datetime.date2: {
-                        metric1: value1,
-                        metric2: value2,
-                    }
-                },
-                user_id2: {
-                    datetime.date1: {
-                        ...
-                    }
-                }
-            }
-
-            """
-            return {
-                user: {
-                    date.to_pydatetime()
-                    .date(): rest_pulse_ox_stat_df.xs((user, date))
-                    .to_dict()
-                    for date in rest_pulse_ox_stat_df.index.levels[1]
-                }
-                for user in rest_pulse_ox_stat_df.index.levels[0]
-            }
-        else:
-            """
-            Single metric, dictionary will be:
-            {
-                user_id1: {
-                    datetime.date1: value1,
-                    datetime.date2: value2
-                },
-                user_id2: {
-                    datetime.date1: value1,
-                    datetime.date2: value2
-                }
-            }
-            """
-            return {
-                level: {
-                    k.to_pydatetime().date(): v
-                    for k, v in rest_pulse_ox_stat_df.xs(level)
-                    .loc[:, metrics[0]]
-                    .to_dict()
-                    .items()
-                }
-                for level in rest_pulse_ox_stat_df.index.levels[0]
-            }
-    return rest_pulse_ox_stat_df
+        rest_pulse_ox_stat_df = rest_pulse_ox_stat_df.groupby(
+            level=constants._USER_COL
+        ).agg(kind, *kind_args, **kind_kwargs)
+    # Return based on settings
+    return utils.return_multiindex_df(
+        rest_pulse_ox_stat_df, return_df, return_multi_index
+    )
 
 
 def get_mean_rest_breaths_per_minute(
@@ -691,7 +657,8 @@ def get_mean_rest_breaths_per_minute(
     kind_args: list = [],
     kind_kwargs: dict = {},
     loader_kwargs: dict = {},
-    return_dict: bool = True,
+    return_df: bool = True,
+    return_multi_index: bool = True,
 ):
     """Get mean rest breaths per minute.
 
@@ -732,7 +699,8 @@ def get_mean_rest_breaths_per_minute(
         kind_kwargs=kind_kwargs,
         loader_kwargs=loader_kwargs,
         remove_zero=remove_zero,
-        return_dict=return_dict,
+        return_df=return_df,
+        return_multi_index=return_multi_index,
     )
 
 
@@ -746,7 +714,8 @@ def get_mean_awake_breaths_per_minute(
     kind_args: list = [],
     kind_kwargs: dict = {},
     loader_kwargs: dict = {},
-    return_dict: bool = True,
+    return_df: bool = True,
+    return_multi_index: bool = True,
 ):
     """Get average waking breaths per minute across time-range.
 
@@ -786,7 +755,8 @@ def get_mean_awake_breaths_per_minute(
         kind_kwargs=kind_kwargs,
         loader_kwargs=loader_kwargs,
         remove_zero=remove_zero,
-        return_dict=return_dict,
+        return_df=return_df,
+        return_multi_index=return_multi_index,
     )
 
 
@@ -839,7 +809,8 @@ def get_breaths_per_minute_statistic(
     kind_args: list = [],
     kind_kwargs: dict = {},
     loader_kwargs: dict = {},
-    return_dict: bool = True,
+    return_df: bool = True,
+    return_multi_index: bool = True,
 ):
     return get_breaths_per_minute_statistics(
         loader=loader,
@@ -852,7 +823,8 @@ def get_breaths_per_minute_statistic(
         kind_args=kind_args,
         kind_kwargs=kind_kwargs,
         loader_kwargs=loader_kwargs,
-        return_dict=return_dict,
+        return_df=return_df,
+        return_multi_index=return_multi_index,
     )
 
 
@@ -867,7 +839,8 @@ def get_breaths_per_minute_statistics(
     kind_args: list = [],
     kind_kwargs: dict = {},
     loader_kwargs: dict = {},
-    return_dict: bool = True,
+    return_df: bool = True,
+    return_multi_index: bool = True,
 ):
     # Get user id from the loader
     user_id = utils.get_user_ids(loader, user_id)
@@ -963,15 +936,43 @@ def get_breaths_per_minute_statistics(
             ser = _BREATHS_PER_MINUTE_STATISTICS_DICT[metric](
                 breaths_per_minute, rest_breaths_per_minute
             )
-            breaths_per_minute_stats_df.loc[(user, ser.index), metric] = ser.values
+            if both_dates_valid:
+                breaths_per_minute_stats_df.loc[(user, ser.index), metric] = ser.values
+            else:
+                min_date = ser.index.min() if start_date is None else start_date
+                max_date = ser.index.max() if end_date is None else end_date
+                user_date_range = pd.date_range(min_date, max_date, freq="D")
+                ser = ser.reindex(user_date_range)
+                # We have different dates based on user
+                ser = ser.set_axis(
+                    pd.MultiIndex.from_product(
+                        [[user], user_date_range],
+                        names=[constants._USER_COL, constants._CALENDAR_DATE_COL],
+                    )
+                ).rename(metric)
+                if len(user_breaths_per_minute_stats_df) == 0:
+                    # Empty df, first metric
+                    user_breaths_per_minute_stats_df = ser.to_frame()
+                else:
+                    user_breaths_per_minute_stats_df = pd.merge(
+                        user_breaths_per_minute_stats_df,
+                        ser,
+                        left_index=True,
+                        right_index=True,
+                        how="outer",
+                    )
+        if not both_dates_valid:
+            breaths_per_minute_stats_df = pd.concat(
+                (breaths_per_minute_stats_df, user_breaths_per_minute_stats_df)
+            )
     # Perform kind operation by user
     if not (kind is None):
         breaths_per_minute_stats_df = breaths_per_minute_stats_df.groupby(
             level="user"
         ).agg(kind, *kind_args, **kind_kwargs)
-    if return_dict:
-        return breaths_per_minute_stats_df.to_dict(orient="index")
-    return breaths_per_minute_stats_df
+    return utils.return_multiindex_df(
+        breaths_per_minute_stats_df, return_df, return_multi_index
+    )
 
 
 def get_respiration_statistics(
@@ -983,7 +984,8 @@ def get_respiration_statistics(
     kind_args: list = [],
     kind_kwargs: dict = {},
     loader_kwargs: dict = {},
-    return_dict: bool = True,
+    return_df: bool = True,
+    return_multi_index: bool = True,
 ):
     rest_pulse_ox_statistics = get_rest_pulse_ox_statistics(
         loader=loader,
@@ -995,7 +997,8 @@ def get_respiration_statistics(
         kind_args=kind_args,
         kind_kwargs=kind_kwargs,
         loader_kwargs=loader_kwargs,
-        return_dict=False,
+        return_df=True,
+        return_multi_index=True,
     )
     breaths_per_minute_statistics = get_breaths_per_minute_statistics(
         loader=loader,
@@ -1007,12 +1010,16 @@ def get_respiration_statistics(
         kind_args=kind_args,
         kind_kwargs=kind_kwargs,
         loader_kwargs=loader_kwargs,
-        return_dict=False,
+        return_df=True,
+        return_multi_index=True,
     )
-    return pd.merge(
+    respiration_statistics_df = pd.merge(
         left=rest_pulse_ox_statistics,
         right=breaths_per_minute_statistics,
         right_index=True,
         left_index=True,
         how="outer",
+    )
+    return utils.return_multiindex_df(
+        respiration_statistics_df, return_df, return_multi_index
     )
