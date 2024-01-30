@@ -741,7 +741,7 @@ def get_sleep_summary_graph(
     user_id: str,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    save_to: str = None,
+    save_to: Union[str, None] = None,
     show: bool = True,
     alpha: float = 0.25,
     title: str = "Sleep stages and score",
@@ -754,10 +754,15 @@ def get_sleep_summary_graph(
     figsize: tuple = (15, 30),
     bottom_offset: int = 500,
     vertical_offset: float = -0.0,
-    sleep_metric: Union[str, None] = None,
+    show_chronotype: bool = False,
     chronotype_sleep_start: Union[str, None] = None,
     chronotype_sleep_end: Union[str, None] = None,
-    show_chronotype: bool = False,
+    consistency_metric: Union[str, None] = None,
+    legend_fontsize : int = 14,
+    axis_fontsize : int = 14,
+    title_fontsize : int = 20,
+    score_fontsize : int = 15,
+    kwargs_trend_analysis : dict = {}
 ):
     """
     Generates a graph of all hypnograms of main sleeps of `user_id` for the period of interest
@@ -798,34 +803,56 @@ def get_sleep_summary_graph(
         distance of the scores from the bottom of the hypnograms, by default 500
     vertical_offset : :class:`float`, optional
         vertical offset of the scores at the bottom of the hypnograms, by default -0.
-    sleep_metric : :class:`str` or None, optional
-        metric used for circadian variability ("midpoint" or "duration"), by default None
+    show_chronotype : :class:`bool`, optional
+        whether to show chronotype dashed vertical lines over the hypnograms, by default False
     chronotype_sleep_start : :class:`str` or None, optional
         usual sleeping time for `user_id` in format HH:MM, by default None
     chronotype_sleep_end : :class:`str` or None, optional
         usual waking time for `user_id` in format HH:MM, by default None
-    show_chronotype : :class:`bool`, optional
-        whether to show chronotype dashed vertical lines over the hypnograms, by default False
+    consistency_metric : :class:`str` or None, optional
+        metric used for circadian variability ("midpoint" or "duration"), by default None
+    legend_fontsize: :class:`int`, optional
+        fontsize of the sleep stages legend, by default 14
+    axis_fontsize: :class:`int`, optional
+        fontsize of the axis ticks, by default 14
+    title_fontsize: :class:`int`, optional
+        fontsize of the title, by default 20
+    score_fontsize: :class:`int`, optional
+        fontsize of the score on the hypnograms, by default 
+    kwargs_trend_analysis : :class:`dict`, optional
+        kwargs for the trend analysis of consistency metrics, by default {}
     """
-
-    if sleep_metric is not None:
-        assertion_msg = "Must specify chronotype when plotting circadian measures"
-        assert (
-            chronotype_sleep_start is not None and chronotype_sleep_end is not None
-        ), assertion_msg
 
     # Define parameters for plotting
     ALPHA = alpha
     POSITION = 1.3
 
     # Get sleep summaries so that it is easier to get info
-    sleep_summaries = loader.load_sleep_summary(user_id, start_date, end_date)
+    sleep_summaries = loader.load_sleep_summary(
+        user_id, start_date, end_date
+    )
     if len(sleep_summaries) == 0:
         return
     sleep_min_time = datetime.time(15, 0)
     # Check for start and end dates and convert them appropriately
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
+
+    # check chronotype and infer it from data if missing
+    if consistency_metric is not None or show_chronotype is not None:
+        if chronotype_sleep_start is None or chronotype_sleep_end is None:
+            infer_chronotype = sleep.get_sleep_timestamps(loader=loader,
+                                                            user_id=user_id,
+                                                            start_date=start_date,
+                                                            end_date=end_date,
+                                                            kind="mean")
+            chronotype_sleep_start = infer_chronotype[user_id][0]
+            chronotype_sleep_end = infer_chronotype[user_id][1]
+        else:
+            assertion_msg = "Must specify chronotype in format 'HH:MM' when plotting circadian measures"
+            assert (
+                type(chronotype_sleep_start) == str and type(chronotype_sleep_end) == str
+            ), assertion_msg
 
     sleep_summaries["isoDate-Min"] = pd.to_datetime(
         sleep_summaries["calendarDate"].apply(
@@ -838,7 +865,9 @@ def get_sleep_summary_graph(
     sleep_summaries["endIsoDate"] = pd.to_datetime(
         (
             sleep_summaries[pywearable.constants._UNIXTIMESTAMP_IN_MS_COL]
-            + sleep_summaries[pywearable.constants._TIMEZONEOFFSET_IN_MS_COL]
+            + sleep_summaries[
+                pywearable.constants._TIMEZONEOFFSET_IN_MS_COL
+            ]
             + sleep_summaries[pywearable.constants._SLEEP_SUMMARY_DURATION_IN_MS_COL]
             + sleep_summaries[
                 pywearable.constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL
@@ -857,7 +886,7 @@ def get_sleep_summary_graph(
     ).dt.total_seconds()
 
     time_period = pd.date_range(
-        start_date,
+        start_date + datetime.timedelta(days=1),
         periods=(end_date - start_date).days,
         freq="D",
     )
@@ -902,13 +931,13 @@ def get_sleep_summary_graph(
                 return "firebrick"
 
     hypnograms = loader.load_hypnogram(user_id, start_date, end_date, resolution=1)
-    if sleep_metric is None:
+    if consistency_metric is None:
         fig, ax = plt.subplots(figsize=figsize)
-    elif sleep_metric == "midpoint" or sleep_metric == "duration":
+    elif consistency_metric == "midpoint" or consistency_metric == "duration":
         fig, (ax, ax2) = plt.subplots(
             1, 2, gridspec_kw={"width_ratios": [8, 2]}, figsize=figsize
         )
-    elif sleep_metric == "both":
+    elif consistency_metric == "both":
         fig, (ax, ax2, ax3) = plt.subplots(
             1, 3, gridspec_kw={"width_ratios": [8, 1, 1]}, figsize=figsize
         )
@@ -1010,7 +1039,7 @@ def get_sleep_summary_graph(
                 str(score),
                 xy=(bottom + bottom_offset, j * POSITION + vertical_offset),
                 color=appropriate_color,
-                fontsize=15,
+                fontsize=score_fontsize,
             )
         except Exception as e:  # skip missing dates
             continue
@@ -1042,22 +1071,23 @@ def get_sleep_summary_graph(
     formatter = FuncFormatter(format_func)
 
     ax.xaxis.set_major_formatter(formatter)
-    # this locates y-ticks at the hours
+    # this locates x-ticks at the hours
     ax.xaxis.set_major_locator(MultipleLocator(base=3600))
+    ax.tick_params(axis='x', which='major', labelsize=axis_fontsize)
 
     # graph params
     ax.set_axisbelow(True)
     ax.xaxis.grid(True, color="#EEEEEE")
     ax.yaxis.grid(False)
-    ax.set_ylabel(ylabel, labelpad=15, color="#333333", fontsize=16)
-    ax.set_xlabel(xlabel, labelpad=15, color="#333333", fontsize=16)
+    ax.set_ylabel(ylabel, labelpad=15, color="#333333", fontsize=axis_fontsize+2)
+    ax.set_xlabel(xlabel, labelpad=15, color="#333333", fontsize=axis_fontsize+2)
     ax.set_yticks(
         [i * POSITION for i in range(len(time_period))],
         [date.strftime("%d/%m") for date in time_period],
         rotation=0,
-        fontsize=14,
+        fontsize=axis_fontsize,
     )
-    ax.set_title(title, pad=25, color="#333333", weight="bold", fontsize=20)
+    ax.set_title(title, pad=25, color="#333333", weight="bold", fontsize=title_fontsize)
     # ordinarly the yaxis starts from below, but it's better to visualize earlier dates on top instead
     ax.set_ylim([-POSITION, (len(time_period)) * POSITION])
     ax.invert_yaxis()
@@ -1069,14 +1099,14 @@ def get_sleep_summary_graph(
         labels=legend_labels,
         loc="upper center",
         bbox_to_anchor=(0.97, 0.45),
-        fontsize=14,
+        fontsize=legend_fontsize,
     )
     # take care of opacity of of the colors selected
     for i, lh in enumerate(lgd.legendHandles):
         lh.set_color(colors[i])
         lh.set_alpha(alphas[i])
     lgd.get_frame().set_alpha(0.0)
-    lgd.set_title(legend_title, prop={"size": 15})
+    lgd.set_title(legend_title, prop={"size": legend_fontsize+1})
 
     # habitual sleep times lines
     if show_chronotype:
@@ -1096,22 +1126,23 @@ def get_sleep_summary_graph(
         ax.axvline(converted_wake_time, linestyle="--", zorder=11)
 
     # CONSISTENCY SUBPLOTS
-    if sleep_metric is not None:
+    if consistency_metric is not None:
         # determine which metrics are needed in the subplot(s)
-        if sleep_metric == "duration":
+        if consistency_metric == "duration":
             consistency_fns = [sleep.get_cpd_duration]
             axes = [ax2]
-        elif sleep_metric == "midpoint":
+            axes_titles = [consistency_metric]
+        elif consistency_metric == "midpoint":
             consistency_fns = [sleep.get_cpd_midpoint]
             axes = [ax2]
-        elif sleep_metric == "both":
+            axes_titles = [consistency_metric]
+        elif consistency_metric == "both":
             consistency_fns = [sleep.get_cpd_midpoint, sleep.get_cpd_duration]
             axes = [ax2, ax3]
+            axes_titles = ["midpoint", "duration"]
         else:
-            raise ValueError(
-                f"Warning: consistency sleep metric {sleep_metric} isn't valid."
-            )
-
+            raise ValueError(f"Warning: consistency sleep metric {consistency_metric} isn't valid.")
+            
         # and populate a subplot which each one
         for k in range(len(consistency_fns)):
             current_ax = axes[k]
@@ -1122,13 +1153,14 @@ def get_sleep_summary_graph(
                 user_id,
                 start_date - datetime.timedelta(days=30),
                 end_date,
-                kind=None,
-                chronotype_dict={
-                    user_id: (chronotype_sleep_start, chronotype_sleep_end)
-                },
+                kind = None,
+                chronotype_dict = {user_id:(chronotype_sleep_start, chronotype_sleep_end)}
             )[user_id]
             cpd_trend = utils.trend_analysis(
-                cpd_dict, start_date - datetime.timedelta(days=30), end_date
+                cpd_dict, 
+                start_date - datetime.timedelta(days=30), 
+                end_date,
+                **kwargs_trend_analysis
             )
             # filter out to keep appropriate period
             cpd_trend = cpd_trend[cpd_trend.index.isin(time_period)]
@@ -1145,7 +1177,7 @@ def get_sleep_summary_graph(
             current_ax.plot(baseline, dates, linestyle="-", linewidth=1, color="red")
             current_ax.fill_betweenx(dates, LB, UB, alpha=0.25, color="green")
             current_ax.grid("on")
-            current_ax.set_title(f"CPD ({sleep_metric})", fontsize=10)
+            current_ax.set_title(f"CPD ({axes_titles[k]})", fontsize=10)
             current_ax.set_yticks([])
 
             # subplot params
@@ -1175,13 +1207,13 @@ def get_sleep_summary_graph(
     cbar = plt.colorbar(
         plt.cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax, ticks=midpoints, pad=0.10
     )
-    cbar.ax.set_yticklabels(colorbar_labels, fontsize=14)
+    cbar.ax.set_yticklabels(colorbar_labels, fontsize=legend_fontsize)
     plt.annotate(
         colorbar_title,
         xy=(1.2, 1.1),
         xycoords="axes fraction",
         ha="center",
-        fontsize=14,
+        fontsize=legend_fontsize+1,
     )
 
     if save_to:
