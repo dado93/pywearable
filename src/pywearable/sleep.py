@@ -1671,17 +1671,17 @@ def get_sleep_timestamps(
     loader : :class:`pywearable.loader.base.BaseLoader`
         An instance of a data loader.
     user_id : :class:`str` or :class:`list`, optional
-        The id(s) for which N1 sleep latency must be retrieved, by default "all"
+        The id(s) for which sleep timestamps must be retrieved, by default "all".
     start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
-        End date for data retrieval, by default None
+        End date for data retrieval, by default None.
 
     Returns
     -------
     :class:`dict`
         Dictionary with user ids as primary keys, calendar dates as secondary keys, 
-        and sleep timestamps (bedtime, wakeup_time) as values
+        and sleep timestamps (bedtime, wakeup_time) as values.
     """
     data_dict = {}
 
@@ -1777,7 +1777,7 @@ def get_wakeup_time(
     loader : :class:`pywearable.loader.base.BaseLoader`
         An instance of a data loader.
     user_id : :class:`str` or :class:`list`, optional
-        The id(s) for which bedtime must be retrieved, by default "all"
+        The id(s) for which wakeup time must be retrieved, by default "all"
     start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
@@ -2218,7 +2218,7 @@ def get_cpd_duration(
     :class:`dict`
         If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
         calendar days (:class:`datetime.date`) as keys and CPD midpoints as values.
-        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `CPD_midpoint`
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `CPD_duration`
         as key and its transformed value, and an additional `days` keys that contains an array of all
         calendar days over which the transformation was computed.
     """
