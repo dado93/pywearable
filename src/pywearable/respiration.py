@@ -3,13 +3,6 @@ This module contains all the functions related to analysis
 of respiration data.
 """
 
-# TODO Create function in utils to convert multiindex dataframe to dictionary OK
-# TODO add return multi_index or not OK
-# TODO Use function in get_breaths_per_minute_statistics OK
-
-# TODO should we allow to drop na? -> Probably no, post-processing step
-
-
 # TODO find more efficient way to get sleep timestamps
 # TODO kwargs to pass to specific functions with aggregate function -> remove_zero with get_respiration_statistics OR see below
 # TODO remove_zero parameter specific to loader function and not for statistics
@@ -61,26 +54,44 @@ def get_mean_rest_pulse_ox(
     :func:`~loader.BaseLoader.load_sleep_pulse_ox`. If
     loader-specific arguments are required, you can
     pass them using the ``loader_kwargs`` argument.
+    The return type depends on the
 
     Parameters
     ----------
     loader : :class:`loader.BaseLoader`
-        Initialized data loader
+        Initialized data loader, that must implement the method
+        ``load_sleep_pulse_ox(user_id, start_date, end_date).
     user_id : :class:`str` or :class:`list` or `None`, optional
-        User id for which the metric must be computed, by default "all"
+        User id for which the metric must be computed, by default ``"all"``.
+        If the parameter is set to ``"all"``, then the ``loader`` must implement the function
+        ``get_user_ids()`` in order to retrieve the list of user ids to
+        use for the metric computation.
     start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or `None`, optional
-        Start date for the computation of the metric, by default ``None``
+        Start date for the computation of the metric, by default ``None``.
+        If ``None`` is used as a value for the parameter, then the ``start_date`` will
+        be specific for each user, depending on the first date with
+        available data for the user.
+        ``start_date`` is converted to a :class:`datetime.date`, so
+        the first returned value will be related to the sleep occuring
+        on the night starting the day before ``start_date``.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or `None`, optional
-        End date for the computation of the metric, by default ``None``
+        End date for the computation of the metric, by default ``None``.
+        If ``None`` is used as a value for the parameter, then the ``end_date`` will be specific
+        for each user, depending on the first date with available data for the user.
+        ``end_date`` is converted to a :class:`datetime.date`, so the
+        last returned value will be related to sleep occuring on the night
+        starting the day before ``end_date``.
     kind : :class:`str` or ``None``, optional
-        Additional transformation to be performed on the metric, by default ``None``
-    kind_args : :class:`tuple` or :class:`list`, optional
+        Additional transformation to be performed on the metric, by default ``None``.
+    kind_args : :class:`list`, optional
         Additional positional arguments to be passed to the function used
-        by the ``kind`` method, by default None
+        by the ``kind`` method, by default ``[]``
     kind_kwargs : :class:`dict`, optional
-        Additional keyword to be passed to the function used by the ``kind`` method, by default None
+        Additional keyword arguments to be passed to the function used by the ``kind``
+        method, by default no additional keywords arguments are passed.
     loader_kwargs: :class:`dict`
-        Keyword arguemnts for the ``load_sleep_pulse_ox`` loading function of the ``loader``
+        Keyword arguemnts for the ``load_sleep_pulse_ox`` loading function of the ``loader``,
+        by default no keyword arguments are passed.
     return_dict: :class:`bool`
         Whether to return a :class:`dict` or a :class:`pd.DataFrame`
 
@@ -88,8 +99,13 @@ def get_mean_rest_pulse_ox(
     -------
     :class:`dict` or :class:`pd.DataFrame`
         the return type can be:
-            - :class:`dict` if ``return_dict`` is ``True``
-            - :class:`pd.DataFrame` if ``return_dict`` is ``False``
+            - :class:`dict` if ``return_df`` is ``False``
+            - :class:`pd.DataFrame` if ``return_df`` is ``True``. The returned :class:`pd.DataFrame` will
+              have a index of type :class:`pd.MultiIndex` if ``return_multi_index`` is set to
+              ``True``, with the levels of the index being ``"user"`` and ``"calendarDate"``. If
+              ``return_multi_index`` is set to ``False``, then the returned :class:`pd.DataFrame`
+              will have a standard :class:`pd.RangeIndex` and ``"user"`` and ``"calenderDate"``
+              will be two colums of the returned :class:`pd.DataFrame`.
     """
     return get_rest_pulse_ox_statistic(
         loader=loader,
@@ -610,28 +626,32 @@ def get_rest_pulse_ox_statistics(
                 if both_dates_valid:
                     rest_pulse_ox_stat_df.loc[(user, ser.index), metric] = ser.values
                 else:
-                    min_date = ser.index.min() if start_date is None else start_date
-                    max_date = ser.index.max() if end_date is None else end_date
-                    user_date_range = pd.date_range(min_date, max_date, freq="D")
-                    ser = ser.reindex(user_date_range)
-                    # We have different dates based on user
-                    ser = ser.set_axis(
-                        pd.MultiIndex.from_product(
-                            [[user], user_date_range],
-                            names=[constants._USER_COL, constants._CALENDAR_DATE_COL],
-                        )
-                    ).rename(metric)
-                    if len(user_rest_pulse_ox_stat_df) == 0:
-                        # Empty df, first metric
-                        user_rest_pulse_ox_stat_df = ser.to_frame()
-                    else:
-                        user_rest_pulse_ox_stat_df = pd.merge(
-                            user_rest_pulse_ox_stat_df,
-                            ser,
-                            left_index=True,
-                            right_index=True,
-                            how="outer",
-                        )
+                    if len(ser) > 0:
+                        min_date = ser.index.min() if start_date is None else start_date
+                        max_date = ser.index.max() if end_date is None else end_date
+                        user_date_range = pd.date_range(min_date, max_date, freq="D")
+                        ser = ser.reindex(user_date_range)
+                        # We have different dates based on user
+                        ser = ser.set_axis(
+                            pd.MultiIndex.from_product(
+                                [[user], user_date_range],
+                                names=[
+                                    constants._USER_COL,
+                                    constants._CALENDAR_DATE_COL,
+                                ],
+                            )
+                        ).rename(metric)
+                        if len(user_rest_pulse_ox_stat_df) == 0:
+                            # Empty df, first metric
+                            user_rest_pulse_ox_stat_df = ser.to_frame()
+                        else:
+                            user_rest_pulse_ox_stat_df = pd.merge(
+                                user_rest_pulse_ox_stat_df,
+                                ser,
+                                left_index=True,
+                                right_index=True,
+                                how="outer",
+                            )
             if not both_dates_valid:
                 rest_pulse_ox_stat_df = pd.concat(
                     (rest_pulse_ox_stat_df, user_rest_pulse_ox_stat_df)
@@ -939,28 +959,29 @@ def get_breaths_per_minute_statistics(
             if both_dates_valid:
                 breaths_per_minute_stats_df.loc[(user, ser.index), metric] = ser.values
             else:
-                min_date = ser.index.min() if start_date is None else start_date
-                max_date = ser.index.max() if end_date is None else end_date
-                user_date_range = pd.date_range(min_date, max_date, freq="D")
-                ser = ser.reindex(user_date_range)
-                # We have different dates based on user
-                ser = ser.set_axis(
-                    pd.MultiIndex.from_product(
-                        [[user], user_date_range],
-                        names=[constants._USER_COL, constants._CALENDAR_DATE_COL],
-                    )
-                ).rename(metric)
-                if len(user_breaths_per_minute_stats_df) == 0:
-                    # Empty df, first metric
-                    user_breaths_per_minute_stats_df = ser.to_frame()
-                else:
-                    user_breaths_per_minute_stats_df = pd.merge(
-                        user_breaths_per_minute_stats_df,
-                        ser,
-                        left_index=True,
-                        right_index=True,
-                        how="outer",
-                    )
+                if len(ser) > 0:
+                    min_date = ser.index.min() if start_date is None else start_date
+                    max_date = ser.index.max() if end_date is None else end_date
+                    user_date_range = pd.date_range(min_date, max_date, freq="D")
+                    ser = ser.reindex(user_date_range)
+                    # We have different dates based on user
+                    ser = ser.set_axis(
+                        pd.MultiIndex.from_product(
+                            [[user], user_date_range],
+                            names=[constants._USER_COL, constants._CALENDAR_DATE_COL],
+                        )
+                    ).rename(metric)
+                    if len(user_breaths_per_minute_stats_df) == 0:
+                        # Empty df, first metric
+                        user_breaths_per_minute_stats_df = ser.to_frame()
+                    else:
+                        user_breaths_per_minute_stats_df = pd.merge(
+                            user_breaths_per_minute_stats_df,
+                            ser,
+                            left_index=True,
+                            right_index=True,
+                            how="outer",
+                        )
         if not both_dates_valid:
             breaths_per_minute_stats_df = pd.concat(
                 (breaths_per_minute_stats_df, user_breaths_per_minute_stats_df)
@@ -987,6 +1008,38 @@ def get_respiration_statistics(
     return_df: bool = True,
     return_multi_index: bool = True,
 ):
+    """_summary_
+
+    _extended_summary_
+
+    Parameters
+    ----------
+    loader : loader.BaseLoader
+        _description_
+    user_id : Union[str, list], optional
+        _description_, by default "all"
+    start_date : Union[datetime.datetime, datetime.date, str, None], optional
+        _description_, by default None
+    end_date : Union[datetime.datetime, datetime.date, str, None], optional
+        _description_, by default None
+    kind : _type_, optional
+        _description_, by default None
+    kind_args : list, optional
+        _description_, by default []
+    kind_kwargs : dict, optional
+        _description_, by default {}
+    loader_kwargs : dict, optional
+        _description_, by default {}
+    return_df : bool, optional
+        _description_, by default True
+    return_multi_index : bool, optional
+        _description_, by default True
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     rest_pulse_ox_statistics = get_rest_pulse_ox_statistics(
         loader=loader,
         metrics=None,
