@@ -7,7 +7,6 @@ import datetime
 from pathlib import Path
 from typing import Union
 
-import hrvanalysis
 import july
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -1295,25 +1294,6 @@ def get_errorbar_graph(
         plt.show()
     else:
         plt.close()
-
-
-def plot_bbi_distribution(bbi: np.array, bin_length: int = 20):
-    """
-    Plots distribution of BBI data
-
-    Parameters
-    ----------
-    bbi : :class:`numpy.ndarray`
-        Array of Beat-to-beat intraval (BBI) data
-    bin_length : :class:`int`, optional
-        length of bins in the histogram, by default 20
-    """
-
-    hrvanalysis.plot.plot_distrib(np.array(bbi, dtype=np.int16), bin_length=bin_length)
-
-
-def plot_comparison_radar_chart():
-    pass  # TODO
 
 
 def compare_against_group(
