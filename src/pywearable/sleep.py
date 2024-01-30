@@ -68,13 +68,13 @@ _SLEEP_KIND_MAPPING = {
     "min":{
         _SLEEP_METRIC_BEDTIME : utils.get_earliest_bedtime,
         _SLEEP_METRIC_WAKEUP_TIME : utils.get_earliest_wakeup_time,
-        _SLEEP_METRIC_MIDPOINT : utils.get_earliest_wakeup_time, # TODO probably to change
+        _SLEEP_METRIC_MIDPOINT : utils.get_earliest_wakeup_time, 
         "default" : np.nanmin
     },
     "max":{
         _SLEEP_METRIC_BEDTIME : utils.get_latest_bedtime,
         _SLEEP_METRIC_WAKEUP_TIME : utils.get_latest_wakeup_time,
-        _SLEEP_METRIC_MIDPOINT : utils.get_latest_wakeup_time, # TODO probably to change
+        _SLEEP_METRIC_MIDPOINT : utils.get_latest_wakeup_time,
         "default" : np.nanmax
     }
 }
@@ -3896,7 +3896,7 @@ def get_sleep_statistics(
                 # if the kind function is not among the common ones
                 # assume it's something that can be directly applied to metric
                 # otherwise get the specific version for each metric in the df through kind mapping
-                agg_dict = {
+                fn_dict = {
                     metric:_SLEEP_KIND_MAPPING.get(kind,{"default":kind}).get(
                         metric if metric in _SLEEP_DATETIME_METRICS else "default", kind) 
                     for metric in user_sleep_metrics_df.columns
@@ -3905,9 +3905,8 @@ def get_sleep_statistics(
                 for metric in user_sleep_metrics_df.columns:
                     if metric in _SLEEP_DATETIME_METRICS:
                         user_sleep_metrics_df[metric] = user_sleep_metrics_df.loc[:,metric].dt.strftime("%H:%M").values 
-                transformed_dict[user]["values"] = user_sleep_metrics_df.agg(
-                    agg_dict
-                ).to_dict()
+                transformed_dict[user]["values"] = {metric : fn_dict[metric](user_sleep_metrics_df[metric]) 
+                                                    for metric in user_sleep_metrics_df.columns}
                 transformed_dict[user]["days"] = [
                     x for x in user_sleep_metrics_df.index
                 ]
