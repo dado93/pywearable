@@ -1660,7 +1660,7 @@ def get_sleep_timestamps(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-):
+) -> dict:
     """Get the timestamps of the beginning and the end of sleep occurrences.
 
     Returns for every day, the time when the user fell asleep and when he woke up
@@ -2140,8 +2140,8 @@ def get_cpd_midpoint(
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     kind: Union[str, None] = None,
     chronotype_dict: dict = {},
-):
-    """Computes composite phase deviation (CPD)
+) -> dict:
+    """Computes composite phase deviation (CPD) with regard to sleep midpoints
 
     Returns a measure of sleep regularity, in terms of stability of rest midpoints.
     The measure is computed for the period between `start_date` and `end_date`
@@ -2159,15 +2159,9 @@ def get_cpd_midpoint(
         End date for data retrieval, by default None
     kind : :class:`str` or None, optional
         Whether to compute a transformation of CPD over days, or to return the value for each
-        day, by default None. Valid options are:
-
-            - `mean`
-            - `std`
-            - `min`
-            - `max`
-
+        day, by default None.
     chronotype_dict : :class:`dict`, optional
-        dictionary specifying for every user his usual sleeping time and waking time in format HH:MM, as a tuple
+        Dictionary specifying for every user his usual sleeping time and waking time in format HH:MM, as a tuple.
 
     Returns
     -------
@@ -2196,8 +2190,8 @@ def get_cpd_duration(
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     kind: Union[str, None] = None,
     chronotype_dict: dict = {},
-):
-    """Computes composite phase deviation (CPD)
+) -> dict:
+    """Computes composite phase deviation (CPD) with regard to sleep duration
 
     Returns a measure of sleep regularity, in terms of sleep duration.
     The measure is computed for the period between `start_date` and `end_date`
@@ -2215,15 +2209,9 @@ def get_cpd_duration(
         End date for data retrieval, by default None
     kind : :class:`str` or None, optional
         Whether to compute a transformation of CPD over days, or to return the value for each
-        day, by default None. Valid options are:
-
-            - `mean`
-            - `std`
-            - `min`
-            - `max`
-
+        day, by default None.
     chronotype_dict : :class:`dict`, optional
-        dictionary specifying for every user his usual sleeping time and waking time in format HH:MM, as a tuple
+        Dictionary specifying for every user his usual sleeping time and waking time in format HH:MM, as a tuple.
 
     Returns
     -------
@@ -3332,6 +3320,26 @@ def _compute_stage_count(
 def _compute_bedtime(
     sleep_summary: pd.DataFrame, **kwargs
 ) -> pd.Series:
+    """Retrieves bedtimes from a sleep summary
+
+    This function retrieves, if available, the bedtime
+    of all sleep occurrences from given sleep summary data.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pandas.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    :class:`pandas.Series`
+        Series of bedtimes data in :class:`pandas.Timestamp` dtype.
+
+    Raises
+    ------
+    ValueError
+        If `sleep_summary` is not a :class:`pandas.DataFrame` .
+    """
     sleep_summary = utils.check_is_df(sleep_summary, "sleep_summary")
     if constants._SLEEP_SUMMARY_OVERALL_SLEEP_SCORE_COL in sleep_summary.columns:
         bedtime = sleep_summary[constants._ISODATE_COL]
@@ -3342,6 +3350,26 @@ def _compute_bedtime(
 def _compute_wakeup_time(
     sleep_summary: pd.DataFrame, **kwargs
 ) -> pd.Series:
+    """Retrieves wake up time from a sleep summary
+
+    This function retrieves, if available, the wake up time from
+    given sleep summary data.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pandas.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    :class:`pandas.Series`
+        Series of wake up time data in :class:`pandas.Timestamp` dtype.
+
+    Raises
+    ------
+    ValueError
+        If `sleep_summary` is not a :class:`pandas.DataFrame` .
+    """
 
     sleep_summary = utils.check_is_df(sleep_summary, "sleep_summary")
 
@@ -3365,6 +3393,26 @@ def _compute_wakeup_time(
 def _compute_sleep_midpoint(
         sleep_summary: pd.DataFrame, **kwargs
 ) -> pd.Series:
+    """Retrieves midpoints from a sleep summary
+
+    This function retrieves, if available, the midpoint
+    of sleep occurrences from given sleep summary data.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pandas.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    :class:`pandas.Series`
+        Series of sleep midpoints data in :class:`pandas.Timestamp` dtype.
+
+    Raises
+    ------
+    ValueError
+        If `sleep_summary` is not a :class:`pandas.DataFrame` .
+    """
     sleep_summary = utils.check_is_df(sleep_summary, "sleep_summary")
     wakeup_time = _compute_wakeup_time(sleep_summary=sleep_summary, **kwargs)
     bedtime = _compute_bedtime(sleep_summary=sleep_summary, **kwargs)
@@ -3379,6 +3427,27 @@ def _compute_sleep_midpoint(
 def _compute_cpd_midpoint(
     sleep_summary: pd.DataFrame, chronotype: Union[tuple, None], **kwargs
 ):
+    """Computes CPD midpoints from a sleep summary
+
+    This function computes, if possible, the composite phase deviation metric
+    with respect to sleep midpoints from all sleep occurrences 
+    from given sleep summary data.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pandas.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    :class:`pandas.Series`
+        Series of CPD midpoints data.
+
+    Raises
+    ------
+    ValueError
+        If `sleep_summary` is not a :class:`pandas.DataFrame` .
+    """
     # Check is dataframe
     sleep_summary = utils.check_is_df(sleep_summary, "sleep_summary")
 
@@ -3450,6 +3519,27 @@ def _compute_cpd_midpoint(
 def _compute_cpd_duration(
     sleep_summary: pd.DataFrame, chronotype: Union[tuple, None], **kwargs
 ):
+    """Computes CPD durations from a sleep summary
+
+    This function computes, if possible, the composite phase deviation metric
+    with respect to sleep durations from all sleep occurrences 
+    from given sleep summary data.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pandas.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    :class:`pandas.Series`
+        Series of CPD durations data.
+
+    Raises
+    ------
+    ValueError
+        If `sleep_summary` is not a :class:`pandas.DataFrame` .
+    """
     # Check is dataframe
     sleep_summary = utils.check_is_df(sleep_summary, "sleep_summary")
 
