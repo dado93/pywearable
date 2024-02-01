@@ -5,7 +5,7 @@ This module contains all the functions related to the visualization of data
 
 import datetime
 from pathlib import Path
-from typing import Union
+from typing import Union, Callable
 
 import july
 import matplotlib as mpl
@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.dates import DateFormatter
 from matplotlib.ticker import FuncFormatter, MultipleLocator, PercentFormatter
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
 import pywearable.activity as activity
 import pywearable.cardiac as cardiac
@@ -26,6 +27,39 @@ import pywearable.utils as utils
 from .loader.base import BaseLoader
 
 date_form = DateFormatter("%m-%d")
+
+def _define_custom_colormap(
+        base_colormap : Union[str, ListedColormap, LinearSegmentedColormap],
+        missing_data_index : int = 0,
+        missing_data_color : tuple = (0.8, 0.8, 0.8, 1.0),
+        cmap_name : str = 'custom_colormap'
+        ):
+    """Defines a custom colormap
+
+    Parameters
+    ----------
+    base_colormap : :class:`str`, :class:`ListedColormap`, :class:`LinearSegmentedColormap`
+        Colormap object from which to start the customization
+    missing_data_index : int, optional
+        The index within the colormap to associate with the missing_data_color, by default 0
+    missing_data_color : tuple, optional
+        The color for missing data, if not specified it's light grey, by default (0.8, 0.8, 0.8, 1.0)
+    cmap_name : str, optional
+        The name of the customized colormap, by default 'custom_colormap'
+            
+    Returns
+    -------
+    :class:`ListedColorMap`
+        the customized colormap
+    """
+
+    if type(base_colormap) == str:
+        cmap = plt.cm.get_cmap(base_colormap)
+    
+    # ListedColormap with the same colors but extended to include a specific color for missing data
+    cmap_list = [cmap(i) for i in range(cmap.N)]
+    cmap_list[missing_data_index] = missing_data_color 
+    return ListedColormap(cmap_list, name=cmap_name)
 
 
 def get_steps_line_graph_and_stats(
@@ -418,98 +452,6 @@ def get_rest_spo2_graph(
         plt.close()
 
 
-def get_stress_grid_and_stats(
-    loader: BaseLoader,
-    user_id: str,
-    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    verbose: bool = False,
-    save_to: Union[str, None] = None,
-    show: bool = True,
-    title: str = "Average daily stress",
-) -> dict:
-    """Generate a github-like plot of daily stress scores
-
-    Parameters
-    ----------
-    loader : :class:`pylabfront.loader.LabfrontLoader`
-        An instance of a data loader
-    user_id : :class:`str`
-        The id of the user
-    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
-        Start date for data retrieval, by default None
-    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
-        End date for data retrieval, by default None
-    verbose : :class:`bool`, optional
-        Whether to print out average daily stress score, by default False
-    save_to : :class:`str` or None, optional
-        Path where to save the plot, by default None
-    show : :class:`bool`, optional
-        Whether to show the plot, by default True
-    title : :class:`str`, optional
-        Title of the plot, by default "Average daily stress"
-
-    Returns
-    -------
-    :class:`int`
-        Average stress score for the period of interest
-    """
-    user_id = loader.get_full_id(user_id)
-
-    # get stats
-    dates, metrics = zip(
-        *stress.get_daily_stress_statistics(loader, user_id, start_date, end_date)[
-            user_id
-        ].items()
-    )
-    daily_avg_stress, daily_max_stress = list(zip(*metrics))
-    avg_stress = round(np.mean(daily_avg_stress))
-
-    # Plot yearly stress
-    # We need to create a DataFrame with dates going from one year before to the latest datetime
-    # Get start and end days from calendar date
-    start_date = dates[-1] - datetime.timedelta(days=364)
-    # we want to make it inclusive wrt end_date
-    end_date = dates[-1] + datetime.timedelta(days=1)
-    intervals = int(divmod((end_date - start_date).total_seconds(), 60 * 60 * 24)[0])
-    time_delta_intervals = [
-        start_date + i * datetime.timedelta(days=1) for i in range(intervals)
-    ]
-
-    stress_reduced_df = pd.DataFrame({"date": dates, "stress": daily_avg_stress})
-
-    stress_df = pd.DataFrame(
-        {
-            "date": time_delta_intervals,
-        }
-    )
-
-    stress_df = pd.merge(left=stress_df, right=stress_reduced_df, on="date", how="left")
-
-    stress_df.loc[stress_df.stress.isna(), "stress"] = 0
-
-    july.heatmap(
-        stress_df.date,
-        stress_df.stress,
-        cmap="golden",
-        title=title,
-        colorbar=True,
-        month_grid=True,
-    )
-
-    if save_to:
-        plt.savefig(save_to, bbox_inches="tight")
-    if show:
-        plt.show()
-    else:
-        plt.close()
-
-    if verbose:
-        print(f"Average daily stress: {avg_stress}")
-
-    return avg_stress
-
-
 def get_respiration_line_graph_and_stats(
     loader: BaseLoader,
     user_id: str,
@@ -628,112 +570,252 @@ def get_respiration_line_graph_and_stats(
     return stats_dict
 
 
-def get_sleep_grid_and_stats(
+def get_metric_heatmap(
     loader: BaseLoader,
     user_id: str,
+    metric_fn : Callable,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    verbose: bool = False,
+    period_length : Union[int, None] = None,
     save_to: Union[str, None] = None,
     show: bool = True,
-    title: str = "Sleep performance",
-) -> dict:
+    kwargs_heatmap : dict = {}
+):
     """
     Generate a github-like grid plot of the sleep scores over that years for `user_id`
 
     Parameters
     ----------
-    loader : :class:`pylabfront.loader.LabfrontLoader`
-        An instance of a data loader
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        An instance of a data loader.
     user_id : :class:`str`
-        The id of the user
+        The id(s) for which the sleep statistic must be computed.
+    metric_fn : :class:`callable`
+        A pywearable function to calculate the metric of interest for which the heatmap must be generated.
+        The function is expected to return a dictionary for the user, such that the primary key
+        is the user's id, the secondary keys are the dates and the values are the metric observations.
     start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         Start date for data retrieval, by default None
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None
-    verbose : :class:`bool`, optional
-        Whether to print out sleep stats, by default False
+    period_length : :class:`int` or None, optional
+        Duration of the period to be shown (in days) in the heatmap.
+        If not specified the period coincides with the dates where data is available, by default None
     save_to : :class:`str` or None, optional
         Path where to save the grid plot, by default None
     show : :class:`str`, optional
         _Whether to show the plot, by default True
-    title : :class:`str`, optional
-        Title of the plot, by default "Sleep performance"
-
-    Returns
-    -------
-    :class:`dict`
-        Dictionary of sleep stats (averages of sleep stages durations, awakenings, and sleep score)
+    kwargs_heatmap : :class:`dict`, optional
+        Additional keyword arguments for the july's heatmap function, by default {}
     """
-    user_id = loader.get_full_id(user_id)
+
+    assert(type(period_length) == int or period_length is None)
 
     dates, scores = zip(
-        *sleep.get_sleep_score(loader, user_id, start_date, end_date)[user_id].items()
+        *metric_fn(loader, user_id, start_date, end_date)[user_id].items()
     )
-    # Get start and end days from calendar date
-    start_date = dates[-1] - datetime.timedelta(days=364)
-    end_date = dates[-1] + datetime.timedelta(days=1)
-    intervals = int(divmod((end_date - start_date).total_seconds(), 60 * 60 * 24)[0])
+    # Get start and end days for the heatmap, based on data and desired backward extension
+    start_date = dates[0] if period_length is None else dates[-1] - datetime.timedelta(days=period_length - 1) 
+    end_date = dates[-1]
     time_delta_intervals = [
-        start_date + i * datetime.timedelta(days=1) for i in range(intervals)
+        start_date + i * datetime.timedelta(days=1) for i in range((end_date - start_date).days + 1)
     ]
 
-    sleep_reduced_df = pd.DataFrame({"date": dates, "sleep": scores})
+    data_df = pd.DataFrame({"date": dates, "metric": scores})
 
-    sleep_df = pd.DataFrame({"date": time_delta_intervals})
+    extended_df = pd.DataFrame({"date": time_delta_intervals})
 
-    sleep_df = pd.merge(left=sleep_df, right=sleep_reduced_df, on="date", how="left")
-    sleep_df.loc[sleep_df.sleep.isna(), "sleep"] = 0
+    extended_df = pd.merge(left=extended_df, right=data_df, on="date", how="left")
+    extended_df.loc[extended_df.metric.isna(), "metric"] = 0
 
     july.heatmap(
-        sleep_df.date,
-        sleep_df.sleep,
-        cmap="BuGn",
-        title=title,
-        colorbar=True,
-        month_grid=True,
-    )
+            extended_df.date,
+            extended_df.metric,
+            **kwargs_heatmap
+        )
+    
+    if show:
+        plt.show()
 
     if save_to:
         plt.savefig(save_to, bbox_inches="tight")
 
-    if show:
-        plt.show()
 
-    # stats
-    avg_deep = sleep.get_n3_duration(
-        loader, user_id, start_date, end_date, kind="mean"
-    )[user_id]["N3"]
-    avg_light = sleep.get_n1_duration(
-        loader, user_id, start_date, end_date, kind="mean"
-    )[user_id]["N1"]
-    avg_rem = sleep.get_rem_duration(
-        loader, user_id, start_date, end_date, kind="mean"
-    )[user_id]["REM"]
-    avg_awake = sleep.get_awake_duration(
-        loader, user_id, start_date, end_date, kind="mean"
-    )[user_id]["AWAKE"]
-    avg_awakenings = sleep.get_awake_count(
-        loader, user_id, start_date, end_date, kind="mean"
-    )[user_id]["countAwake"]
-    avg_score = sleep.get_sleep_score(
-        loader, user_id, start_date, end_date, kind="mean"
-    )[user_id]["SCORE"]
+def get_sleep_performance_heatmap(
+    loader: BaseLoader,
+    user_id: str,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    save_to: Union[str, None] = None,
+    show: bool = True,
+    period_length : int = 365,
+    cmin : Union[int, None] = None,
+    cmax : Union[int, None] = None
+):
+    """Generate a github-like heatmap plot of daily sleep scores
 
-    stats_dict = {
-        "Average light sleep": f"{avg_light}",
-        "Average deep sleep": f"{avg_deep}",
-        "Average REM sleep": f"{avg_rem}",
-        "Average awake time": f"{avg_awake}",
-        "Average awakenings": round(avg_awakenings, 1),
-        "Average sleep score": round(avg_score),
-    }
+    Parameters
+    ----------
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        An instance of a data loader
+    user_id : :class:`str`
+        The id of the user for which the sleep performance heatmap must be generated.
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None
+    save_to : :class:`str` or None, optional
+        Path where to save the plot, by default None
+    show : :class:`bool`, optional
+        Whether to show the plot, by default True
+    period_length : :class:`int`, optional
+        Period length (in days) to show, a year is shown is shown if not chosen otherwise, by default 365
+    cmin : :class:`int` or None, optional
+        Minimum value for the colorbar. If not specified the minimum value of the data is used, by default None
+    cmax : :class:`int` or None, optional
+        Maximum value for the colorbar. If not specified the maximum value of the data is used, by default None
+    """
 
-    if verbose:
-        for k, v in stats_dict.items():
-            print(f"{k} : {v}")
+    custom_cmap = _define_custom_colormap(base_colormap="BuGn",
+                                          missing_data_index=0,
+                                          missing_data_color=(0.9, 0.9, 0.9, 1.0))
 
-    return stats_dict
+    get_metric_heatmap(loader=loader,
+                       user_id=user_id,
+                       metric_fn=sleep.get_sleep_score,
+                       start_date=start_date,
+                       end_date=end_date,
+                       period_length=period_length,
+                       save_to=save_to,
+                       show=show,
+                       kwargs_heatmap={"cmap":custom_cmap,
+                                       "title":"Sleep performance",
+                                       "fontsize":14,
+                                       "frame_on":True,
+                                       "month_grid":True,
+                                       "colorbar":True,
+                                       "year_label":period_length>=365,
+                                       "cmin":cmin,
+                                       "cmax":cmax
+                                       })
+
+
+def get_stress_heatmap(
+    loader: BaseLoader,
+    user_id: str,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    save_to: Union[str, None] = None,
+    show: bool = True,
+    period_length : int = 365,
+    cmin : Union[int, None] = None,
+    cmax : Union[int, None] = None
+):
+    """Generate a github-like heatmap plot of daily stress scores
+
+    Parameters
+    ----------
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        An instance of a data loader
+    user_id : :class:`str`
+        The id of the user for which the stress scores heatmap must be generated.
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None
+    save_to : :class:`str` or None, optional
+        Path where to save the plot, by default None
+    show : :class:`bool`, optional
+        Whether to show the plot, by default True
+    period_length : :class:`int`, optional
+        Period length (in days) to show, a year is shown is shown if not chosen otherwise, by default 365
+    cmin : :class:`int` or None, optional
+        Minimum value for the colorbar. If not specified the minimum value of the data is used, by default None
+    cmax : :class:`int` or None, optional
+        Maximum value for the colorbar. If not specified the maximum value of the data is used, by default None
+    """
+
+    custom_cmap = _define_custom_colormap(base_colormap="YlOrBr",
+                                          missing_data_index=0,
+                                          missing_data_color=(0.9, 0.9, 0.9, 1.0))
+    
+    get_metric_heatmap(loader=loader,
+                       user_id=user_id,
+                       metric_fn=stress.get_daily_average_stress,
+                       start_date=start_date,
+                       end_date=end_date,
+                       period_length=period_length,
+                       save_to=save_to,
+                       show=show,
+                       kwargs_heatmap={"cmap":custom_cmap,
+                                       "title":"Stress scores",
+                                       "fontsize":14,
+                                       "frame_on":True,
+                                       "month_grid":True,
+                                       "colorbar":True,
+                                       "year_label":period_length>=365,
+                                       "cmin":cmin,
+                                       "cmax":cmax
+                                       })
+
+
+def get_recovery_heatmap(
+    loader: BaseLoader,
+    user_id: str,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    save_to: Union[str, None] = None,
+    show: bool = True,
+    period_length : int = 365,
+    cmin : Union[int, None] = None,
+    cmax : Union[int, None] = None
+):
+    """Generate a github-like heatmap plot of night recovery
+
+    Parameters
+    ----------
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        An instance of a data loader
+    user_id : :class:`str`
+        The id of the user for which the night recovery heatmap must be generated.
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None
+    save_to : :class:`str` or None, optional
+        Path where to save the plot, by default None
+    show : :class:`bool`, optional
+        Whether to show the plot, by default True
+    period_length : :class:`int`, optional
+        Period length (in days) to show, a year is shown is shown if not chosen otherwise, by default 365
+    cmin : :class:`int` or None, optional
+        Minimum value for the colorbar. If not specified the minimum value of the data is used, by default None
+    cmax : :class:`int` or None, optional
+        Maximum value for the colorbar. If not specified the maximum value of the data is used, by default None
+    """
+
+    custom_cmap = _define_custom_colormap(base_colormap="RdYlGn",
+                                          missing_data_index=0,
+                                          missing_data_color=(0.9, 0.9, 0.9, 1.0))
+    
+    get_metric_heatmap(loader=loader,
+                       user_id=user_id,
+                       metric_fn=stress.get_sleep_battery_recovery,
+                       start_date=start_date,
+                       end_date=end_date,
+                       period_length=period_length,
+                       save_to=save_to,
+                       show=show,
+                       kwargs_heatmap={"cmap":custom_cmap,
+                                       "title":"Stress scores",
+                                       "fontsize":14,
+                                       "frame_on":True,
+                                       "month_grid":True,
+                                       "colorbar":True,
+                                       "year_label":period_length>=365,
+                                       "cmin":cmin,
+                                       "cmax":cmax
+                                       })
 
 
 def get_sleep_summary_graph(
