@@ -913,8 +913,9 @@ def get_sleep_summary_graph(
     sleep_summaries = loader.load_sleep_summary(
         user_id, start_date, end_date
     )
+    # no data
     if len(sleep_summaries) == 0:
-        return
+        raise ValueError(f"No sleep data available between {start_date} and {end_date}")
     sleep_min_time = datetime.time(15, 0)
     # Check for start and end dates and convert them appropriately
     start_date = utils.check_date(start_date)
