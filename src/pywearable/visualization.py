@@ -119,7 +119,7 @@ def get_steps_line_graph_and_stats(
         dictionary of daily activity statistics
         (Mean daily steps, Mean daily distance, Percentage goal completion)
     """
-    user_id = loader.get_full_id(user_id)
+
     # get dates,steps,goals,compare steps to goal to get goal completion
     dates, steps = zip(
         *activity.get_daily_steps(loader, user_id, start_date, end_date)[
@@ -145,6 +145,8 @@ def get_steps_line_graph_and_stats(
     stats_dict = {
         "Mean daily steps": mean_steps,
         "Mean daily distance": mean_distance,
+        "goal_reached": goal_reached,
+        "number_of_days": number_of_days,
         "Percentage goal completion": f"{goal_reached}/{number_of_days} {percentage_goal}%",
     }
 
@@ -241,20 +243,16 @@ def get_cardiac_line_graph_and_stats(
         dictionary of cardiac statistics for the period of interest
         (Average resting heart rate, Maximum heart rate overall)
     """
-    user_id = loader.get_full_id(user_id)
+    
     # get stats
     avg_resting_hr = round(
         cardiac.get_rest_heart_rate(
-            loader, user_id, start_date, end_date, average=True
-        )[user_id]["values"]
+            loader, user_id, start_date, end_date, kind="mean"
+        )[user_id]["RHR"]
     )
-    max_hr_recorded = np.nanmax(
-        list(
-            cardiac.get_max_heart_rate(
-                loader, user_id, start_date, end_date, average=False
-            )[user_id].values()
-        )
-    )
+    max_hr_recorded = cardiac.get_max_heart_rate(
+        loader, user_id, start_date, end_date, kind="max"
+            )[user_id]["MHR"]
     stats_dict = {
         "Mean resting HR": avg_resting_hr,
         "Maximum HR overall": max_hr_recorded,
@@ -265,7 +263,6 @@ def get_cardiac_line_graph_and_stats(
             user_id
         ].items()
     )
-    # avg_hr = list(cardiac.get_avg_heart_rate(loader,start_date,end_date,user)[user].values())
     max_hr = list(
         cardiac.get_max_heart_rate(loader, user_id, start_date, end_date)[
             user_id
@@ -368,7 +365,6 @@ def get_rest_spo2_graph(
     fontsize : :class:`int`, optional
         Font size for the plot, by default 18
     """
-    user_id = loader.get_full_id(user_id)
 
     timedelta = datetime.timedelta(
         hours=12
@@ -379,7 +375,7 @@ def get_rest_spo2_graph(
     sleep_spo2_df = spo2_df[spo2_df.sleep == 1].loc[:, ["isoDate", "spo2"]]
     unique_dates = pd.to_datetime(sleep_spo2_df.isoDate.dt.date.unique())
     # in order to avoid plotting lines between nights, we need to plot separately each sleep occurrence
-    # unfortunately this takes some time (~6-7s/month), to find appropriate night for every row, maybe try to improve?
+    # unfortunately this takes some time (~6-7s/month), to find appropriate night for every row, maybe try to improve? #TODO
     sleep_spo2_df["date"] = sleep_spo2_df.isoDate.apply(
         lambda x: utils.find_nearest_timestamp(x, unique_dates)
     )
@@ -506,7 +502,7 @@ def get_respiration_line_graph_and_stats(
     :class:`dict`
         Dictionary reporting average breaths per minute during the day and the night
     """
-    user_id = loader.get_full_id(user_id)
+    
     # get series, note that we're inclusive wrt the whole last day
     rest_dates, rest_resp = zip(
         *respiration.get_rest_breaths_per_minute(
@@ -650,7 +646,8 @@ def get_sleep_performance_heatmap(
     show: bool = True,
     period_length : int = 365,
     cmin : Union[int, None] = None,
-    cmax : Union[int, None] = None
+    cmax : Union[int, None] = None,
+    title : Union[str, None] = "Sleep Performance"
 ):
     """Generate a github-like heatmap plot of daily sleep scores
 
@@ -689,7 +686,7 @@ def get_sleep_performance_heatmap(
                        save_to=save_to,
                        show=show,
                        kwargs_heatmap={"cmap":custom_cmap,
-                                       "title":"Sleep performance",
+                                       "title":title,
                                        "fontsize":14,
                                        "frame_on":True,
                                        "month_grid":True,
@@ -709,7 +706,8 @@ def get_stress_heatmap(
     show: bool = True,
     period_length : int = 365,
     cmin : Union[int, None] = None,
-    cmax : Union[int, None] = None
+    cmax : Union[int, None] = None,
+    title : Union[str, None] = "Stress scores"
 ):
     """Generate a github-like heatmap plot of daily stress scores
 
@@ -748,7 +746,7 @@ def get_stress_heatmap(
                        save_to=save_to,
                        show=show,
                        kwargs_heatmap={"cmap":custom_cmap,
-                                       "title":"Stress scores",
+                                       "title":title,
                                        "fontsize":14,
                                        "frame_on":True,
                                        "month_grid":True,
@@ -768,7 +766,8 @@ def get_recovery_heatmap(
     show: bool = True,
     period_length : int = 365,
     cmin : Union[int, None] = None,
-    cmax : Union[int, None] = None
+    cmax : Union[int, None] = None,
+    title : Union[str, None] = "Recovery"
 ):
     """Generate a github-like heatmap plot of night recovery
 
@@ -807,7 +806,7 @@ def get_recovery_heatmap(
                        save_to=save_to,
                        show=show,
                        kwargs_heatmap={"cmap":custom_cmap,
-                                       "title":"Stress scores",
+                                       "title":title,
                                        "fontsize":14,
                                        "frame_on":True,
                                        "month_grid":True,
@@ -885,6 +884,8 @@ def get_sleep_summary_graph(
         distance of the scores from the bottom of the hypnograms, by default 500
     vertical_offset : :class:`float`, optional
         vertical offset of the scores at the bottom of the hypnograms, by default -0.
+    show_chronotype : :class:`bool`, optional
+        whether to show chronotype dashed vertical lines over the hypnograms, by default False
     show_chronotype : :class:`bool`, optional
         whether to show chronotype dashed vertical lines over the hypnograms, by default False
     chronotype_sleep_start : :class:`str` or None, optional
@@ -1291,6 +1292,7 @@ def get_sleep_summary_graph(
         plt.cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax, ticks=midpoints, pad=0.10
     )
     cbar.ax.set_yticklabels(colorbar_labels, fontsize=legend_fontsize)
+    cbar.ax.set_yticklabels(colorbar_labels, fontsize=legend_fontsize)
     plt.annotate(
         colorbar_title,
         xy=(1.2, 1.1),
@@ -1573,16 +1575,9 @@ def plot_trend_analysis(
     ax.plot(baseline, linestyle="-", linewidth=3, color="red", label="Baseline")
     if normal_range is not None:
         assert type(normal_range) == tuple and len(normal_range) == 2
-        ax.fill_between(
-            dates,
-            normal_range[0],
-            normal_range[1],
-            alpha=alpha,
-            color="green",
-            label="Normal range",
-        )
-    else:
-        ax.fill_between(dates, LB, UB, alpha=alpha, color="green")
+        LB = normal_range[0]
+        UB = normal_range[1]
+    ax.fill_between(dates, LB, UB, alpha=alpha, color="green",label="Normal range")
     ax.grid("on")
     ax.set_xticks(dates[::xticks_frequency])
     ax.tick_params(axis="x", labelrotation=xticks_rotation)

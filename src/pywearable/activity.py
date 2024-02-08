@@ -553,7 +553,7 @@ def get_daily_steps_goal(
     return data_dict
 
 
-def get_daily_intensity_minutes(
+def get_daily_intensity(
     loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -581,7 +581,7 @@ def get_daily_intensity_minutes(
     Returns
     -------
     :class:`dict`
-        Dictionary with users as primary keys, dates as secondary keys, and daily intensities as values.
+        Dictionary with users as primary keys, dates as secondary keys, and daily intensities in minutes as values.
         If `average` is set to True, then the primary key is directly connected to the average intensity.
     """
     data_dict = {}
