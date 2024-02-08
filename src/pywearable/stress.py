@@ -677,7 +677,7 @@ def get_max_body_battery(loader: BaseLoader,
     return data_dict
 
 
-def get_daily_average_stress(
+def get_average_stress(
     loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -775,4 +775,36 @@ def get_body_battery_starting_sleep(
 
                 data_dict[user][k] = int(df.iloc[0])
 
+    return data_dict
+
+
+def get_night_average_stress(loader: BaseLoader,
+                             user_id: Union[str, list] = "all",
+                             start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+                             end_date: Union[datetime.datetime, datetime.date, str, None] = None):
+    data_dict = {}
+
+    user_id = utils.get_user_ids(loader, user_id)
+
+    for user in user_id:
+        data_dict[user] = {}
+        sleep_timestamps = sleep.get_sleep_timestamps(
+            loader, user, start_date, end_date
+        )[user]
+        if not (sleep_timestamps is None):
+            for date, (start_hour, end_hour) in sleep_timestamps.items():
+                df = loader.load_stress(user,
+                                                start_hour,
+                                                end_hour)
+                if len(df) == 0:
+                    continue
+                else:
+                    df = df.drop_duplicates()
+                    df = df.loc[~df.stressLevel.isin([-1,-2])]
+                    df = utils.filter_out_awake(loader, user, df, date)
+                    if len(df) > 0:
+                        data_dict[user][date] = round(df[constants._STRESS_STRESS_LEVEL_COL].mean(),1)
+                    else:
+                        continue
+    
     return data_dict

@@ -7,7 +7,6 @@ import datetime
 from pathlib import Path
 from typing import Union
 
-import hrvanalysis
 import july
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -87,7 +86,7 @@ def get_steps_line_graph_and_stats(
         dictionary of daily activity statistics
         (Mean daily steps, Mean daily distance, Percentage goal completion)
     """
-    user_id = loader.get_full_id(user_id)
+
     # get dates,steps,goals,compare steps to goal to get goal completion
     dates, steps = zip(
         *activity.get_daily_steps(loader, user_id, start_date, end_date)[
@@ -113,6 +112,8 @@ def get_steps_line_graph_and_stats(
     stats_dict = {
         "Mean daily steps": mean_steps,
         "Mean daily distance": mean_distance,
+        "goal_reached": goal_reached,
+        "number_of_days": number_of_days,
         "Percentage goal completion": f"{goal_reached}/{number_of_days} {percentage_goal}%",
     }
 
@@ -209,20 +210,16 @@ def get_cardiac_line_graph_and_stats(
         dictionary of cardiac statistics for the period of interest
         (Average resting heart rate, Maximum heart rate overall)
     """
-    user_id = loader.get_full_id(user_id)
+    
     # get stats
     avg_resting_hr = round(
         cardiac.get_rest_heart_rate(
-            loader, user_id, start_date, end_date, average=True
-        )[user_id]["values"]
+            loader, user_id, start_date, end_date, kind="mean"
+        )[user_id]["RHR"]
     )
-    max_hr_recorded = np.nanmax(
-        list(
-            cardiac.get_max_heart_rate(
-                loader, user_id, start_date, end_date, average=False
-            )[user_id].values()
-        )
-    )
+    max_hr_recorded = cardiac.get_max_heart_rate(
+        loader, user_id, start_date, end_date, kind="max"
+            )[user_id]["MHR"]
     stats_dict = {
         "Mean resting HR": avg_resting_hr,
         "Maximum HR overall": max_hr_recorded,
@@ -233,7 +230,6 @@ def get_cardiac_line_graph_and_stats(
             user_id
         ].items()
     )
-    # avg_hr = list(cardiac.get_avg_heart_rate(loader,start_date,end_date,user)[user].values())
     max_hr = list(
         cardiac.get_max_heart_rate(loader, user_id, start_date, end_date)[
             user_id
@@ -336,7 +332,6 @@ def get_rest_spo2_graph(
     fontsize : :class:`int`, optional
         Font size for the plot, by default 18
     """
-    user_id = loader.get_full_id(user_id)
 
     timedelta = datetime.timedelta(
         hours=12
@@ -347,7 +342,7 @@ def get_rest_spo2_graph(
     sleep_spo2_df = spo2_df[spo2_df.sleep == 1].loc[:, ["isoDate", "spo2"]]
     unique_dates = pd.to_datetime(sleep_spo2_df.isoDate.dt.date.unique())
     # in order to avoid plotting lines between nights, we need to plot separately each sleep occurrence
-    # unfortunately this takes some time (~6-7s/month), to find appropriate night for every row, maybe try to improve?
+    # unfortunately this takes some time (~6-7s/month), to find appropriate night for every row, maybe try to improve? #TODO
     sleep_spo2_df["date"] = sleep_spo2_df.isoDate.apply(
         lambda x: utils.find_nearest_timestamp(x, unique_dates)
     )
@@ -456,8 +451,7 @@ def get_stress_grid_and_stats(
     :class:`int`
         Average stress score for the period of interest
     """
-    user_id = loader.get_full_id(user_id)
-
+    
     # get stats
     dates, metrics = zip(
         *stress.get_daily_stress_statistics(loader, user_id, start_date, end_date)[
@@ -566,7 +560,7 @@ def get_respiration_line_graph_and_stats(
     :class:`dict`
         Dictionary reporting average breaths per minute during the day and the night
     """
-    user_id = loader.get_full_id(user_id)
+    
     # get series, note that we're inclusive wrt the whole last day
     rest_dates, rest_resp = zip(
         *respiration.get_rest_breaths_per_minute(
@@ -667,7 +661,6 @@ def get_sleep_grid_and_stats(
     :class:`dict`
         Dictionary of sleep stats (averages of sleep stages durations, awakenings, and sleep score)
     """
-    user_id = loader.get_full_id(user_id)
 
     dates, scores = zip(
         *sleep.get_sleep_score(loader, user_id, start_date, end_date)[user_id].items()
@@ -743,7 +736,7 @@ def get_sleep_summary_graph(
     user_id: str,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    save_to: str = None,
+    save_to: Union[str, None] = None,
     show: bool = True,
     alpha: float = 0.25,
     title: str = "Sleep stages and score",
@@ -756,10 +749,14 @@ def get_sleep_summary_graph(
     figsize: tuple = (15, 30),
     bottom_offset: int = 500,
     vertical_offset: float = -0.0,
-    sleep_metric: Union[str, None] = None,
+    show_chronotype: bool = False,
     chronotype_sleep_start: Union[str, None] = None,
     chronotype_sleep_end: Union[str, None] = None,
-    show_chronotype: bool = False,
+    sleep_metric: Union[str, None] = None,
+    legend_fontsize : int = 14,
+    axis_fontsize : int = 14,
+    title_fontsize : int = 20,
+    score_fontsize : int = 15
 ):
     """
     Generates a graph of all hypnograms of main sleeps of `user_id` for the period of interest
@@ -800,23 +797,23 @@ def get_sleep_summary_graph(
         distance of the scores from the bottom of the hypnograms, by default 500
     vertical_offset : :class:`float`, optional
         vertical offset of the scores at the bottom of the hypnograms, by default -0.
-    sleep_metric : :class:`str` or None, optional
-        metric used for circadian variability ("midpoint" or "duration"), by default None
+    show_chronotype : :class:`bool`, optional
+        whether to show chronotype dashed vertical lines over the hypnograms, by default False
     chronotype_sleep_start : :class:`str` or None, optional
         usual sleeping time for `user_id` in format HH:MM, by default None
     chronotype_sleep_end : :class:`str` or None, optional
         usual waking time for `user_id` in format HH:MM, by default None
-    show_chronotype : :class:`bool`, optional
-        whether to show chronotype dashed vertical lines over the hypnograms, by default False
+    sleep_metric : :class:`str` or None, optional
+        metric used for circadian variability ("midpoint" or "duration"), by default None
+    legend_fontsize: :class:`int`, optional
+        fontsize of the sleep stages legend, by default 14
+    axis_fontsize: :class:`int`, optional
+        fontsize of the axis ticks, by default 14
+    title_fontsize: :class:`int`, optional
+        fontsize of the title, by default 20
+    score_fontsize: :class:`int`, optional
+        fontsize of the score on the hypnograms, by default 
     """
-
-    if sleep_metric is not None:
-        assertion_msg = "Must specify chronotype when plotting circadian measures"
-        assert (
-            chronotype_sleep_start is not None and chronotype_sleep_end is not None
-        ), assertion_msg
-
-    user_id = loader.get_full_id(user_id)
 
     # Define parameters for plotting
     ALPHA = alpha
@@ -832,6 +829,22 @@ def get_sleep_summary_graph(
     # Check for start and end dates and convert them appropriately
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
+
+    # check chronotype and infer it from data if missing
+    if sleep_metric is not None or show_chronotype is not None:
+        if chronotype_sleep_start is None or chronotype_sleep_end is None:
+            infer_chronotype = sleep.get_sleep_timestamps(loader=loader,
+                                                            user_id=user_id,
+                                                            start_date=start_date,
+                                                            end_date=end_date,
+                                                            kind="mean")
+            chronotype_sleep_start = infer_chronotype[user_id][0]
+            chronotype_sleep_end = infer_chronotype[user_id][1]
+        else:
+            assertion_msg = "Must specify chronotype in format 'HH:MM' when plotting circadian measures"
+            assert (
+                type(chronotype_sleep_start) == str and type(chronotype_sleep_end) == str
+            ), assertion_msg
 
     sleep_summaries["isoDate-Min"] = pd.to_datetime(
         sleep_summaries["calendarDate"].apply(
@@ -1018,7 +1031,7 @@ def get_sleep_summary_graph(
                 str(score),
                 xy=(bottom + bottom_offset, j * POSITION + vertical_offset),
                 color=appropriate_color,
-                fontsize=15,
+                fontsize=score_fontsize,
             )
         except Exception as e:  # skip missing dates
             continue
@@ -1050,22 +1063,23 @@ def get_sleep_summary_graph(
     formatter = FuncFormatter(format_func)
 
     ax.xaxis.set_major_formatter(formatter)
-    # this locates y-ticks at the hours
+    # this locates x-ticks at the hours
     ax.xaxis.set_major_locator(MultipleLocator(base=3600))
+    ax.tick_params(axis='x', which='major', labelsize=axis_fontsize)
 
     # graph params
     ax.set_axisbelow(True)
     ax.xaxis.grid(True, color="#EEEEEE")
     ax.yaxis.grid(False)
-    ax.set_ylabel(ylabel, labelpad=15, color="#333333", fontsize=16)
-    ax.set_xlabel(xlabel, labelpad=15, color="#333333", fontsize=16)
+    ax.set_ylabel(ylabel, labelpad=15, color="#333333", fontsize=axis_fontsize+2)
+    ax.set_xlabel(xlabel, labelpad=15, color="#333333", fontsize=axis_fontsize+2)
     ax.set_yticks(
         [i * POSITION for i in range(len(time_period))],
         [date.strftime("%d/%m") for date in time_period],
         rotation=0,
-        fontsize=14,
+        fontsize=axis_fontsize,
     )
-    ax.set_title(title, pad=25, color="#333333", weight="bold", fontsize=20)
+    ax.set_title(title, pad=25, color="#333333", weight="bold", fontsize=title_fontsize)
     # ordinarly the yaxis starts from below, but it's better to visualize earlier dates on top instead
     ax.set_ylim([-POSITION, (len(time_period)) * POSITION])
     ax.invert_yaxis()
@@ -1077,14 +1091,14 @@ def get_sleep_summary_graph(
         labels=legend_labels,
         loc="upper center",
         bbox_to_anchor=(0.97, 0.45),
-        fontsize=14,
+        fontsize=legend_fontsize,
     )
     # take care of opacity of of the colors selected
     for i, lh in enumerate(lgd.legendHandles):
         lh.set_color(colors[i])
         lh.set_alpha(alphas[i])
     lgd.get_frame().set_alpha(0.0)
-    lgd.set_title(legend_title, prop={"size": 15})
+    lgd.set_title(legend_title, prop={"size": legend_fontsize+1})
 
     # habitual sleep times lines
     if show_chronotype:
@@ -1179,13 +1193,13 @@ def get_sleep_summary_graph(
     cbar = plt.colorbar(
         plt.cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax, ticks=midpoints, pad=0.10
     )
-    cbar.ax.set_yticklabels(colorbar_labels, fontsize=14)
+    cbar.ax.set_yticklabels(colorbar_labels, fontsize=legend_fontsize)
     plt.annotate(
         colorbar_title,
         xy=(1.2, 1.1),
         xycoords="axes fraction",
         ha="center",
-        fontsize=14,
+        fontsize=legend_fontsize+1,
     )
 
     if save_to:
@@ -1312,7 +1326,7 @@ def plot_bbi_distribution(bbi: np.array, bin_length: int = 20):
         length of bins in the histogram, by default 20
     """
 
-    hrvanalysis.plot.plot_distrib(np.array(bbi, dtype=np.int16), bin_length=bin_length)
+    pass
 
 
 def plot_comparison_radar_chart():
@@ -1481,16 +1495,9 @@ def plot_trend_analysis(
     ax.plot(baseline, linestyle="-", linewidth=3, color="red", label="Baseline")
     if normal_range is not None:
         assert type(normal_range) == tuple and len(normal_range) == 2
-        ax.fill_between(
-            dates,
-            normal_range[0],
-            normal_range[1],
-            alpha=alpha,
-            color="green",
-            label="Normal range",
-        )
-    else:
-        ax.fill_between(dates, LB, UB, alpha=alpha, color="green")
+        LB = normal_range[0]
+        UB = normal_range[1]
+    ax.fill_between(dates, LB, UB, alpha=alpha, color="green",label="Normal range")
     ax.grid("on")
     ax.set_xticks(dates[::xticks_frequency])
     ax.tick_params(axis="x", labelrotation=xticks_rotation)
