@@ -14,7 +14,7 @@ Statistics Format
 The output format of the statistics returned by ``pywearable`` depends on the 
 parameter ``return_df`` that can be set to each function of the
 type ``pywearable.[sub-module].get_xx()``. When the parameter ``return_df`` is 
-set to ``True``, then a |dataframe| is returned. When it is set to ``True``,
+set to ``True``, then a |dataframe| is returned. When it is set to ``False``,
 a :class:`dict` is instead returned.
 
 Dictionary
