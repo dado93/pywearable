@@ -75,6 +75,14 @@ _RESPIRATION_BREATHS_PER_MINUTE_COL = "breathsPerMinute"
 _RESPIRATION_SLEEP_SUMMARY_ID_COL = "sleepSummaryId"
 _RESPIRATION_CALENDAR_DATE_COL = "calendarDate"
 
+# Cardiac data columns #
+_SPO2_COLUMN = "spo2"
+_HR_COLUMN = "beatsPerMinute"
+_RESTING_HR_COLUMN = "restingHeartRateInBeatsPerMinute"
+_AVG_HR_COLUMN = "averageHeartRateInBeatsPerMinute"
+_MAX_HR_COLUMN = "maxHeartRateInBeatsPerMinute"
+_MIN_HR_COLUMN = "minHeartRateInBeatsPerMinute"
+
 # Epochs #
 _EPOCH_INTENSITY_COL = "intensity"
 _EPOCH_ACTIVE_TIME_MS_COL = "activeTimeInMs"

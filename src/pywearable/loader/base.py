@@ -149,6 +149,14 @@ class BaseLoader:
         """
         raise NotImplementedError
 
+    def load_bbi(
+        self,
+        user_id: str,
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None
+    ) -> pd.DataFrame:
+        pass
+
     def get_user_ids(self) -> list:
         """Get list of available user IDs.
 
