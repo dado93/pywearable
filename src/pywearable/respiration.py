@@ -4,8 +4,6 @@ of respiration data.
 """
 
 # TODO find more efficient way to get sleep timestamps
-# TODO kwargs to pass to specific functions with aggregate function -> remove_zero with get_respiration_statistics OR see below
-# TODO remove_zero parameter specific to loader function and not for statistics
 
 import datetime
 from typing import Union
