@@ -2,6 +2,7 @@
 This module contains all the functions related to the loading of data from Labfront.
 
 """
+
 import datetime
 import os
 import re
@@ -1747,7 +1748,9 @@ class LabfrontLoader(BaseLoader):
                                 & (data[constants._ISODATE_COL] <= wakeup),
                                 constants._CALENDAR_DATE_COL,
                             ] = pd.Timestamp(
-                                calendar_date.year, calendar_date.month, calendar_date.day
+                                calendar_date.year,
+                                calendar_date.month,
+                                calendar_date.day,
                             )
                             data.loc[
                                 (data[constants._ISODATE_COL] >= bedtime)
@@ -1985,12 +1988,16 @@ class LabfrontLoader(BaseLoader):
         pd.DataFrame
             Dataframe containing Garmin Connect daily summary data.
         """
+        start_date = utils.check_date(start_date)
+        end_date = utils.check_date(end_date)
         if not start_date is None:
             new_start_date = start_date - datetime.timedelta(days=1)
+            start_date_date = start_date.date()
         else:
             new_start_date = None
         if not end_date is None:
             new_end_date = end_date + datetime.timedelta(days=1)
+            end_date_date = end_date.date()
         else:
             new_end_date = None
         data = self.get_data_from_datetime(
@@ -1999,23 +2006,22 @@ class LabfrontLoader(BaseLoader):
             new_start_date,
             new_end_date,
         )
-        start_date = datetime.datetime(
-            year=start_date.year, month=start_date.month, day=start_date.day
-        )
-        end_date = datetime.datetime(
-            year=end_date.year, month=end_date.month, day=end_date.day
-        )
         if len(data) > 0:
             data[constants._CALENDAR_DATE_COL] = pd.to_datetime(
                 data[constants._CALENDAR_DATE_COL],
                 format="%Y-%m-%d",
             )
-
-            data = data[
-                (data[constants._CALENDAR_DATE_COL] >= start_date)
-                & (data[constants._CALENDAR_DATE_COL] <= end_date)
-            ]
-
+            if (start_date is None) and (not (end_date is None)):
+                return data[data[constants._CALENDAR_DATE_COL] <= end_date_date]
+            elif (not (start_date is None)) and (end_date is None):
+                return data[data[constants._CALENDAR_DATE_COL] >= start_date_date]
+            elif (not (start_date is None)) and (not (end_date is None)):
+                return data[
+                    (data[constants._CALENDAR_DATE_COL] >= start_date_date)
+                    & (data[constants._CALENDAR_DATE_COL] <= end_date_date)
+                ]
+            else:
+                return data
         return data
 
     def load_garmin_connect_epoch(
@@ -2306,7 +2312,7 @@ class LabfrontLoader(BaseLoader):
         user_id: str,
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-        source="garmin_health_api",
+        source="health_api",
     ):
         try:
             labfront_metric = _LABFRONT_METRICS_DICT[metric][source]
@@ -2326,7 +2332,7 @@ class LabfrontLoader(BaseLoader):
         user_id: str,
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-        source="garmin_health_api",
+        source="health_api",
     ) -> pd.DataFrame:
         return self.load_metric(
             metric=constants._METRIC_HEART_RATE,
@@ -2421,7 +2427,7 @@ class LabfrontLoader(BaseLoader):
         user_id: str,
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-        source="garmin_health_api",
+        source="health_api",
     ) -> pd.DataFrame:
         return self.load_metric(
             metric=constants._METRIC_STRESS,
