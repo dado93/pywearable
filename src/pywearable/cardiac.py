@@ -1,6 +1,7 @@
 """
 This module contains all the functions related to the analysis 
-of cardiac data.
+of cardiac data, mostly for heart rate (HR) and heart rate
+variability (HRV).
 """
 
 import datetime
@@ -10,13 +11,11 @@ import numpy as np
 import pandas as pd
 from scipy import interpolate, signal
 
-import pywearable.sleep as sleep
-
-from . import constants, utils
+from . import constants, sleep, utils
 from .loader.base import BaseLoader
 
-_CARDIAC_METRIC_RESTING_HEART_RATE = "RHR"
-_CARDIAC_METRIC_MAXIMUM_HEART_RATE = "MHR"
+_CARDIAC_METRIC_RESTING_HEART_RATE = "restHR"
+_CARDIAC_METRIC_MAXIMUM_HEART_RATE = "maxHR"
 _CARDIAC_METRIC_MINIMUM_HEART_RATE = "minHR"
 _CARDIAC_METRIC_AVERAGE_HEART_RATE = "avgHR"
 _CARDIAC_METRIC_ROOT_MEAN_SQUARED_SUCCESSIVE_DIFFERENCES = "RMSSD"
@@ -54,7 +53,12 @@ def get_rest_heart_rate(
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     kind: Union[str, None] = None,
-) -> dict:
+    kind_args=(),
+    kind_kwargs={},
+    loader_kwargs={},
+    return_df: bool = True,
+    return_multi_index: bool = True,
+) -> Union[dict, pd.DataFrame]:
     """Get resting heart rate (RHR) cardiac metric.
 
     This function computes the resting heart rate metric.
@@ -85,13 +89,18 @@ def get_rest_heart_rate(
         calendar days over which the transformation was computed.
     """
 
-    return get_cardiac_statistic(
+    return get_heart_rate_statistic(
         loader=loader,
         user_id=user_id,
         metric=_CARDIAC_METRIC_RESTING_HEART_RATE,
         start_date=start_date,
         end_date=end_date,
         kind=kind,
+        kind_args=kind_args,
+        kind_kwargs=kind_kwargs,
+        loader_kwargs=loader_kwargs,
+        return_df=return_df,
+        return_multi_index=return_multi_index,
     )
 
 
@@ -100,8 +109,13 @@ def get_max_heart_rate(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    kind: Union[str, None] = None,
-) -> dict:
+    kind=None,
+    kind_args=(),
+    kind_kwargs={},
+    loader_kwargs={},
+    return_df: bool = True,
+    return_multi_index: bool = True,
+) -> Union[dict, pd.DataFrame]:
     """Get maximum heart rate (MHR) cardiac metric.
 
     This function computes the maximum heart rate metric.
@@ -139,6 +153,11 @@ def get_max_heart_rate(
         start_date=start_date,
         end_date=end_date,
         kind=kind,
+        kind_args=kind_args,
+        kind_kwargs=kind_kwargs,
+        loader_kwargs=loader_kwargs,
+        return_df=return_df,
+        return_multi_index=return_multi_index,
     )
 
 
@@ -147,7 +166,12 @@ def get_min_heart_rate(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    kind: Union[str, None] = None,
+    kind=None,
+    kind_args=(),
+    kind_kwargs={},
+    loader_kwargs={},
+    return_df: bool = True,
+    return_multi_index: bool = True,
 ) -> dict:
     """Get minimum heart rate (minHR) cardiac metric.
 
@@ -178,13 +202,18 @@ def get_min_heart_rate(
         as key and its transformed value, and an additional `days` keys that contains an array of all
         calendar days over which the transformation was computed.
     """
-    return get_cardiac_statistic(
+    return get_heart_rate_statistic(
         loader=loader,
         user_id=user_id,
         metric=_CARDIAC_METRIC_MINIMUM_HEART_RATE,
         start_date=start_date,
         end_date=end_date,
         kind=kind,
+        kind_args=kind_args,
+        kind_kwargs=kind_kwargs,
+        loader_kwargs=loader_kwargs,
+        return_df=return_df,
+        return_multi_index=return_multi_index,
     )
 
 
@@ -193,7 +222,12 @@ def get_avg_heart_rate(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    kind: Union[str, None] = None,
+    kind=None,
+    kind_args=(),
+    kind_kwargs={},
+    loader_kwargs={},
+    return_df: bool = True,
+    return_multi_index: bool = True,
 ) -> dict:
     """Get average heart rate (avgHR) cardiac metric.
 
@@ -224,333 +258,19 @@ def get_avg_heart_rate(
         as key and its transformed value, and an additional `days` keys that contains an array of all
         calendar days over which the transformation was computed.
     """
-    return get_cardiac_statistic(
+    return get_heart_rate_statistic(
         loader=loader,
         user_id=user_id,
         metric=_CARDIAC_METRIC_AVERAGE_HEART_RATE,
         start_date=start_date,
         end_date=end_date,
         kind=kind,
+        kind_args=kind_args,
+        kind_kwargs=kind_kwargs,
+        loader_kwargs=loader_kwargs,
+        return_df=return_df,
+        return_multi_index=return_multi_index,
     )
-
-
-def get_night_rmssd(
-    loader: BaseLoader,
-    user_id: Union[str, list] = "all",
-    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    kind: Union[str, None] = None,
-    coverage: float = 0.7,
-) -> dict:
-    """Computes RMSSD metric considering night data.
-
-    This function computes the root mean squared successive difference (RMSSD),
-    taking in consideration only periods where the user was asleep.
-    Depending on the value of the ``kind`` parameter, this function
-    returns the mean of RMSSD short-term (5 mins) computations overnight
-    for each calendar day (``kind=None``) from ``start_date`` to
-    ``end_date`` or the transformed value across all days.
-
-    Parameters
-    ----------
-    loader : :class:`pywearable.loader.base.BaseLoader`
-        An instance of a data loader.
-    user_id : :class:`str` or :class:`list`, optional
-        The id(s) for which RMSSD must be retrieved, by default "all".
-    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
-        Start date for data retrieval, by default None.
-    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
-        End date for data retrieval, by default None.
-    kind : :class:`str` or None, optional
-        Whether to transform RMSSD over days, or to return the value for each day, by default None.
-    coverage : :class:`float`, optional
-        The percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7.
-
-    Returns
-    -------
-    :class:`dict`
-        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (:class:`datetime.date`) as keys and RMSSD as values.
-        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `RMSSD`
-        as key and its transformed value, and an additional `days` keys that contains an array of all
-        calendar days over which the transformation was computed.
-    """
-
-    return get_cardiac_statistic(
-        loader=loader,
-        user_id=user_id,
-        metric=_CARDIAC_METRIC_ROOT_MEAN_SQUARED_SUCCESSIVE_DIFFERENCES,
-        start_date=start_date,
-        end_date=end_date,
-        kind=kind,
-        coverage=coverage,
-    )
-
-
-def get_night_sdnn(
-    loader: BaseLoader,
-    user_id: Union[str, list] = "all",
-    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    kind: Union[str, None] = None,
-    coverage: float = 0.7,
-) -> dict:
-    """Computes SDNN metric considering night data.
-
-    This function computes the standard deviation of normal to normal (SDNN) intervals,
-    taking in consideration only periods where the user was asleep.
-    Depending on the value of the ``kind`` parameter, this function
-    returns the mean of SDNN short term computations (5 mins) overnight
-    for each calendar day (``kind=None``) from ``start_date`` to
-    ``end_date`` or the transformed value across all days.
-
-    Parameters
-    ----------
-    loader : :class:`pywearable.loader.base.BaseLoader`
-        An instance of a data loader.
-    user_id : :class:`str` or :class:`list`, optional
-        The id(s) for which SDNN must be retrieved, by default "all".
-    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
-        Start date for data retrieval, by default None.
-    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
-        End date for data retrieval, by default None.
-    kind : :class:`str` or None, optional
-        Whether to transform SDNN over days, or to return the value for each day, by default None.
-    coverage : :class:`float`, optional
-        The percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7.
-
-    Returns
-    -------
-    :class:`dict`
-        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (:class:`datetime.date`) as keys and SDNN as values.
-        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `SDNN`
-        as key and its transformed value, and an additional `days` keys that contains an array of all
-        calendar days over which the transformation was computed.
-    """
-
-    return get_cardiac_statistic(
-        loader=loader,
-        user_id=user_id,
-        metric=_CARDIAC_METRIC_STANDARD_DEVIATION_NORMAL_TO_NORMAL,
-        start_date=start_date,
-        end_date=end_date,
-        kind=kind,
-        coverage=coverage,
-    )
-
-
-def get_night_lf(
-    loader: BaseLoader,
-    user_id: Union[str, list] = "all",
-    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    kind: Union[str, None] = None,
-    coverage: float = 0.7,
-) -> dict:
-    """Compute LF power metrics considering night data.
-
-    This function computes the low frequency (LF, 0.04Hz - 0.15Hz) power,
-    taking in consideration only periods where the user was asleep.
-    Depending on the value of the ``kind`` parameter, this function
-    returns the mean of LF short-term (5 mins) computations overnight
-    for each calendar day (``kind=None``) from ``start_date`` to
-    ``end_date`` or the transformed value across all days.
-
-    Parameters
-    ----------
-    loader : :class:`pywearable.loader.base.BaseLoader`
-        An instance of a data loader.
-    user_id : :class:`str` or :class:`list`, optional
-        The id(s) for which LF must be retrieved, by default "all".
-    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
-        Start date for data retrieval, by default None.
-    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
-        End date for data retrieval, by default None.
-    kind : :class:`str` or None, optional
-        Whether to transform LF over days, or to return the value for each day, by default None.
-    coverage : :class:`float`, optional
-        The percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7.
-
-    Returns
-    -------
-    :class:`dict`
-        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (:class:`datetime.date`) as keys and LF as values.
-        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `LF`
-        as key and its transformed value, and an additional `days` keys that contains an array of all
-        calendar days over which the transformation was computed.
-    """
-    return get_cardiac_statistic(
-        loader=loader,
-        user_id=user_id,
-        metric=_CARDIAC_METRIC_LOW_FREQUENCY,
-        start_date=start_date,
-        end_date=end_date,
-        kind=kind,
-        coverage=coverage,
-    )
-
-
-def get_night_hf(
-    loader: BaseLoader,
-    user_id: Union[str, list] = "all",
-    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    kind: Union[str, None] = None,
-    coverage: float = 0.7,
-) -> dict:
-    """Compute HF power metrics considering night data.
-
-    This function computes the low frequency (HF, 0.15Hz - 0.4Hz) power,
-    taking in consideration only periods where the user was asleep.
-    Depending on the value of the ``kind`` parameter, this function
-    returns the mean of HF short-term (5 mins) computations overnight
-    for each calendar day (``kind=None``) from ``start_date`` to
-    ``end_date`` or the transformed value across all days.
-
-    Parameters
-    ----------
-    loader : :class:`pywearable.loader.base.BaseLoader`
-        An instance of a data loader.
-    user_id : :class:`str` or :class:`list`, optional
-        The id(s) for which HF must be retrieved, by default "all".
-    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
-        Start date for data retrieval, by default None.
-    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
-        End date for data retrieval, by default None.
-    kind : :class:`str` or None, optional
-        Whether to transform HF over days, or to return the value for each day, by default None.
-    coverage : :class:`float`, optional
-        The percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7.
-
-    Returns
-    -------
-    :class:`dict`
-        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (:class:`datetime.date`) as keys and HF as values.
-        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `HF`
-        as key and its transformed value, and an additional `days` keys that contains an array of all
-        calendar days over which the transformation was computed.
-    """
-
-    return get_cardiac_statistic(
-        loader=loader,
-        user_id=user_id,
-        metric=_CARDIAC_METRIC_HIGH_FREQUENCY,
-        start_date=start_date,
-        end_date=end_date,
-        kind=kind,
-        coverage=coverage,
-    )
-
-
-def get_night_lfhf(
-    loader: BaseLoader,
-    user_id: Union[str, list] = "all",
-    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    kind: Union[str, None] = None,
-    coverage: float = 0.7,
-) -> dict:
-    """Compute LF/HF power ratio metrics considering night data.
-
-    This function computes the ratio between low frequency (LF) and high frequency (HF) power,
-    taking in consideration only periods where the user was asleep.
-    Depending on the value of the ``kind`` parameter, this function
-    returns the mean of LFHF short-term (5 mins) computations overnight
-    for each calendar day (``kind=None``) from ``start_date`` to
-    ``end_date`` or the transformed value across all days.
-
-    Parameters
-    ----------
-    loader : :class:`pywearable.loader.base.BaseLoader`
-        An instance of a data loader.
-    user_id : :class:`str` or :class:`list`, optional
-        The id(s) for which LFHF must be retrieved, by default "all".
-    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
-        Start date for data retrieval, by default None.
-    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
-        End date for data retrieval, by default None.
-    kind : :class:`str` or None, optional
-        Whether to transform LFHF over days, or to return the value for each day, by default None.
-    coverage : :class:`float`, optional
-        The percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7.
-
-    Returns
-    -------
-    :class:`dict`
-        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (:class:`datetime.date`) as keys and LFHF as values.
-        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `LFHF`
-        as key and its transformed value, and an additional `days` keys that contains an array of all
-        calendar days over which the transformation was computed.
-    """
-
-    return get_cardiac_statistic(
-        loader=loader,
-        user_id=user_id,
-        metric=_CARDIAC_METRIC_LOW_HIGH_FREQUENCY_RATIO,
-        start_date=start_date,
-        end_date=end_date,
-        kind=kind,
-        coverage=coverage,
-    )
-
-
-def _compute_hr_statistic(daily_summary: pd.DataFrame, metric: str, **kwargs) -> dict:
-    """Computes a HR statistic at a daily level
-
-    This function computes a specific statistic for
-    the heart rate data available at daily level.
-
-    Parameters
-    ----------
-    daily_summary : :class:`pd.DataFrame`
-        Daily summary data.
-    metric : :class:`str`
-        Name of the statistic to be computed
-
-    Returns
-    -------
-    :class:`dict`
-        dictionary with ``user_id`` as primary key, and a nested dictionary with
-        calendar days (:class:`datetime.date`) as keys and the cardiac metric as values.
-
-     Raises
-    ------
-    ValueError
-        If `daily_summary` is not a :class:`pd.DataFrame`.
-    ValueError
-        if `metric` isn't one of "RHR","MHR", "minHR","avgHR".
-    """
-
-    if not isinstance(daily_summary, pd.DataFrame):
-        raise ValueError(
-            f"sleep_summary must be a pd.DataFrame. {type(daily_summary)} is not a valid type."
-        )
-
-    if len(daily_summary) == 0:
-        return {}
-
-    if metric == _CARDIAC_METRIC_RESTING_HEART_RATE:
-        col = constants._RESTING_HR_COLUMN
-    elif metric == _CARDIAC_METRIC_MAXIMUM_HEART_RATE:
-        col = constants._MAX_HR_COLUMN
-    elif metric == _CARDIAC_METRIC_MINIMUM_HEART_RATE:
-        col = constants._MIN_HR_COLUMN
-    elif metric == _CARDIAC_METRIC_AVERAGE_HEART_RATE:
-        col = constants._AVG_HR_COLUMN
-    else:
-        raise ValueError(
-            f"{metric} is not a valid value. Select among {_CARDIAC_HR_STATISTICS}"
-        )
-    statistic_dict = pd.Series(
-        daily_summary[col].values,
-        index=daily_summary[constants._CALENDAR_DATE_COL],
-    ).to_dict()
-
-    return statistic_dict
 
 
 def _compute_resting_heart_rate(daily_summary: pd.DataFrame, **kwargs) -> dict:
@@ -623,6 +343,509 @@ def _compute_average_heart_rate(daily_summary: pd.DataFrame, **kwargs) -> dict:
     return _compute_hr_statistic(
         daily_summary=daily_summary, metric=_CARDIAC_METRIC_AVERAGE_HEART_RATE
     )
+
+
+_HEART_RATE_STATISTICS_DICT = {
+    _CARDIAC_METRIC_RESTING_HEART_RATE: _compute_resting_heart_rate,
+    _CARDIAC_METRIC_MAXIMUM_HEART_RATE: _compute_maximum_heart_rate,
+    _CARDIAC_METRIC_MINIMUM_HEART_RATE: _compute_minimum_heart_rate,
+    _CARDIAC_METRIC_AVERAGE_HEART_RATE: _compute_average_heart_rate,
+}
+
+
+def get_heart_rate_statistic(
+    loader: BaseLoader,
+    statistic: str,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind=None,
+    kind_args: list = [],
+    kind_kwargs: dict = {},
+    loader_kwargs: dict = {},
+    return_df: bool = True,
+    return_multi_index: bool = True,
+):
+    return get_heart_rate_statistics(
+        loader=loader,
+        statistic=statistic,
+        user_id=user_id,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
+        kind_args=kind_args,
+        kind_kwargs=kind_kwargs,
+        loader_kwargs=loader_kwargs,
+        return_df=return_df,
+        return_multi_index=return_multi_index,
+    )
+
+
+def get_heart_rate_statistics(
+    loader: BaseLoader,
+    statistic: Union[str, list, tuple, None] = None,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind=None,
+    kind_args: list = [],
+    kind_kwargs: dict = {},
+    loader_kwargs: dict = {},
+    return_df: bool = True,
+    return_multi_index: bool = True,
+):
+    # Get user id from the loader
+    user_id = utils.get_user_ids(loader, user_id)
+    # Convert to datetime
+    start_date = utils.check_date(start_date)
+    end_date = utils.check_date(end_date)
+    # Extend range to account for sleep start in prev day and ending next day
+    if not (start_date is None):
+        ext_start_date = start_date - datetime.timedelta(days=1)
+    else:
+        ext_start_date = None
+    if not (end_date is None):
+        ext_end_date = end_date + datetime.timedelta(days=1)
+    else:
+        ext_end_date = None
+    # Check metrics
+    if statistic is None:
+        # Consider all metrics
+        statistics = list(_HEART_RATE_STATISTICS_DICT.keys())
+    elif type(statistic) == str:
+        statistics = [statistic]
+
+    # Check args and kwargs
+    if type(kind_args) != list:
+        raise ValueError(f"kind_args must be an iterable, not {type(kind_args)}")
+    if type(kind_kwargs) != dict:
+        raise ValueError(f"kind_kwargs must be of type dict, not {type(kind_kwargs)}")
+    if type(loader_kwargs) != dict:
+        raise ValueError(
+            f"loader_kwargs must be of type dict, not {type(loader_kwargs)}"
+        )
+    both_dates_valid = False
+    if (not (start_date is None)) and (not (end_date is None)):
+        # Let's set up a dataframe in which we will store all the data
+        date_periods = pd.date_range(start_date, end_date, freq="D")
+        multi_index = pd.MultiIndex.from_product(
+            [user_id, date_periods],
+            names=[constants._USER_COL, constants._CALENDAR_DATE_COL],
+        )
+        heart_rate_stats_df = pd.DataFrame(index=multi_index, columns=metrics)
+        both_dates_valid = True
+    else:
+        # Set up a standard df and we will populate it later with indexes
+        heart_rate_stats_df = pd.DataFrame()
+    for user in user_id:
+        if not (both_dates_valid):
+            user_heart_rate_stats_df = pd.DataFrame()
+        daily_summary = loader.load_daily_summary(
+            user_id=user,
+            start_date=ext_start_date,
+            end_date=ext_end_date,
+            **loader_kwargs,
+        )
+        if len(daily_summary) > 0:
+            # Get only data with calendar date between start and end date and reset index
+            if not (start_date is None):
+                daily_summary = daily_summary[
+                    daily_summary[constants._CALENDAR_DATE_COL] >= start_date
+                ].reset_index(drop=True)
+            if not (end_date is None):
+                daily_summary = daily_summary[
+                    daily_summary[constants._CALENDAR_DATE_COL] <= end_date
+                ].reset_index(drop=True)
+            for statistic in statistics:
+                # Get series with metrics by calendarDate
+                ser = _HEART_RATE_STATISTICS_DICT[statistic](
+                    daily_summary=daily_summary
+                )
+                if both_dates_valid:
+                    heart_rate_stats_df.loc[(user, ser.index), statistic] = ser.values
+                else:
+                    if len(ser) > 0:
+                        min_date = ser.index.min() if start_date is None else start_date
+                        max_date = ser.index.max() if end_date is None else end_date
+                        user_date_range = pd.date_range(min_date, max_date, freq="D")
+                        ser = ser.reindex(user_date_range)
+                        # We have different dates based on user
+                        ser = ser.set_axis(
+                            pd.MultiIndex.from_product(
+                                [[user], user_date_range],
+                                names=[
+                                    constants._USER_COL,
+                                    constants._CALENDAR_DATE_COL,
+                                ],
+                            )
+                        ).rename(statistic)
+                        if len(user_heart_rate_stats_df) == 0:
+                            # Empty df, first metric
+                            user_heart_rate_stats_df = ser.to_frame()
+                        else:
+                            user_heart_rate_stats_df = pd.merge(
+                                user_heart_rate_stats_df,
+                                ser,
+                                left_index=True,
+                                right_index=True,
+                                how="outer",
+                            )
+            if not both_dates_valid:
+                heart_rate_stats_df = pd.concat(
+                    (heart_rate_stats_df, user_heart_rate_stats_df)
+                )
+    # Perform kind operation by user
+    if not (kind is None):
+        heart_rate_stats_df = heart_rate_stats_df.groupby(
+            level=constants._USER_COL
+        ).agg(kind, *kind_args, **kind_kwargs)
+        if return_df:
+            return heart_rate_stats_df
+        else:
+            return heart_rate_stats_df.to_dict(orient="index")
+    # Return based on settings
+    return utils.return_multiindex_df(
+        heart_rate_stats_df, return_df, return_multi_index
+    )
+
+
+def get_night_rmssd(
+    loader: BaseLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    coverage: float = 0.7,
+    kind=None,
+    kind_args: list = [],
+    kind_kwargs: dict = {},
+    loader_kwargs: dict = {},
+    return_df: bool = True,
+    return_multi_index: bool = True,
+) -> dict:
+    """Computes RMSSD metric considering night data.
+
+    This function computes the root mean squared successive difference (RMSSD),
+    taking in consideration only periods where the user was asleep.
+    Depending on the value of the ``kind`` parameter, this function
+    returns the mean of RMSSD short-term (5 mins) computations overnight
+    for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days.
+
+    Parameters
+    ----------
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        An instance of a data loader.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) for which RMSSD must be retrieved, by default "all".
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None.
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None.
+    kind : :class:`str` or None, optional
+        Whether to transform RMSSD over days, or to return the value for each day, by default None.
+    coverage : :class:`float`, optional
+        The percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7.
+
+    Returns
+    -------
+    :class:`dict`
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and RMSSD as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `RMSSD`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
+    """
+
+    return get_hrv_statistic(
+        loader=loader,
+        user_id=user_id,
+        metric=_CARDIAC_METRIC_ROOT_MEAN_SQUARED_SUCCESSIVE_DIFFERENCES,
+        start_date=start_date,
+        end_date=end_date,
+        coverage=coverage,
+        kind=kind,
+        kind_args=kind_args,
+        kind_kwargs=kind_kwargs,
+        loader_kwargs=loader_kwargs,
+        return_df=return_df,
+        return_multi_index=return_multi_index,
+    )
+
+
+def get_night_sdnn(
+    loader: BaseLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    coverage: float = 0.7,
+    kind=None,
+    kind_args: list = [],
+    kind_kwargs: dict = {},
+    loader_kwargs: dict = {},
+    return_df: bool = True,
+    return_multi_index: bool = True,
+) -> dict:
+    """Computes SDNN metric considering night data.
+
+    This function computes the standard deviation of normal to normal (SDNN) intervals,
+    taking in consideration only periods where the user was asleep.
+    Depending on the value of the ``kind`` parameter, this function
+    returns the mean of SDNN short term computations (5 mins) overnight
+    for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days.
+
+    Parameters
+    ----------
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        An instance of a data loader.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) for which SDNN must be retrieved, by default "all".
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None.
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None.
+    kind : :class:`str` or None, optional
+        Whether to transform SDNN over days, or to return the value for each day, by default None.
+    coverage : :class:`float`, optional
+        The percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7.
+
+    Returns
+    -------
+    :class:`dict`
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and SDNN as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `SDNN`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
+    """
+
+    return get_hrv_statistic(
+        loader=loader,
+        user_id=user_id,
+        metric=_CARDIAC_METRIC_STANDARD_DEVIATION_NORMAL_TO_NORMAL,
+        start_date=start_date,
+        end_date=end_date,
+        coverage=coverage,
+        kind=kind,
+        kind_args=kind_args,
+        kind_kwargs=kind_kwargs,
+        loader_kwargs=loader_kwargs,
+        return_df=return_df,
+        return_multi_index=return_multi_index,
+    )
+
+
+def get_night_lf(
+    loader: BaseLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind: Union[str, None] = None,
+    coverage: float = 0.7,
+) -> dict:
+    """Compute LF power metrics considering night data.
+
+    This function computes the low frequency (LF, 0.04Hz - 0.15Hz) power,
+    taking in consideration only periods where the user was asleep.
+    Depending on the value of the ``kind`` parameter, this function
+    returns the mean of LF short-term (5 mins) computations overnight
+    for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days.
+
+    Parameters
+    ----------
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        An instance of a data loader.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) for which LF must be retrieved, by default "all".
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None.
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None.
+    kind : :class:`str` or None, optional
+        Whether to transform LF over days, or to return the value for each day, by default None.
+    coverage : :class:`float`, optional
+        The percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7.
+
+    Returns
+    -------
+    :class:`dict`
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and LF as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `LF`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
+    """
+    return get_hrv_statistic(
+        loader=loader,
+        user_id=user_id,
+        metric=_CARDIAC_METRIC_LOW_FREQUENCY,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
+        coverage=coverage,
+    )
+
+
+def get_night_hf(
+    loader: BaseLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind: Union[str, None] = None,
+    coverage: float = 0.7,
+) -> dict:
+    """Compute HF power metrics considering night data.
+
+    This function computes the low frequency (HF, 0.15Hz - 0.4Hz) power,
+    taking in consideration only periods where the user was asleep.
+    Depending on the value of the ``kind`` parameter, this function
+    returns the mean of HF short-term (5 mins) computations overnight
+    for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days.
+
+    Parameters
+    ----------
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        An instance of a data loader.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) for which HF must be retrieved, by default "all".
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None.
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None.
+    kind : :class:`str` or None, optional
+        Whether to transform HF over days, or to return the value for each day, by default None.
+    coverage : :class:`float`, optional
+        The percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7.
+
+    Returns
+    -------
+    :class:`dict`
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and HF as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `HF`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
+    """
+
+    return get_hrv_statistic(
+        loader=loader,
+        user_id=user_id,
+        metric=_CARDIAC_METRIC_HIGH_FREQUENCY,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
+        coverage=coverage,
+    )
+
+
+def get_night_lfhf(
+    loader: BaseLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind: Union[str, None] = None,
+    coverage: float = 0.7,
+) -> dict:
+    """Compute LF/HF power ratio metrics considering night data.
+
+    This function computes the ratio between low frequency (LF) and high frequency (HF) power,
+    taking in consideration only periods where the user was asleep.
+    Depending on the value of the ``kind`` parameter, this function
+    returns the mean of LFHF short-term (5 mins) computations overnight
+    for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days.
+
+    Parameters
+    ----------
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        An instance of a data loader.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) for which LFHF must be retrieved, by default "all".
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None.
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None.
+    kind : :class:`str` or None, optional
+        Whether to transform LFHF over days, or to return the value for each day, by default None.
+    coverage : :class:`float`, optional
+        The percentage of expected bbi observations for a period to be considered in the analysis, by default 0.7.
+
+    Returns
+    -------
+    :class:`dict`
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and LFHF as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `LFHF`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
+    """
+
+    return get_hrv_statistic(
+        loader=loader,
+        user_id=user_id,
+        metric=_CARDIAC_METRIC_LOW_HIGH_FREQUENCY_RATIO,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
+        coverage=coverage,
+    )
+
+
+def _compute_hr_statistic(daily_summary: pd.DataFrame, metric: str, **kwargs) -> dict:
+    """Computes a HR statistic at a daily level
+
+    This function computes a specific statistic for
+    the heart rate data available at daily level.
+
+    Parameters
+    ----------
+    daily_summary : :class:`pd.DataFrame`
+        Daily summary data.
+    metric : :class:`str`
+        Name of the statistic to be computed
+
+    Returns
+    -------
+    :class:`dict`
+        dictionary with ``user_id`` as primary key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and the cardiac metric as values.
+
+     Raises
+    ------
+    ValueError
+        If `daily_summary` is not a :class:`pd.DataFrame`.
+    ValueError
+        if `metric` isn't one of "RHR","MHR", "minHR","avgHR".
+    """
+
+    if not isinstance(daily_summary, pd.DataFrame):
+        raise ValueError(
+            f"sleep_summary must be a pd.DataFrame. {type(daily_summary)} is not a valid type."
+        )
+
+    if len(daily_summary) == 0:
+        return {}
+
+    if metric == _CARDIAC_METRIC_RESTING_HEART_RATE:
+        col = constants._RESTING_HR_COLUMN
+    elif metric == _CARDIAC_METRIC_MAXIMUM_HEART_RATE:
+        col = constants._MAX_HR_COLUMN
+    elif metric == _CARDIAC_METRIC_MINIMUM_HEART_RATE:
+        col = constants._MIN_HR_COLUMN
+    elif metric == _CARDIAC_METRIC_AVERAGE_HEART_RATE:
+        col = constants._AVG_HR_COLUMN
+    else:
+        raise ValueError(
+            f"{metric} is not a valid value. Select among {_CARDIAC_HR_STATISTICS}"
+        )
+    statistic_dict = pd.Series(
+        daily_summary[col].values,
+        index=daily_summary[constants._CALENDAR_DATE_COL],
+    )
+
+    return statistic_dict
 
 
 def _compute_hrv_statistic(
@@ -730,10 +953,11 @@ def _compute_hrv_statistic(
                 # it's not the same as computing the ratio of the mean LF and mean HF over a night
                 # if one wants the latter, it should be done as post processing by getting LF and HF overnight metrics
                 ST_analysis = bbi_df.resample("5min").bbi.apply(
-                    lambda x: calculate_power(x, LF_range)
-                    / calculate_power(x, HF_range)
-                    if x.count() > 5
-                    else 0
+                    lambda x: (
+                        calculate_power(x, LF_range) / calculate_power(x, HF_range)
+                        if x.count() > 5
+                        else 0
+                    )
                 )
         else:
             raise ValueError(
@@ -854,6 +1078,39 @@ def _compute_lfhf(bbi_dict: dict, coverage: float = 0.7, **kwargs) -> dict:
         metric=_CARDIAC_METRIC_LOW_HIGH_FREQUENCY_RATIO,
         coverage=coverage,
     )
+
+
+def get_hrv_statistic(
+    loader: BaseLoader,
+    statistic: str,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    coverage: float = 0.7,
+    kind=None,
+    kind_args: list = [],
+    kind_kwargs: dict = {},
+    loader_kwargs: dict = {},
+    return_df: bool = True,
+    return_multi_index: bool = True,
+):
+    pass
+
+
+def get_hrv_statistics(
+    loader: BaseLoader,
+    statistic: str,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind=None,
+    kind_args: list = [],
+    kind_kwargs: dict = {},
+    loader_kwargs: dict = {},
+    return_df: bool = True,
+    return_multi_index: bool = True,
+):
+    pass
 
 
 _CARDIAC_STATISTIC_DICT = {
