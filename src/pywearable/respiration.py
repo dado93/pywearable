@@ -659,6 +659,10 @@ def get_rest_pulse_ox_statistics(
         rest_pulse_ox_stat_df = rest_pulse_ox_stat_df.groupby(
             level=constants._USER_COL
         ).agg(kind, *kind_args, **kind_kwargs)
+        if return_df:
+            return rest_pulse_ox_stat_df
+        else:
+            return rest_pulse_ox_stat_df.to_dict(orient="index")
     # Return based on settings
     return utils.return_multiindex_df(
         rest_pulse_ox_stat_df, return_df, return_multi_index
@@ -989,6 +993,10 @@ def get_breaths_per_minute_statistics(
         breaths_per_minute_stats_df = breaths_per_minute_stats_df.groupby(
             level="user"
         ).agg(kind, *kind_args, **kind_kwargs)
+        if return_df:
+            return breaths_per_minute_stats_df
+        else:
+            return breaths_per_minute_stats_df.to_dict(orient="index")
     return utils.return_multiindex_df(
         breaths_per_minute_stats_df, return_df, return_multi_index
     )
@@ -1071,6 +1079,8 @@ def get_respiration_statistics(
         left_index=True,
         how="outer",
     )
+    if (not (kind is None)) and (not (return_df)):
+        return respiration_statistics_df.to_dict(orient="index")
     return utils.return_multiindex_df(
         respiration_statistics_df, return_df, return_multi_index
     )
