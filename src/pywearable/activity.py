@@ -463,23 +463,11 @@ def get_daily_distance(
     if end_date is None:
         end_date = datetime.datetime.now()
     for id in user_ids:
-        participant_epochs = loader.load_garmin_connect_epoch(
-            id,
-            start_date,
-            end_date
-            + datetime.timedelta(hours=23, minutes=45),  # TODO check if correct
-        )
-        if len(participant_epochs) > 0:
-            participant_epochs[
+        participant_daily_summary = loader.load_daily_summary(id, start_date, end_date)
+        if len(participant_daily_summary) > 0:
+            participant_daily_summary = participant_daily_summary.groupby(
                 constants._DAILY_SUMMARY_CALENDAR_DATE_COL
-            ] = participant_epochs[constants._ISODATE_COL].apply(lambda x: x.date())
-            participant_daily_summary = (
-                participant_epochs.groupby(constants._DAILY_SUMMARY_CALENDAR_DATE_COL)[
-                    constants._DAILY_SUMMARY_DISTANCE_COL
-                ]
-                .sum()
-                .reset_index()
-            )
+            ).tail(1)
             if average:
                 data_dict[id] = int(
                     participant_daily_summary[
@@ -493,12 +481,12 @@ def get_daily_distance(
                     ].values,
                     index=participant_daily_summary[
                         constants._DAILY_SUMMARY_CALENDAR_DATE_COL
-                    ],
+                    ].dt.date,
                 ).to_dict()
         else:
             data_dict[id] = None
-
-    return data_dict
+        
+        return data_dict
 
 
 def get_daily_steps_goal(
