@@ -14,6 +14,11 @@ from scipy import interpolate, signal
 from . import constants, sleep, utils
 from .loader.base import BaseLoader
 
+# TODO Helper function that performs statistics computation
+#   Inputs:
+#       - loading function
+#       - metrics
+
 _CARDIAC_METRIC_RESTING_HEART_RATE = "restHR"
 _CARDIAC_METRIC_MAXIMUM_HEART_RATE = "maxHR"
 _CARDIAC_METRIC_MINIMUM_HEART_RATE = "minHR"
@@ -432,7 +437,7 @@ def get_heart_rate_statistics(
             [user_id, date_periods],
             names=[constants._USER_COL, constants._CALENDAR_DATE_COL],
         )
-        heart_rate_stats_df = pd.DataFrame(index=multi_index, columns=metrics)
+        heart_rate_stats_df = pd.DataFrame(index=multi_index, columns=statistics)
         both_dates_valid = True
     else:
         # Set up a standard df and we will populate it later with indexes
@@ -1094,7 +1099,20 @@ def get_hrv_statistic(
     return_df: bool = True,
     return_multi_index: bool = True,
 ):
-    pass
+    return get_hrv_statistics(
+        loader=loader,
+        statistic=statistic,
+        user_id=user_id,
+        start_date=start_date,
+        end_date=end_date,
+        coverage=coverage,
+        kind=kind,
+        kind_args=kind_args,
+        kind_kwargs=kind_kwargs,
+        loader_kwargs=loader_kwargs,
+        return_df=return_df,
+        return_multi_index=return_multi_index,
+    )
 
 
 def get_hrv_statistics(
