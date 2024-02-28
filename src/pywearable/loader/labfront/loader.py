@@ -1992,12 +1992,16 @@ class LabfrontLoader(BaseLoader):
         end_date = utils.check_date(end_date)
         if not start_date is None:
             new_start_date = start_date - datetime.timedelta(days=1)
-            start_date_date = start_date.date()
+            start_date_date = datetime.datetime.combine(
+                start_date.date(), datetime.time(0, 0, 0)
+            )
         else:
             new_start_date = None
         if not end_date is None:
             new_end_date = end_date + datetime.timedelta(days=1)
-            end_date_date = end_date.date()
+            end_date_date = datetime.datetime.combine(
+                end_date.date(), datetime.time(0, 0, 0)
+            )
         else:
             new_end_date = None
         data = self.get_data_from_datetime(
