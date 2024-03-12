@@ -21,6 +21,8 @@ from .loader.base import BaseLoader
 
 # TODO Use heart-rate to compute heart rate statistics,
 # not the daily-summary
+# TODO heart rate variability fix start_date end_date datetime
+
 _CARDIAC_METRIC_RESTING_HEART_RATE = "restHR"
 _CARDIAC_METRIC_MAXIMUM_HEART_RATE = "maxHR"
 _CARDIAC_METRIC_MINIMUM_HEART_RATE = "minHR"
@@ -280,7 +282,7 @@ def get_avg_heart_rate(
     )
 
 
-def _compute_resting_heart_rate(daily_summary: pd.DataFrame, **kwargs) -> dict:
+def _compute_resting_heart_rate(heart_rate: pd.DataFrame, **kwargs) -> dict:
     """Compute RHR from daily summaries.
 
     Parameters
@@ -294,11 +296,11 @@ def _compute_resting_heart_rate(daily_summary: pd.DataFrame, **kwargs) -> dict:
         A dictionary with daily RHR as values, and calendar dates as keys.
     """
     return _compute_hr_statistic(
-        daily_summary=daily_summary, metric=_CARDIAC_METRIC_RESTING_HEART_RATE
+        heart_rate=heart_rate, statistic=_CARDIAC_METRIC_RESTING_HEART_RATE
     )
 
 
-def _compute_maximum_heart_rate(daily_summary: pd.DataFrame, **kwargs) -> dict:
+def _compute_maximum_heart_rate(heart_rate: pd.DataFrame, **kwargs) -> dict:
     """Compute MHR from daily summaries.
 
     Parameters
@@ -312,11 +314,11 @@ def _compute_maximum_heart_rate(daily_summary: pd.DataFrame, **kwargs) -> dict:
         A dictionary with daily MHR as values, and calendar dates as keys.
     """
     return _compute_hr_statistic(
-        daily_summary=daily_summary, metric=_CARDIAC_METRIC_MAXIMUM_HEART_RATE
+        heart_rate=heart_rate, statistic=_CARDIAC_METRIC_MAXIMUM_HEART_RATE
     )
 
 
-def _compute_minimum_heart_rate(daily_summary: pd.DataFrame, **kwargs) -> dict:
+def _compute_minimum_heart_rate(heart_rate: pd.DataFrame, **kwargs) -> dict:
     """Compute minHR from daily summaries.
 
     Parameters
@@ -330,11 +332,11 @@ def _compute_minimum_heart_rate(daily_summary: pd.DataFrame, **kwargs) -> dict:
         A dictionary with daily minHR as values, and calendar dates as keys.
     """
     return _compute_hr_statistic(
-        daily_summary=daily_summary, metric=_CARDIAC_METRIC_MINIMUM_HEART_RATE
+        heart_rate=heart_rate, statistic=_CARDIAC_METRIC_MINIMUM_HEART_RATE
     )
 
 
-def _compute_average_heart_rate(daily_summary: pd.DataFrame, **kwargs) -> dict:
+def _compute_average_heart_rate(heart_rate: pd.DataFrame, **kwargs) -> dict:
     """Compute avgHR from daily summaries.
 
     Parameters
@@ -348,8 +350,73 @@ def _compute_average_heart_rate(daily_summary: pd.DataFrame, **kwargs) -> dict:
         A dictionary with daily avgHR as values, and calendar dates as keys.
     """
     return _compute_hr_statistic(
-        daily_summary=daily_summary, metric=_CARDIAC_METRIC_AVERAGE_HEART_RATE
+        heart_rate=heart_rate, statistic=_CARDIAC_METRIC_AVERAGE_HEART_RATE
     )
+
+
+def _compute_hr_statistic(
+    heart_rate: pd.DataFrame, statistic: str, **kwargs
+) -> pd.Series:
+    """Computes a heart rate statistics on a daily basis.
+
+    This function computes a specific statistic for
+    the heart rate data available at a daily basis.
+
+    Parameters
+    ----------
+    heart_rate : :class:`pd.DataFrame`
+        Heart rate data.
+    statistic : :class:`str`
+        Name of the statistic to be computed
+
+    Returns
+    -------
+    :class:`dict`
+        dictionary with ``user_id`` as primary key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and the cardiac metric as values.
+
+     Raises
+    ------
+    ValueError
+        If `daily_summary` is not a :class:`pd.DataFrame`.
+    ValueError
+        if `metric` isn't one of "RHR","MHR", "minHR","avgHR".
+    """
+
+    if not isinstance(heart_rate, pd.DataFrame):
+        raise ValueError(
+            f"heart_rate must be a pd.DataFrame. {type(heart_rate)} is not a valid type."
+        )
+
+    if len(heart_rate) == 0:
+        return {}
+    if constants._ISODATE_COL in heart_rate.columns:
+        heart_rate[constants._CALENDAR_DATE_COL] = pd.to_datetime(
+            heart_rate[constants._ISODATE_COL].dt.date
+        )
+    if statistic == _CARDIAC_METRIC_RESTING_HEART_RATE:
+        # Set iso date as index
+        heart_rate = heart_rate.set_index(constants._ISODATE_COL)
+        mean_hr = heart_rate.resample("30Min", label="left")[
+            constants._HR_COLUMN
+        ].mean()
+        return mean_hr.resample("1d").min().round(0)
+    else:
+        if statistic == _CARDIAC_METRIC_MAXIMUM_HEART_RATE:
+            fn = "max"
+        elif statistic == _CARDIAC_METRIC_MINIMUM_HEART_RATE:
+            fn = "min"
+        elif statistic == _CARDIAC_METRIC_AVERAGE_HEART_RATE:
+            fn = "mean"
+        else:
+            raise ValueError(
+                f"{statistic} is not a valid value. Select among {_CARDIAC_HR_STATISTICS}"
+            )
+        return (
+            heart_rate.groupby(constants._CALENDAR_DATE_COL)[constants._HR_COLUMN]
+            .agg(fn)
+            .round(0)
+        )
 
 
 _HEART_RATE_STATISTICS_DICT = {
@@ -407,14 +474,6 @@ def get_heart_rate_statistics(
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
 
-    if not (start_date is None):
-        ext_start_date = start_date - datetime.timedelta(days=1)
-    else:
-        ext_start_date = None
-    if not (end_date is None):
-        ext_end_date = end_date + datetime.timedelta(days=1)
-    else:
-        ext_end_date = None
     # Check metrics
     if statistic is None:
         # Consider all metrics
@@ -434,7 +493,11 @@ def get_heart_rate_statistics(
     both_dates_valid = False
     if (not (start_date is None)) and (not (end_date is None)):
         # Let's set up a dataframe in which we will store all the data
-        date_periods = pd.date_range(start_date, end_date, freq="D")
+        start_date_in_date = start_date.replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        end_date_in_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        date_periods = pd.date_range(start_date_in_date, end_date_in_date, freq="D")
         multi_index = pd.MultiIndex.from_product(
             [user_id, date_periods],
             names=[constants._USER_COL, constants._CALENDAR_DATE_COL],
@@ -447,27 +510,17 @@ def get_heart_rate_statistics(
     for user in user_id:
         if not (both_dates_valid):
             user_heart_rate_stats_df = pd.DataFrame()
-        daily_summary = loader.load_daily_summary(
+        heart_rate = loader.load_heart_rate(
             user_id=user,
-            start_date=ext_start_date,
-            end_date=ext_end_date,
+            start_date=start_date,
+            end_date=end_date,
             **loader_kwargs,
         )
-        if len(daily_summary) > 0:
+        if len(heart_rate) > 0:
             # Get only data with calendar date between start and end date and reset index
-            if not (start_date is None):
-                daily_summary = daily_summary[
-                    daily_summary[constants._CALENDAR_DATE_COL] >= start_date
-                ].reset_index(drop=True)
-            if not (end_date is None):
-                daily_summary = daily_summary[
-                    daily_summary[constants._CALENDAR_DATE_COL] <= end_date
-                ].reset_index(drop=True)
             for statistic in statistics:
                 # Get series with metrics by calendarDate
-                ser = _HEART_RATE_STATISTICS_DICT[statistic](
-                    daily_summary=daily_summary
-                ).astype("float")
+                ser = _HEART_RATE_STATISTICS_DICT[statistic](heart_rate=heart_rate)
                 if both_dates_valid:
                     heart_rate_stats_df.loc[(user, ser.index), statistic] = ser.values
                 else:
@@ -835,61 +888,6 @@ def get_night_lfhf(
         return_df=return_df,
         return_multi_index=return_multi_index,
     )
-
-
-def _compute_hr_statistic(daily_summary: pd.DataFrame, metric: str, **kwargs) -> dict:
-    """Computes a HR statistic at a daily level
-
-    This function computes a specific statistic for
-    the heart rate data available at daily level.
-
-    Parameters
-    ----------
-    daily_summary : :class:`pd.DataFrame`
-        Daily summary data.
-    metric : :class:`str`
-        Name of the statistic to be computed
-
-    Returns
-    -------
-    :class:`dict`
-        dictionary with ``user_id`` as primary key, and a nested dictionary with
-        calendar days (:class:`datetime.date`) as keys and the cardiac metric as values.
-
-     Raises
-    ------
-    ValueError
-        If `daily_summary` is not a :class:`pd.DataFrame`.
-    ValueError
-        if `metric` isn't one of "RHR","MHR", "minHR","avgHR".
-    """
-
-    if not isinstance(daily_summary, pd.DataFrame):
-        raise ValueError(
-            f"sleep_summary must be a pd.DataFrame. {type(daily_summary)} is not a valid type."
-        )
-
-    if len(daily_summary) == 0:
-        return {}
-
-    if metric == _CARDIAC_METRIC_RESTING_HEART_RATE:
-        col = constants._RESTING_HR_COLUMN
-    elif metric == _CARDIAC_METRIC_MAXIMUM_HEART_RATE:
-        col = constants._MAX_HR_COLUMN
-    elif metric == _CARDIAC_METRIC_MINIMUM_HEART_RATE:
-        col = constants._MIN_HR_COLUMN
-    elif metric == _CARDIAC_METRIC_AVERAGE_HEART_RATE:
-        col = constants._AVG_HR_COLUMN
-    else:
-        raise ValueError(
-            f"{metric} is not a valid value. Select among {_CARDIAC_HR_STATISTICS}"
-        )
-    statistic_dict = pd.Series(
-        daily_summary[col].values,
-        index=daily_summary[constants._CALENDAR_DATE_COL],
-    )
-
-    return statistic_dict
 
 
 def _compute_hrv_statistic(
