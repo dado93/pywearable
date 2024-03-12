@@ -21,6 +21,8 @@ the metric names and the corresponding loading function defined in the
       - Loading function
     * - daily-summary
       - ``loader.load_daily_summary()``
+    * - heart-rate
+      - ``loader.load_heart_rate()``
     * - pulse-ox
       - ``loader.load_pulse_ox()``
     * - respiration
@@ -41,8 +43,9 @@ Metrics
 .. toctree::
     :maxdepth: 2
 
-    _metrics/daily_heart_rate.rst
+    _metrics/bbi.rst
     _metrics/daily_summary.rst
+    _metrics/heart_rate.rst
     _metrics/pulse_ox.rst
     _metrics/respiration.rst
     _metrics/sleep_pulse_ox.rst
