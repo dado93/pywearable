@@ -1,3 +1,5 @@
+_METRIC_BBI = "bbi"
+_METRIC_DAILY_SUMMARY = "daily-summary"
 _METRIC_HEART_RATE = "heart-rate"
 _METRIC_STRESS = "stress"
 _METRIC_SLEEP_SUMMARY = "sleep-summary"
@@ -6,6 +8,7 @@ _METRIC_PULSE_OX = "pulse-ox"
 _METRIC_RESPIRATION = "respiration"
 _METRIC_SLEEP_RESPIRATION = "sleep-respiration"
 _METRIC_SLEEP_PULSE_OX = "sleep-pulse-ox"
+
 #################################################
 #          CSV FILES - COLUMN NAMES             #
 #################################################
