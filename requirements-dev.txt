@@ -1,0 +1,8 @@
+july
+numpy
+pandas
+pymongo
+pytest
+scipy
+sphinx
+sphinx-rtd-theme
