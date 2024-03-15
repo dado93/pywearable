@@ -19,8 +19,6 @@ from .loader.base import BaseLoader
 #       - loading function
 #       - metrics
 
-# TODO Use heart-rate to compute heart rate statistics,
-# not the daily-summary
 # TODO heart rate variability fix start_date end_date datetime
 
 _CARDIAC_METRIC_RESTING_HEART_RATE = "restHR"
@@ -68,12 +66,28 @@ def get_rest_heart_rate(
     return_df: bool = True,
     return_multi_index: bool = True,
 ) -> Union[dict, pd.DataFrame]:
-    """Get resting heart rate (RHR) cardiac metric.
+    """Get daily resting heart rate (RHR).
 
     This function computes the resting heart rate metric.
-    Depending on the value of the ``kind`` parameter, this function
-    returns RHR for each calendar day (``kind=None``) from ``start_date`` to
-    ``end_date`` or the transformed value across all days.
+    Rest heart rate is computed as the lowest
+    30 minute average over a period of 24 hours.
+    Rest heart rate is reported for each day
+    from ``start_date`` to ``end_date` and
+    for the users specifiec by ``user_id``.
+    It is possible to perform an
+    aggregation of the computed RHR by setting
+    the ``kind`` parameter. For example, it is
+    possible to obtain the mean of the mean values by
+    setting the ``kind`` parameter to ``"mean"``. If the
+    ``kind`` argument requires additional positional
+    arguments or keyword arguments, it is possible to set them
+    by passing them to the ``kind_args`` and
+    ``kind_kwargs`` arguments.
+    The function used to load heart rate data is the
+    :func:`~loader.BaseLoader.load_heart_rate`. If
+    loader-specific arguments are required, it is
+    possible to set them using the ``loader_kwargs`` argument.
+    The return type depends on the
 
     Parameters
     ----------
@@ -86,7 +100,26 @@ def get_rest_heart_rate(
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None
     kind : :class:`str` or None, optional
-        Whether to transform RHR over days, or to return the value for each day, by default None.
+        Whether to transform RHR over days, or to return its value for each day, by default None.
+    kind_args : :class:`list`, optional
+        Additional positional arguments to be passed to the function used
+        by the ``kind`` method, by default ``[]``
+    kind_kwargs : :class:`dict`, optional
+        Additional keyword arguments to be passed to the function used by the ``kind``
+        method, by default no additional keywords arguments are passed.
+    loader_kwargs: :class:`dict`
+        Keyword arguemnts for the ``load_sleep_pulse_ox`` loading function of the ``loader``,
+        by default no keyword arguments are passed.
+    return_df: :class:`bool`
+        Whether to return a :class:`pd.DataFrame` (if ``True``) or a
+        :class:`dict` (if ``False``) with daily RHR values, by
+        default ``True``.
+    return_multi_index: :class:`bool`
+        Whether to return a :class:`pd.DataFrame` with a
+        :class:`pd.MultiIndex` as index, with levels ``"user"`` and
+        ``"calendarDate"`` (if ``True``) or to return a
+        :class:`pd.DataFrame` with a :class:`pd.RangeIndex` as index
+        and ``"user"`` and ``"calendarDate"`` as columns.
 
     Returns
     -------
@@ -397,10 +430,10 @@ def _compute_hr_statistic(
     if statistic == _CARDIAC_METRIC_RESTING_HEART_RATE:
         # Set iso date as index
         heart_rate = heart_rate.set_index(constants._ISODATE_COL)
-        mean_hr = heart_rate.resample("30Min", label="left")[
-            constants._HR_COLUMN
-        ].mean()
-        return mean_hr.resample("1d").min().round(0)
+        # Perform 30 minute average
+        mean_hr = heart_rate.rolling(window="30Min")[constants._HR_COLUMN].mean()
+        # Return minimum 30 minute average
+        return mean_hr.resample("1d", label="left").min().round(0)
     else:
         if statistic == _CARDIAC_METRIC_MAXIMUM_HEART_RATE:
             fn = "max"
@@ -480,6 +513,12 @@ def get_heart_rate_statistics(
         statistics = list(_HEART_RATE_STATISTICS_DICT.keys())
     elif type(statistic) == str:
         statistics = [statistic]
+
+    for statistic in statistics:
+        if statistic not in _HEART_RATE_STATISTICS_DICT.keys():
+            raise ValueError(
+                f"statistic must be one among {_HEART_RATE_STATISTICS_DICT.keys()}, not {statistic}"
+            )
 
     # Check args and kwargs
     if type(kind_args) != list:
@@ -571,7 +610,7 @@ def get_heart_rate_statistics(
     if (
         (type(statistic) is str) or ((type(statistic) is list) and len(statistic) == 1)
     ) and return_df:
-        return mi_df.squeeze()
+        return mi_df.squeeze(axis=1)
     else:
         return mi_df
 
@@ -1201,7 +1240,12 @@ def get_hrv_statistics(
     both_dates_valid = False
     if (not (start_date is None)) and (not (end_date is None)):
         # Let's set up a dataframe in which we will store all the data
-        date_periods = pd.date_range(start_date, end_date, freq="D")
+        # Let's set up a dataframe in which we will store all the data
+        start_date_in_date = start_date.replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        end_date_in_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        date_periods = pd.date_range(start_date_in_date, end_date_in_date, freq="D")
         multi_index = pd.MultiIndex.from_product(
             [user_id, date_periods],
             names=[constants._USER_COL, constants._CALENDAR_DATE_COL],
@@ -1290,7 +1334,7 @@ def get_hrv_statistics(
     if (
         (type(statistic) is str) or ((type(statistic) is list) and len(statistic) == 1)
     ) and return_df:
-        return mi_df.squeeze()
+        return mi_df.squeeze(axis=1)
     else:
         return mi_df
 
