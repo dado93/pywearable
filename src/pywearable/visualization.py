@@ -272,7 +272,6 @@ def get_cardiac_line_graph_and_stats(
     user_id: str,
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    verbose: bool = False,
     save_to: Union[str, None] = None,
     show: bool = True,
     resting_hr_label: str = "resting heart rate",
@@ -284,9 +283,8 @@ def get_cardiac_line_graph_and_stats(
 ) -> dict:
     """Generate graph of cardiac activity
 
-    This function generate (and possibly save) a graph of cardiac data of `user_id`
+    This function generate a graph of cardiac data of `user_id`
     for a period of interest between `start_date` and `end_date`.
-    Cardiac statistics are computed and returned.
 
     Parameters
     ----------
@@ -298,8 +296,6 @@ def get_cardiac_line_graph_and_stats(
         Start date for data retrieval, by default None
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None
-    verbose : :class:`bool`, optional
-        Whether to print out information about cardiac statistics, by default False
     save_to : :class:`str` or None, optional
         Path where to save the plot, by default None
     show : :class:`bool`, optional
@@ -316,27 +312,8 @@ def get_cardiac_line_graph_and_stats(
         Size of the figure, by default (10,6)
     fontsize : :class:`int`, optional
         Font size of the plot, by default 15
-
-    Returns
-    -------
-    :class:`dict`
-        dictionary of cardiac statistics for the period of interest
-        (Average resting heart rate, Maximum heart rate overall)
     """
     
-    # get stats
-    avg_resting_hr = round(
-        cardiac.get_rest_heart_rate(
-            loader, user_id, start_date, end_date, kind="mean", return_df=False
-        )[user_id]["restHR"]
-    )
-    max_hr_recorded = cardiac.get_max_heart_rate(
-        loader, user_id, start_date, end_date, kind="max", return_df=False
-            )[user_id]["maxHR"]
-    stats_dict = {
-        "Mean resting HR": avg_resting_hr,
-        "Maximum HR overall": max_hr_recorded,
-    }
     # get time series
     dates, rest_hr = zip(
         *cardiac.get_rest_heart_rate(loader=loader, 
@@ -386,7 +363,7 @@ def get_cardiac_line_graph_and_stats(
         plt.yticks(fontsize=fontsize)
         plt.legend(loc="upper right", fontsize=fontsize - 1)
         plt.grid("both")
-        plt.ylim([min(30, min(rest_hr)), max(200, max_hr_recorded + 30)])
+        plt.ylim([min(30, min(rest_hr)), max(200, max(max_hr) + 30)])
         if title:
             plt.title(title, fontsize=fontsize + 2)
         if save_to:
@@ -395,12 +372,6 @@ def get_cardiac_line_graph_and_stats(
         plt.show()
     else:
         plt.close()
-
-    if verbose:
-        print(f"Resting HR: {avg_resting_hr}")
-        print(f"Maximum HR: {max_hr_recorded}")
-
-    return stats_dict
 
 
 def get_rest_spo2_graph(
@@ -458,9 +429,9 @@ def get_rest_spo2_graph(
         hours=12
     )  # this assumes that at the last day a person wakes up before midday...
     spo2_df = loader.load_pulse_ox(
-        user_id, start_date, end_date + timedelta, source="sdk" # TODO make this general
+        user_id, start_date, end_date + timedelta
     )
-    sleep_spo2_df = spo2_df[spo2_df.sleep == 1].loc[:, ["isoDate", "spo2"]]
+    sleep_spo2_df = spo2_df[spo2_df.isSleeping == 1].loc[:, ["isoDate", "spo2"]]
     unique_dates = pd.to_datetime(sleep_spo2_df.isoDate.dt.date.unique())
     # in order to avoid plotting lines between nights, we need to plot separately each sleep occurrence
     # unfortunately this takes some time (~6-7s/month), to find appropriate night for every row, maybe try to improve? #TODO
@@ -593,20 +564,22 @@ def get_respiration_line_graph_and_stats(
     
     # get series, note that we're inclusive wrt the whole last day
     rest_dates, rest_resp = zip(
-        *respiration.get_rest_breaths_per_minute(
+        *respiration.get_mean_rest_breaths_per_minute(
             loader,
             user_id,
             start_date,
-            end_date + datetime.timedelta(hours=23, minutes=59),
-            remove_zero=True,
+            end_date,
+            return_df=False,
+            remove_zero=True
         )[user_id].items()
     )
     waking_dates, waking_resp = zip(
-        *respiration.get_waking_breaths_per_minute(
+        *respiration.get_mean_awake_breaths_per_minute(
             loader,
             user_id,
             start_date,
-            end_date + datetime.timedelta(hours=23, minutes=59),
+            end_date,
+            return_df=False,
             remove_zero=True,
         )[user_id].items()
     )
@@ -1011,13 +984,16 @@ def get_sleep_summary_graph(
     # check chronotype and infer it from data if missing
     if consistency_metric is not None or show_chronotype is not None:
         if chronotype_sleep_start is None or chronotype_sleep_end is None:
-            infer_chronotype = sleep.get_sleep_timestamps(loader=loader,
-                                                            user_id=user_id,
-                                                            start_date=start_date,
-                                                            end_date=end_date,
-                                                            kind="mean")
-            chronotype_sleep_start = infer_chronotype[user_id][0]
-            chronotype_sleep_end = infer_chronotype[user_id][1]
+            chronotype_sleep_start = sleep.get_bedtime(loader=loader,
+                                                           user_id=user_id,
+                                                           start_date=start_date,
+                                                           end_date=end_date,
+                                                           kind="mean")[user_id]["bedTime"]
+            chronotype_sleep_end = sleep.get_wakeup_time(loader=loader,
+                                                           user_id=user_id,
+                                                           start_date=start_date,
+                                                           end_date=end_date,
+                                                           kind="mean")[user_id]["wakeupTime"]
         else:
             assertion_msg = "Must specify chronotype in format 'HH:MM' when plotting circadian measures"
             assert (
