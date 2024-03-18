@@ -12,7 +12,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.dates import DateFormatter
+from matplotlib.dates import DateFormatter, DayLocator, MonthLocator, WeekdayLocator
 from matplotlib.ticker import FuncFormatter, MultipleLocator, PercentFormatter
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
@@ -73,9 +73,14 @@ def get_steps_line_graph_and_stats(
     steps_line_label: str = "steps",
     goal_line_label: str = "daily goal",
     ylabel: str = "Steps",
-    plot_title: Union[str, None] = "Daily steps",
+    title: Union[str, None] = None,
     figsize: tuple = (10, 6),
     fontsize: int = 15,
+    locator_interval: int = 2,
+    plot_guideline_zones : bool = False,
+    zones_labels: list = ["Sedentary", "Low active", "Somewhat active", "Active", "Highly active"],
+    zones_colors: list = ["tomato", "orange", "yellow", "aquamarine", "forestgreen"],
+    zones_alpha: float = 0.25
 ) -> dict:
     """Generate line-plot of daily steps and goals.
 
@@ -86,7 +91,7 @@ def get_steps_line_graph_and_stats(
 
     Parameters
     ----------
-    loader : :class:`pylabfront.loader.LabfrontLoader`
+    loader : :class:`pywearable.loader.base.BaseLoader`
         An instance of a data loader
     user_id : :class:`str`
         The id of the user of interest
@@ -112,6 +117,16 @@ def get_steps_line_graph_and_stats(
         Size of the figure, by default (10,6)
     fontsize : :class:`int`, optional
         Font size of the graph, by default 15
+    locator_interval : :class:`int`, optional
+        Interval for the x-axis dates, by default 2
+    plot_guideline_zones : :class:`bool`, optional
+        Whether to plot shaded regions corresponding to general guidelines for steps, by default False
+    zones_labels : :class:`str`, optional
+        labels of the guideline ranges, by default ["Sedentary", "Low active", "Somewhat active", "Active", "Highly active"]
+    zones_colors : :class:`list`, optional
+        Colors of the guideline ranges, by default ["tomato", "orange", "yellow", "aquamarine", "forestgreen"]
+    zones_alpha : :class:`float`, optional
+        Alphas for the guideline ranges, by default 0.25
 
     Returns
     -------
@@ -152,14 +167,20 @@ def get_steps_line_graph_and_stats(
 
     with plt.style.context("ggplot"):
         fig, ax = plt.subplots(figsize=figsize)
-        ax.xaxis.set_major_formatter(date_form)
+
         ax.plot(dates, steps, label=steps_line_label, c="k")
         ax.plot(dates, goals, linestyle="--", c="g", label=goal_line_label)
         ax.scatter(dates, steps, c=col, s=100)
+
+        ax.xaxis.set_major_formatter(date_form)
+        locator = DayLocator(interval=locator_interval)
+        ax.xaxis.set_major_locator(locator)
+
         plt.xticks(rotation=45, fontsize=fontsize)
         plt.yticks(fontsize=fontsize)
-        plt.legend(fontsize=fontsize - 1, loc="best")
+        
         plt.grid("on")
+
         plt.ylim([max(min(steps) - 500, 0), max(steps) + 2000])
         plt.xlim(
             [
@@ -167,11 +188,70 @@ def get_steps_line_graph_and_stats(
                 max(dates) + datetime.timedelta(hours=6),
             ]
         )
+
         plt.ylabel(ylabel, fontsize=fontsize)
-        if plot_title:
-            plt.title(plot_title, fontsize=fontsize + 2)
-        if save_to:
-            plt.savefig(save_to, bbox_inches="tight")
+
+        if title:
+            plt.title(title, fontsize=fontsize + 2)
+
+        if plot_guideline_zones:
+            min_date = dates[0]
+            max_date = dates[-1]
+            # plot coloring by fill_between different y-ranges
+            # highly active
+            ax.fill_between(
+                [min_date, max_date],
+                [12500 for i in range(2)],
+                [max(12500, max(steps)+2000) for i in range(2)],
+                color=zones_colors[4],
+                alpha=zones_alpha,
+                label=zones_labels[4],
+            )
+            # active
+            ax.fill_between(
+                [min_date, max_date],
+                [10000 for i in range(2)],
+                [12499 for i in range(2)],
+                color=zones_colors[3],
+                alpha=zones_alpha,
+                label=zones_labels[3],
+            )
+            # somewhat active
+            ax.fill_between(
+                [min_date, max_date],
+                [7500 for i in range(2)],
+                [9999 for i in range(2)],
+                color=zones_colors[2],
+                alpha=zones_alpha,
+                label=zones_labels[2],
+            )
+            # low active
+            ax.fill_between(
+                [min_date, max_date],
+                [5000 for i in range(2)],
+                [7499 for i in range(2)],
+                color=zones_colors[1],
+                alpha=zones_alpha,
+                label=zones_labels[1],
+            )
+            # sedentary
+            ax.fill_between(
+                [min_date, max_date],
+                [0 for i in range(2)],
+                [4999 for i in range(2)],
+                color=zones_colors[0],
+                alpha=zones_alpha,
+                label=zones_labels[0],
+            )
+        
+        plt.legend(fontsize=fontsize - 1,
+                    loc="center left",
+                    bbox_to_anchor=(1, 0.5)
+                    )
+
+    if save_to:
+        plt.savefig(save_to, 
+                    bbox_inches="tight")
 
     if show:
         plt.show()
@@ -210,7 +290,7 @@ def get_cardiac_line_graph_and_stats(
 
     Parameters
     ----------
-    loader : :class:`pylabfront.loader.LabfrontLoader`
+    loader : :class:`pywearable.loader.base.BaseLoader`
         An instance of a data loader.
     user_id : :class:`str`
         The id of the user of interest
@@ -739,7 +819,7 @@ def get_stress_heatmap(
     
     get_metric_heatmap(loader=loader,
                        user_id=user_id,
-                       metric_fn=stress.get_daily_average_stress,
+                       metric_fn=stress.get_daily_stress_score,
                        start_date=start_date,
                        end_date=end_date,
                        period_length=period_length,
@@ -799,7 +879,7 @@ def get_recovery_heatmap(
     
     get_metric_heatmap(loader=loader,
                        user_id=user_id,
-                       metric_fn=stress.get_sleep_battery_recovery,
+                       metric_fn=stress.get_recovery_percentage,
                        start_date=start_date,
                        end_date=end_date,
                        period_length=period_length,
@@ -970,8 +1050,8 @@ def get_sleep_summary_graph(
     ).dt.total_seconds()
 
     time_period = pd.date_range(
-        start_date + datetime.timedelta(days=1),
-        periods=(end_date - start_date).days,
+        start_date,
+        periods=(end_date - start_date).days + 1,
         freq="D",
     )
 
@@ -1165,11 +1245,11 @@ def get_sleep_summary_graph(
     ax.yaxis.grid(False)
     ax.set_ylabel(ylabel, labelpad=15, color="#333333", fontsize=axis_fontsize+2)
     ax.set_xlabel(xlabel, labelpad=15, color="#333333", fontsize=axis_fontsize+2)
-    ax.set_yticks(
-        [i * POSITION for i in range(len(time_period))],
-        [date.strftime("%d/%m") for date in time_period],
-        rotation=0,
-        fontsize=axis_fontsize,
+    ax.set_yticks([i * POSITION for i in range(len(time_period))])
+    ax.set_yticklabels(labels=[date.strftime("%d/%m") for date in time_period])
+    ax.tick_params(
+        labelrotation=0,
+        labelsize=axis_fontsize
     )
     ax.set_title(title, pad=25, color="#333333", weight="bold", fontsize=title_fontsize)
     # ordinarly the yaxis starts from below, but it's better to visualize earlier dates on top instead
@@ -1591,3 +1671,120 @@ def plot_trend_analysis(
     if show:
         plt.show()
     return ax
+
+
+def hrv_radar_chart():
+    pass
+
+
+def intensity_chart():
+    pass
+
+
+def period_to_period_comparison_chart(
+    loader: BaseLoader,
+    user_id: str,
+    metric_fn : Callable,
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind: str = "mean",
+    period_interval: str = "month",
+    show: bool = True,
+    save_to: Union[str, None] = None,
+    figsize: tuple = (12,8),
+    xlabel: Union[str, None] = None,
+    ylabel: Union[str, None] = None,
+    locator_interval: int = 1,
+    title: str = "",
+    fontsize: int = 14
+):
+    if period_interval not in ["month", "week"]:
+        raise ValueError(f"period interval {period_interval} is not a valid interval.")
+
+    fig, ax = plt.subplots(figsize=figsize)
+    if period_interval == "month":
+        month_loc = MonthLocator(interval=locator_interval)
+        ax.xaxis.set_major_locator(month_loc)
+        ax.xaxis.set_major_formatter(DateFormatter("%b"))
+        date_aggr_fn = lambda x: x.month
+    elif period_interval == "week":
+        week_loc = DayLocator(interval=locator_interval)
+        ax.xaxis.set_major_locator(week_loc)
+        ax.xaxis.set_major_formatter(DateFormatter("%m-%d"))
+        date_aggr_fn = lambda x: x.week
+
+    metric_data = metric_fn(loader, 
+                            user_id, 
+                            start_date, 
+                            end_date)[user_id]
+    metric_dates = list(metric_data.keys())
+    metric_values = list(metric_data.values())
+
+    # compute metric aggregate transformation (kind) during each period and its changes
+    metric_df = pd.DataFrame({"Date":metric_dates, 
+                            "metric":metric_values})
+    metric_df['Date'] = pd.to_datetime(metric_df['Date'])
+    metric_df["aggregate_over"] = metric_df["Date"].apply(date_aggr_fn)
+
+    changes = pd.DataFrame(metric_df.groupby("aggregate_over")["metric"].apply(kind))
+    abs_change = changes.diff()
+    pct_change = changes.pct_change() * 100
+    changes["abs_change"] = abs_change
+    changes["pct_change"] = pct_change
+
+    metric_df["aggr_metric"] = metric_df.groupby("aggregate_over")["metric"].transform(kind)
+
+    ax.plot(
+        metric_dates,
+        metric_values,
+        color="#25BCCA",
+        alpha=0.2,
+    )
+
+    for period in metric_df["aggregate_over"].unique():
+        relative_change = changes[changes.index == period]["pct_change"].values[0]
+        ax.plot(
+            np.array(metric_df[metric_df["aggregate_over"] == period]["Date"]),
+            np.array(metric_df[metric_df["aggregate_over"] == period]["aggr_metric"]),
+            "#06B478"
+            if relative_change >= 0
+            else ("tab:orange" if not np.isnan(relative_change) else "#25BCCA"),
+            alpha=0.8,
+        )
+        ax.text(
+            metric_df[metric_df["aggregate_over"] == period]["Date"].mean(),
+            metric_df[metric_df["aggregate_over"] == period]["aggr_metric"].unique(),
+            metric_df[metric_df["aggregate_over"] == period]["aggr_metric"].unique().round(1)[0],
+            ha="center",
+            va="bottom",
+        )
+        if not np.isnan(relative_change):
+            # the following offset is an heuristic which seems to work well always, possibly to improve
+            vertical_offset = (max(metric_values) - min(metric_values)) / 20
+            ax.text(
+                metric_df[metric_df["aggregate_over"] == period]["Date"].mean(),
+                metric_df[metric_df["aggregate_over"] == period]["aggr_metric"].unique()
+                - vertical_offset,
+                f"{'+' if relative_change >= 0 else ''}{round(relative_change,1)}%",
+                ha="center",
+                va="bottom",
+                color="#06B478" if relative_change >= 0 else "tab:orange",
+            )
+
+    ax.set_xlim([start_date, end_date])    
+    for label in ax.get_xticklabels(which="major"):
+        label.set(rotation=30, horizontalalignment="right")
+    ax.set_ylabel(ylabel, fontsize=fontsize)
+    ax.set_xlabel(xlabel, fontsize=fontsize)
+    ax.set_title(title, fontsize=fontsize+2)
+
+    if save_to:
+        plt.savefig(save_to,bbox_inches="tight")
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
+def weekday_barplot():
+    pass
