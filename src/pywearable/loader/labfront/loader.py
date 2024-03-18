@@ -757,7 +757,6 @@ class LabfrontLoader(BaseLoader):
             is_todo,
             task_name,
         )
-
         # Get full participant_id (user + labfront)
         participant_id = self.get_full_id(user_id)
 
@@ -787,15 +786,8 @@ class LabfrontLoader(BaseLoader):
         data = pd.read_csv(path_to_folder / files[0], skiprows=n_rows_to_skip)
         for f in files[1:]:
             tmp = pd.read_csv(path_to_folder / f, skiprows=n_rows_to_skip)
-            if labfront_constants._GARMIN_CONNECT_BASE_FOLDER in metric:
-                tmp = tmp.drop(
-                    [
-                        labfront_constants._GARMIN_CONNECT_TIMEZONEOFFSET_IN_MS_COL,
-                        constants._UNIXTIMESTAMP_IN_MS_COL,
-                    ],
-                    axis=1,
-                )
             data = pd.concat([data, tmp], ignore_index=True)
+
         if labfront_constants._GARMIN_CONNECT_BASE_FOLDER in metric:
             # Convert to datetime according to isoformat
             data[constants._ISODATE_COL] = (
