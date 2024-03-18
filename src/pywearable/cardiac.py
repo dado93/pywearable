@@ -19,8 +19,6 @@ from .loader.base import BaseLoader
 #       - loading function
 #       - metrics
 
-# TODO heart rate variability fix start_date end_date datetime
-
 _CARDIAC_METRIC_RESTING_HEART_RATE = "restHR"
 _CARDIAC_METRIC_MAXIMUM_HEART_RATE = "maxHR"
 _CARDIAC_METRIC_MINIMUM_HEART_RATE = "minHR"
@@ -426,6 +424,12 @@ def _compute_hr_statistic(
     if constants._ISODATE_COL in heart_rate.columns:
         heart_rate[constants._CALENDAR_DATE_COL] = pd.to_datetime(
             heart_rate[constants._ISODATE_COL].dt.date
+        )
+        heart_rate = heart_rate.sort_values(
+            by=[constants._ISODATE_COL], ignore_index=True
+        )
+        heart_rate = heart_rate.drop_duplicates(
+            subset=[constants._ISODATE_COL], ignore_index=True
         )
     if statistic == _CARDIAC_METRIC_RESTING_HEART_RATE:
         # Set iso date as index
