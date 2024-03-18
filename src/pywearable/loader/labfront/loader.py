@@ -2316,7 +2316,7 @@ class LabfrontLoader(BaseLoader):
         user_id: str,
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-        source="garmin_health_api",
+        source="health_api",
     ):
         try:
             labfront_metric = _LABFRONT_METRICS_DICT[metric][source]
@@ -2336,7 +2336,7 @@ class LabfrontLoader(BaseLoader):
         user_id: str,
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-        source="garmin_health_api",
+        source="health_api",
     ) -> pd.DataFrame:
         return self.load_metric(
             metric=constants._METRIC_HEART_RATE,
@@ -2431,7 +2431,7 @@ class LabfrontLoader(BaseLoader):
         user_id: str,
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-        source="garmin_health_api",
+        source="health_api",
     ) -> pd.DataFrame:
         return self.load_metric(
             metric=constants._METRIC_STRESS,

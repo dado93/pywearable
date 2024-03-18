@@ -327,24 +327,32 @@ def get_cardiac_line_graph_and_stats(
     # get stats
     avg_resting_hr = round(
         cardiac.get_rest_heart_rate(
-            loader, user_id, start_date, end_date, kind="mean"
-        )[user_id]["RHR"]
+            loader, user_id, start_date, end_date, kind="mean", return_df=False
+        )[user_id]["restHR"]
     )
     max_hr_recorded = cardiac.get_max_heart_rate(
-        loader, user_id, start_date, end_date, kind="max"
-            )[user_id]["MHR"]
+        loader, user_id, start_date, end_date, kind="max", return_df=False
+            )[user_id]["maxHR"]
     stats_dict = {
         "Mean resting HR": avg_resting_hr,
         "Maximum HR overall": max_hr_recorded,
     }
     # get time series
     dates, rest_hr = zip(
-        *cardiac.get_rest_heart_rate(loader, user_id, start_date, end_date)[
+        *cardiac.get_rest_heart_rate(loader=loader, 
+                                     user_id=user_id, 
+                                     start_date=start_date, 
+                                     end_date=end_date, 
+                                     return_df=False)[
             user_id
         ].items()
     )
     max_hr = list(
-        cardiac.get_max_heart_rate(loader, user_id, start_date, end_date)[
+        cardiac.get_max_heart_rate(loader=loader, 
+                                   user_id=user_id, 
+                                   start_date=start_date, 
+                                   end_date=end_date, 
+                                   return_df=False)[
             user_id
         ].values()
     )
@@ -418,7 +426,7 @@ def get_rest_spo2_graph(
 
     Parameters
     ----------
-    loader : :class:`pylabfront.loader.LabfrontLoader`
+    loader : :class:`pywearable.loader.base.BaseLoader`
         An instance of a data loader.
     user_id : :class:`str`
         _The id of the user
@@ -449,8 +457,8 @@ def get_rest_spo2_graph(
     timedelta = datetime.timedelta(
         hours=12
     )  # this assumes that at the last day a person wakes up before midday...
-    spo2_df = loader.load_garmin_connect_pulse_ox(
-        user_id, start_date, end_date + timedelta
+    spo2_df = loader.load_pulse_ox(
+        user_id, start_date, end_date + timedelta, source="sdk" # TODO make this general
     )
     sleep_spo2_df = spo2_df[spo2_df.sleep == 1].loc[:, ["isoDate", "spo2"]]
     unique_dates = pd.to_datetime(sleep_spo2_df.isoDate.dt.date.unique())
