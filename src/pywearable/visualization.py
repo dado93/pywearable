@@ -966,8 +966,6 @@ def get_sleep_summary_graph(
         vertical offset of the scores at the bottom of the hypnograms, by default -0.
     show_chronotype : :class:`bool`, optional
         whether to show chronotype dashed vertical lines over the hypnograms, by default False
-    show_chronotype : :class:`bool`, optional
-        whether to show chronotype dashed vertical lines over the hypnograms, by default False
     chronotype_sleep_start : :class:`str` or None, optional
         usual sleeping time for `user_id` in format HH:MM, by default None
     chronotype_sleep_end : :class:`str` or None, optional
@@ -1371,7 +1369,6 @@ def get_sleep_summary_graph(
     cbar = plt.colorbar(
         plt.cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax, ticks=midpoints, pad=0.10
     )
-    cbar.ax.set_yticklabels(colorbar_labels, fontsize=legend_fontsize)
     cbar.ax.set_yticklabels(colorbar_labels, fontsize=legend_fontsize)
     plt.annotate(
         colorbar_title,

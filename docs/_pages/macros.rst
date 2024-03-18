@@ -1,0 +1,1 @@
+.. |dataframe| replace:: :class:`pandas.DataFrame`

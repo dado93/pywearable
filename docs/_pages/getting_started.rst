@@ -10,8 +10,14 @@ Installation
 At this stage of development, it is possible to install
 `pywearable` using ``pip``::
 
+    git clone https://github.com/dado93/pywearable.git
     cd pywearable
-    pip install --editable .
+    pip install .
+
+Data Sources
+^^^^^^^^^^^^
+
+
 
 Tutorials
 ^^^^^^^^^
