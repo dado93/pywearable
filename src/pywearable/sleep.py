@@ -9,6 +9,7 @@ from typing import Union
 
 import numpy as np
 import pandas as pd
+import warnings
 
 from . import constants, utils
 from .loader.base import BaseLoader
@@ -42,9 +43,41 @@ _SLEEP_METRIC_N1_COUNT = "countN1"
 _SLEEP_METRIC_N2_COUNT = "countN2"
 _SLEEP_METRIC_N3_COUNT = "countN3"
 _SLEEP_METRIC_REM_COUNT = "countREM"
+_SLEEP_METRIC_BEDTIME = "bedTime"
+_SLEEP_METRIC_WAKEUP_TIME = "wakeupTime"
+_SLEEP_METRIC_MIDPOINT = "midpoint"
 _SLEEP_METRIC_CPD_MIDPOINT = "CPD_midpoint"
 _SLEEP_METRIC_CPD_DURATION = "CPD_duration"
+_SLEEP_DATETIME_METRICS = [_SLEEP_METRIC_BEDTIME,
+                          _SLEEP_METRIC_MIDPOINT,
+                          _SLEEP_METRIC_WAKEUP_TIME]
 
+_SLEEP_KIND_MAPPING = {
+    "mean":{
+        _SLEEP_METRIC_BEDTIME : utils.mean_time,
+        _SLEEP_METRIC_WAKEUP_TIME : utils.mean_time,
+        _SLEEP_METRIC_MIDPOINT : utils.mean_time,
+        "default" : np.nanmean
+    },
+    "std":{
+        _SLEEP_METRIC_BEDTIME : utils.std_time,
+        _SLEEP_METRIC_WAKEUP_TIME : utils.std_time,
+        _SLEEP_METRIC_MIDPOINT : utils.std_time,
+        "default" : np.nanstd
+    },
+    "min":{
+        _SLEEP_METRIC_BEDTIME : utils.get_earliest_bedtime,
+        _SLEEP_METRIC_WAKEUP_TIME : utils.get_earliest_wakeup_time,
+        _SLEEP_METRIC_MIDPOINT : utils.get_earliest_wakeup_time, 
+        "default" : np.nanmin
+    },
+    "max":{
+        _SLEEP_METRIC_BEDTIME : utils.get_latest_bedtime,
+        _SLEEP_METRIC_WAKEUP_TIME : utils.get_latest_wakeup_time,
+        _SLEEP_METRIC_MIDPOINT : utils.get_latest_wakeup_time,
+        "default" : np.nanmax
+    }
+}
 
 def get_time_in_bed(
     loader: BaseLoader,
@@ -1627,8 +1660,7 @@ def get_sleep_timestamps(
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    kind: Union[str, None] = None,
-):
+) -> dict:
     """Get the timestamps of the beginning and the end of sleep occurrences.
 
     Returns for every day, the time when the user fell asleep and when he woke up
@@ -1636,140 +1668,190 @@ def get_sleep_timestamps(
 
     Parameters
     ----------
-    loader : :class:`pylabfront.loader.Loader`
-        Initialized instance of a data loader.
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        An instance of a data loader.
     user_id : :class:`str` or :class:`list`, optional
-        ID of the user(s) for which sleep timestamps are computed, by default "all".
+        The id(s) for which sleep timestamps must be retrieved, by default "all".
     start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
-        Start date for data retrieval, by default None
+        Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None.
-    kind : :class:`str` or None, optional
-        Whether to perform a transform of the sleep statistic over days, by default None.
-        If `None`, then the sleep statistic is returned with a value for each day, otherwise
-        a transformation is applied. Valid options are:
-
-            - 'mean'
-            - 'min'
-            - 'max'
 
     Returns
     -------
     :class:`dict`
-        Dictionary with user ids as primary keys, if average is False then dates as secondary keys
-        and sleep timestamps as values, otherwise (average starting time, average ending time) as values
+        Dictionary with user ids as primary keys, calendar dates as secondary keys, 
+        and sleep timestamps (bedtime, wakeup_time) as values.
     """
     data_dict = {}
 
     user_id = utils.get_user_ids(loader, user_id)
 
     for user in user_id:
-        # better to give a bit of rooms before and after start_date and end_date to ensure they're included
-        df = loader.load_sleep_summary(user, start_date, end_date)
-        if len(df) > 0:
-            df = df.groupby(constants._CALENDAR_DATE_COL).head(1)  # TODO is it needed??
-            df["waking_time"] = pd.to_datetime(
-                df[constants._UNIXTIMESTAMP_IN_MS_COL]
-                + df[constants._TIMEZONEOFFSET_IN_MS_COL]
-                + df[constants._DURATION_IN_MS_COL]
-                + df[constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL],
-                unit="ms",
-                utc=True,
-            ).dt.tz_localize(None)
-            data_dict[user] = pd.Series(
-                zip(
-                    np.array(df[constants._ISODATE_COL].dt.to_pydatetime()),
-                    np.array(df["waking_time"].dt.to_pydatetime()),
-                ),
-                df[constants._CALENDAR_DATE_COL],
-            ).to_dict()
-            if not (kind is None):
-                sleep_times = [timestamp[0] for timestamp in data_dict[user].values()]
-                wake_times = [timestamp[1] for timestamp in data_dict[user].values()]
-                sleep_times = [item.strftime("%H:%M") for item in sleep_times]
-                wake_times = [item.strftime("%H:%M") for item in wake_times]
-                if kind == "mean":
-                    transformed_sleep_time = utils.mean_time(sleep_times)
-                    transformed_wake_time = utils.mean_time(wake_times)
-                elif kind == "min":
-                    transformed_sleep_time = utils.get_earliest_bedtime(sleep_times)
-                    transformed_wake_time = utils.get_earliest_wakeup_time(wake_times)
-                elif kind == "max":
-                    transformed_sleep_time = utils.get_latest_bedtime(sleep_times)
-                    transformed_wake_time = utils.get_latest_wakeup_time(wake_times)
-                else:
-                    raise ValueError(f"Kind {kind} is not one of mean, min, or max")
-                data_dict[user] = (transformed_sleep_time, transformed_wake_time)
-        else:
-            data_dict[user] = None
+        try:
+            bedtime_dict = get_bedtime(loader,
+                    user,
+                    start_date,
+                    end_date)[user]
+
+            wakeup_time_dict = get_wakeup_time(loader,
+                    user,
+                    start_date,
+                    end_date)[user]
+            data_dict[user] = {k:(bedtime_dict.get(k, None), 
+                              wakeup_time_dict.get(k, None)) for k in bedtime_dict.keys()}
+        except:
+            pass
 
     return data_dict
 
 
-def get_sleep_midpoints(
+def get_bedtime(
     loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    average: bool = False,
-    return_days: bool = False,
-):
-    """Get the midpoints of sleeping occurrences
+    kind: Union[str, None] = None,
+) -> dict:
+    """Get bedtime sleep metric.
 
-    Returns for every night in the period of interest the midpoint of the
-    sleeping process.
+    This function computes the bedtime metric. 
+    The value is reported in a datetime.datetime format.
+
+    Depending on the value of the ``kind`` parameter, this function
+    returns bedtime for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter.
 
     Parameters
     ----------
-    loader : :class:`pylabfront.loader.Loader`
-        Initialized instance of data loader.
-    user_id : :class:`str`, optional
-        ID of the user for which sleep midpoints are computed, by default "all".
-    start_date : :class:`datetime.datetime`, optional
-        Start date for data retrieval, by default None
-    end_date : :class:`datetime.datetime`, optional
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        An instance of a data loader.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) for which bedtime must be retrieved, by default "all"
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None.
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None
-    average : :class:`bool`, optional
-        Whether to return the average midpoint for the user (in hours, from midnight), by default False
-    return_days : :class:`bool`, optional
-        Whether to show the days used for the computation of the average, by default False
+    kind : :class:`str` or None, optional
+        Whether to transform bedtime over days, or to return the value for each day, by default None.
 
     Returns
     -------
     :class:`dict`
-        Dictionary with user ids as primary keys, if average is False then dates as secondary keys
-        and sleep timestamps as values, otherwise the average for that user
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and bedtime as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `bedtime`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
     """
-    data_dict = {}
+    return get_sleep_statistic(
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_BEDTIME,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
+    )
 
-    user_id = utils.get_user_ids(loader, user_id)
 
-    for user in user_id:
-        sleep_timestamps = get_sleep_timestamps(
-            loader, user_id=user, start_date=start_date, end_date=end_date
-        )[user]
-        if sleep_timestamps is None:
-            data_dict[user] = None
-        else:
-            data_dict[user] = OrderedDict()
-            for k, v in sleep_timestamps.items():
-                daily_start_hour = v[0]
-                daily_end_hour = v[1]
-                midpoint = daily_start_hour + (daily_end_hour - daily_start_hour) / 2
-                data_dict[user][k] = midpoint
-            if average:
-                days = list(data_dict[user].keys())
-                midpoints = [v for v in data_dict[user].values()]
-                midpoints = [midpoint.strftime("%H:%M") for midpoint in midpoints]
-                mean_midpoint = utils.mean_time(midpoints)
-                data_dict[user] = {}
-                if return_days:
-                    data_dict[user]["average_midpoint"] = mean_midpoint
-                    data_dict[user]["days"] = days
-                else:
-                    data_dict[user] = mean_midpoint
+def get_wakeup_time(
+    loader: BaseLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind: Union[str, None] = None,
+) -> dict:
+    """Get wake-up time sleep metric.
 
-    return data_dict
+    This function computes the wake-up time metric. 
+    The value is reported in a datetime.datetime format.
+
+    Depending on the value of the ``kind`` parameter, this function
+    returns wakeup time for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter.
+
+    Parameters
+    ----------
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        An instance of a data loader.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) for which wakeup time must be retrieved, by default "all"
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None.
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None
+    kind : :class:`str` or None, optional
+        Whether to transform wakeup time over days, or to return the value for each day, by default None.
+
+    Returns
+    -------
+    :class:`dict`
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and wakeup times as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `wakeupTime`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
+    """
+    return get_sleep_statistic(
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_WAKEUP_TIME,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
+    )
+
+
+def get_sleep_midpoint(
+    loader: BaseLoader,
+    user_id: Union[str, list] = "all",
+    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind: Union[str, None] = None,
+) -> dict:
+    """Get midpoint sleep metric.
+
+    This function computes the sleep midpoint metric. 
+    For every night of sleep the midpoint between bedtime and wakeup time is computed. 
+    The value is reported in a datetime.datetime format.
+
+    Depending on the value of the ``kind`` parameter, this function
+    returns midpoint for each calendar day (``kind=None``) from ``start_date`` to
+    ``end_date`` or the transformed value across all days. The applied
+    transformation depends on the value of the ``kind`` parameter.
+
+    Parameters
+    ----------
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        An instance of a data loader.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) for which midpoints must be retrieved, by default "all"
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None.
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None
+    kind : :class:`str` or None, optional
+        Whether to transform midpoints over days, or to return the value for each day, by default None.
+
+    Returns
+    -------
+    :class:`dict`
+        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
+        calendar days (:class:`datetime.date`) as keys and midpoints as values.
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `midpoint`
+        as key and its transformed value, and an additional `days` keys that contains an array of all
+        calendar days over which the transformation was computed.
+    """
+    return get_sleep_statistic(
+        loader=loader,
+        user_id=user_id,
+        metric=_SLEEP_METRIC_MIDPOINT,
+        start_date=start_date,
+        end_date=end_date,
+        kind=kind,
+    )
 
 
 def get_awake_count(
@@ -2058,8 +2140,8 @@ def get_cpd_midpoint(
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     kind: Union[str, None] = None,
     chronotype_dict: dict = {},
-):
-    """Computes composite phase deviation (CPD)
+) -> dict:
+    """Computes composite phase deviation (CPD) with regard to sleep midpoints
 
     Returns a measure of sleep regularity, in terms of stability of rest midpoints.
     The measure is computed for the period between `start_date` and `end_date`
@@ -2077,15 +2159,9 @@ def get_cpd_midpoint(
         End date for data retrieval, by default None
     kind : :class:`str` or None, optional
         Whether to compute a transformation of CPD over days, or to return the value for each
-        day, by default None. Valid options are:
-
-            - `mean`
-            - `std`
-            - `min`
-            - `max`
-
+        day, by default None.
     chronotype_dict : :class:`dict`, optional
-        dictionary specifying for every user his usual sleeping time and waking time in format HH:MM, as a tuple
+        Dictionary specifying for every user his usual sleeping time and waking time in format HH:MM, as a tuple.
 
     Returns
     -------
@@ -2114,8 +2190,8 @@ def get_cpd_duration(
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     kind: Union[str, None] = None,
     chronotype_dict: dict = {},
-):
-    """Computes composite phase deviation (CPD)
+) -> dict:
+    """Computes composite phase deviation (CPD) with regard to sleep duration
 
     Returns a measure of sleep regularity, in terms of sleep duration.
     The measure is computed for the period between `start_date` and `end_date`
@@ -2133,22 +2209,16 @@ def get_cpd_duration(
         End date for data retrieval, by default None
     kind : :class:`str` or None, optional
         Whether to compute a transformation of CPD over days, or to return the value for each
-        day, by default None. Valid options are:
-
-            - `mean`
-            - `std`
-            - `min`
-            - `max`
-
+        day, by default None.
     chronotype_dict : :class:`dict`, optional
-        dictionary specifying for every user his usual sleeping time and waking time in format HH:MM, as a tuple
+        Dictionary specifying for every user his usual sleeping time and waking time in format HH:MM, as a tuple.
 
     Returns
     -------
     :class:`dict`
         If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
         calendar days (:class:`datetime.date`) as keys and CPD midpoints as values.
-        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `CPD_midpoint`
+        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `CPD_duration`
         as key and its transformed value, and an additional `days` keys that contains an array of all
         calendar days over which the transformation was computed.
     """
@@ -2161,73 +2231,6 @@ def get_cpd_duration(
         kind=kind,
         chronotype_dict=chronotype_dict,
     )
-
-
-def get_sleep_metric_std(
-    loader: BaseLoader,
-    metric: str,
-    user_id: str,
-    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-):
-    """Calculates standard deviation of a desired sleep metric.
-
-    Given a selected metric, calculates for the period of interest
-    and user of interest, its standard deviation.
-
-    Parameters
-    ----------
-    loader : :class:`pylabfront.loader.Loader`
-        Initialized instance of data loader.
-    metric : :class:`str`
-        Name of the metric or name of the sleep function for which calculate std
-    user_id : :class:`str`
-        user id for the user of interest
-    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
-        Start date for data retrieval, by default None.
-    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
-        End date for data retrieval, by default None.
-
-    Returns
-    -------
-    :class:`float`
-        Standard deviation for the sleep metric of interest
-
-    Raises
-    -------
-    ValueError
-        `metric` must valid: support is only for "midpoint" or "duration" in the current version
-    """
-    if metric == "duration":  # in hours
-        metric_data = get_sleep_period_time(loader, user_id, start_date, end_date)[
-            user_id
-        ]
-        metric_data = [duration / (1000 * 60 * 60) for duration in metric_data.values()]
-    elif metric == "midpoint":  # in hours
-        midpoints = list(
-            get_sleep_midpoints(
-                loader, user_id=user_id, start_date=start_date, end_date=end_date
-            )[user_id].values()
-        )
-        # need to check for possible midpoints before midnight
-        metric_data = []
-        for midpoint in midpoints:
-            midpoint_pydt = midpoint.to_pydatetime()
-            hour_component = midpoint_pydt.hour
-            minute_component = midpoint_pydt.minute
-            if hour_component > 13:
-                hour_component -= 24
-            metric_data.append(hour_component + minute_component / 60)
-    else:
-        try:
-            metric_data = metric(loader, start_date, end_date, user_id)[user_id]
-            metric_data = list(metric_data.values())
-        except:
-            raise ValueError(
-                "Metric specified isn't valid"
-            )  # TODO implement for other features as needed
-
-    return np.nanstd(metric_data)
 
 
 def _compute_sleep_score(sleep_summary: pd.DataFrame, **kwargs) -> pd.Series:
@@ -2251,10 +2254,7 @@ def _compute_sleep_score(sleep_summary: pd.DataFrame, **kwargs) -> pd.Series:
     ValueError
         If `sleep_summary` is not a :class:`pandas.DataFrame` .
     """
-    if not isinstance(sleep_summary, pd.DataFrame):
-        raise ValueError(
-            f"sleep_summary must be a pd.DataFrame. {type(sleep_summary)} is not a valid type."
-        )
+    sleep_summary = utils.check_is_df(sleep_summary, "sleep_summary")
     if constants._SLEEP_SUMMARY_OVERALL_SLEEP_SCORE_COL in sleep_summary.columns:
         sleep_score = sleep_summary[constants._SLEEP_SUMMARY_OVERALL_SLEEP_SCORE_COL]
     else:
@@ -2283,10 +2283,7 @@ def _compute_time_in_bed(sleep_summary: pd.DataFrame, **kwargs) -> pd.Series:
     ValueError
         If `sleep_summary` is not a :class:`pd.DataFrame`.
     """
-    if not isinstance(sleep_summary, pd.DataFrame):
-        raise ValueError(
-            f"sleep_summary must be a pd.DataFrame. {type(sleep_summary)} is not a valid type."
-        )
+    sleep_summary = utils.check_is_df(sleep_summary, "sleep_summary")
     # TIB = SLEEP_DURATION + AWAKE_DURATION in minutes
     if (constants._SLEEP_SUMMARY_DURATION_IN_MS_COL in sleep_summary.columns) and (
         constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL in sleep_summary.columns
@@ -3320,34 +3317,144 @@ def _compute_stage_count(
             count_df[col] = np.nan
     return count_df
 
+def _compute_bedtime(
+    sleep_summary: pd.DataFrame, **kwargs
+) -> pd.Series:
+    """Retrieves bedtimes from a sleep summary
+
+    This function retrieves, if available, the bedtime
+    of all sleep occurrences from given sleep summary data.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pandas.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    :class:`pandas.Series`
+        Series of bedtimes data in :class:`pandas.Timestamp` dtype.
+
+    Raises
+    ------
+    ValueError
+        If `sleep_summary` is not a :class:`pandas.DataFrame` .
+    """
+    sleep_summary = utils.check_is_df(sleep_summary, "sleep_summary")
+    if constants._SLEEP_SUMMARY_OVERALL_SLEEP_SCORE_COL in sleep_summary.columns:
+        bedtime = sleep_summary[constants._ISODATE_COL]
+    else:
+        bedtime = pd.Series()
+    return bedtime
+
+def _compute_wakeup_time(
+    sleep_summary: pd.DataFrame, **kwargs
+) -> pd.Series:
+    """Retrieves wake up time from a sleep summary
+
+    This function retrieves, if available, the wake up time from
+    given sleep summary data.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pandas.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    :class:`pandas.Series`
+        Series of wake up time data in :class:`pandas.Timestamp` dtype.
+
+    Raises
+    ------
+    ValueError
+        If `sleep_summary` is not a :class:`pandas.DataFrame` .
+    """
+
+    sleep_summary = utils.check_is_df(sleep_summary, "sleep_summary")
+
+    if np.all([constants._SLEEP_SUMMARY_DURATION_IN_MS_COL in sleep_summary.columns,
+               constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL in sleep_summary.columns,
+               constants._UNIXTIMESTAMP_IN_MS_COL in sleep_summary.columns,
+               constants._TIMEZONEOFFSET_IN_MS_COL in sleep_summary.columns]
+            ):
+        wakeup_time = pd.to_datetime(
+                sleep_summary[constants._UNIXTIMESTAMP_IN_MS_COL]
+                + sleep_summary[constants._TIMEZONEOFFSET_IN_MS_COL]
+                + sleep_summary[constants._DURATION_IN_MS_COL]
+                + sleep_summary[constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL],
+                unit="ms",
+                utc=True,
+            ).dt.tz_localize(None)
+    else:
+        wakeup_time = pd.Series()
+    return wakeup_time
+
+def _compute_sleep_midpoint(
+        sleep_summary: pd.DataFrame, **kwargs
+) -> pd.Series:
+    """Retrieves midpoints from a sleep summary
+
+    This function retrieves, if available, the midpoint
+    of sleep occurrences from given sleep summary data.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pandas.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    :class:`pandas.Series`
+        Series of sleep midpoints data in :class:`pandas.Timestamp` dtype.
+
+    Raises
+    ------
+    ValueError
+        If `sleep_summary` is not a :class:`pandas.DataFrame` .
+    """
+    sleep_summary = utils.check_is_df(sleep_summary, "sleep_summary")
+    wakeup_time = _compute_wakeup_time(sleep_summary=sleep_summary, **kwargs)
+    bedtime = _compute_bedtime(sleep_summary=sleep_summary, **kwargs)
+    if len(wakeup_time) == len(bedtime) and len(wakeup_time) != 0:
+       midpoints =  pd.Series(data=[bed + (wake - bed)/2 for bed,wake in zip(bedtime,wakeup_time)], 
+                              index=wakeup_time.index)
+    else:
+        midpoints = pd.Series()
+    return midpoints
+
 
 def _compute_cpd_midpoint(
     sleep_summary: pd.DataFrame, chronotype: Union[tuple, None], **kwargs
 ):
+    """Computes CPD midpoints from a sleep summary
+
+    This function computes, if possible, the composite phase deviation metric
+    with respect to sleep midpoints from all sleep occurrences 
+    from given sleep summary data.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pandas.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    :class:`pandas.Series`
+        Series of CPD midpoints data.
+
+    Raises
+    ------
+    ValueError
+        If `sleep_summary` is not a :class:`pandas.DataFrame` .
+    """
     # Check is dataframe
     sleep_summary = utils.check_is_df(sleep_summary, "sleep_summary")
 
     # get midpoints for period of interest
-    sleep_summary["waking_time"] = pd.to_datetime(
-        sleep_summary[constants._UNIXTIMESTAMP_IN_MS_COL]
-        + sleep_summary[constants._TIMEZONEOFFSET_IN_MS_COL]
-        + sleep_summary[constants._DURATION_IN_MS_COL]
-        + sleep_summary[constants._SLEEP_SUMMARY_AWAKE_DURATION_IN_MS_COL].fillna(0),
-        unit="ms",
-        utc=True,
-    ).dt.tz_localize(None)
-    sleep_timestamps = OrderedDict(
-        pd.Series(
-            zip(
-                np.array(sleep_summary[constants._ISODATE_COL].dt.to_pydatetime()),
-                np.array(sleep_summary["waking_time"].dt.to_pydatetime()),
-            ),
-            sleep_summary[constants._CALENDAR_DATE_COL],
-        ).to_dict()
-    )
-    midpoints = OrderedDict(
-        {k: (v[0] + (v[1] - v[0]) / 2) for k, v in sleep_timestamps.items()}
-    )
+    midpoints = _compute_sleep_midpoint(sleep_summary=sleep_summary, **kwargs)
+    midpoints = OrderedDict(zip(sleep_summary[constants._CALENDAR_DATE_COL], 
+                                midpoints.dt.to_pydatetime()))
 
     if (
         chronotype is None
@@ -3356,12 +3463,13 @@ def _compute_cpd_midpoint(
             [midpoint.strftime("%H:%M") for midpoint in list(midpoints.values())]
         )
     else:  # from specified times
-        chronotype_start = chronotype[0]
-        chronotype_end = chronotype[1]
-        chronotype_midpoint = utils.mean_time([chronotype_start, chronotype_end])
+        chronotype_midpoint = utils.mean_time(chronotype)
 
     previous_midpoint = None  # the first day will have irregularity component 0
     CPDs = []
+
+    if len(midpoints) == 1:
+        warnings.warn("Only one day is considered: CPD is only influenced by the mistiming component wrt the chronotype.")
 
     for calendar_date, midpoint in list(midpoints.items()):
         # mistiming component
@@ -3381,7 +3489,7 @@ def _compute_cpd_midpoint(
         )
 
         # irregularity component
-        if previous_midpoint is None:  # only for the first night recorded
+        if previous_midpoint is None: 
             irregularity_component = 0
         else:
             previous_day_midpoint_proxy = datetime.datetime(
@@ -3411,6 +3519,27 @@ def _compute_cpd_midpoint(
 def _compute_cpd_duration(
     sleep_summary: pd.DataFrame, chronotype: Union[tuple, None], **kwargs
 ):
+    """Computes CPD durations from a sleep summary
+
+    This function computes, if possible, the composite phase deviation metric
+    with respect to sleep durations from all sleep occurrences 
+    from given sleep summary data.
+
+    Parameters
+    ----------
+    sleep_summary : :class:`pandas.DataFrame`
+        Sleep summary data.
+
+    Returns
+    -------
+    :class:`pandas.Series`
+        Series of CPD durations data.
+
+    Raises
+    ------
+    ValueError
+        If `sleep_summary` is not a :class:`pandas.DataFrame` .
+    """
     # Check is dataframe
     sleep_summary = utils.check_is_df(sleep_summary, "sleep_summary")
 
@@ -3431,6 +3560,9 @@ def _compute_cpd_duration(
         )  # convert to hours
         if chronotype_sleep_duration < 0:  # takes care of sleep-time prior to midnight
             chronotype_sleep_duration += 24
+
+    if len(durations) == 1:
+        warnings.warn("Only one day is considered: CPD is only influenced by the mistiming component wrt the chronotype.")
 
     CPDs = []
     previous_duration = None  # first irregularity component will be 0
@@ -3481,6 +3613,9 @@ _SLEEP_STATISTICS_DICT = {
     _SLEEP_METRIC_N2_COUNT: _compute_n2_count,
     _SLEEP_METRIC_N3_COUNT: _compute_n3_count,
     _SLEEP_METRIC_REM_COUNT: _compute_rem_count,
+    _SLEEP_METRIC_BEDTIME: _compute_bedtime,
+    _SLEEP_METRIC_WAKEUP_TIME: _compute_wakeup_time,
+    _SLEEP_METRIC_MIDPOINT: _compute_sleep_midpoint,
     _SLEEP_METRIC_CPD_MIDPOINT: _compute_cpd_midpoint,
     _SLEEP_METRIC_CPD_DURATION: _compute_cpd_duration,
 }
@@ -3623,33 +3758,33 @@ def get_sleep_statistic(
                 how="outer",
             )
             # Convert it to a pd.Series with calendarDate as index
+            # special handling in this step for timestamp metrics
+            if metric in _SLEEP_DATETIME_METRICS:
+                data_dict[user] = dict(zip(metric_data[constants._CALENDAR_DATE_COL], 
+                         metric_data[metric].dt.to_pydatetime()))
+            else:
+                data_dict[user] = pd.Series(
+                    metric_data[metric].values,
+                    index=metric_data[constants._CALENDAR_DATE_COL],
+                ).to_dict()
 
-            data_dict[user] = pd.Series(
-                metric_data[metric].values,
-                index=metric_data[constants._CALENDAR_DATE_COL],
-            ).to_dict()
             if not (kind is None):
+                if metric in _SLEEP_DATETIME_METRICS: # circular means are calculated on HH:MM format
+                    data_dict[user] = {date: time.strftime("%H:%M") for date,time in data_dict[user].items()}
                 sleep_data_df = pd.DataFrame.from_dict(data_dict[user], orient="index")
                 transformed_dict[user] = {}
                 if len(sleep_data_df[~sleep_data_df[0].isna()]) > 0:
-                    if kind == "mean":
-                        transformed_dict[user][metric] = np.nanmean(
+                    # if the kind function is not among the common ones
+                    # assume it's something that can be directly applied to metric
+                    # otherwise get the specific version for the metric through the kind mapping
+                    kind_fn = _SLEEP_KIND_MAPPING.get(kind, {"default":kind}).get(metric if 
+                                metric in _SLEEP_DATETIME_METRICS else "default", kind)
+                    transformed_dict[user][metric] = kind_fn(
                             np.array(list(data_dict[user].values()))
-                        )
-                    elif kind == "std":
-                        transformed_dict[user][metric] = np.nanstd(
-                            np.array(list(data_dict[user].values()))
-                        )
-                    elif kind == "min":
-                        transformed_dict[user][metric] = np.nanmin(
-                            np.array(list(data_dict[user].values()))
-                        )
-                    elif kind == "max":
-                        transformed_dict[user][metric] = np.nanmax(
-                            np.array(list(data_dict[user].values()))
-                        )
+                    )
                 else:
                     transformed_dict[user][metric] = np.nan
+                # report the days over which kind has been calculated
                 transformed_dict[user]["days"] = [
                     datetime.datetime.strftime(x, "%Y-%m-%d")
                     for x in sleep_data_df.index
@@ -3850,9 +3985,20 @@ def get_sleep_statistics(
 
             if not (kind is None):
                 transformed_dict[user] = {}
-                transformed_dict[user]["values"] = user_sleep_metrics_df.apply(
-                    kind
-                ).to_dict()
+                # if the kind function is not among the common ones
+                # assume it's something that can be directly applied to metric
+                # otherwise get the specific version for each metric in the df through kind mapping
+                fn_dict = {
+                    metric:_SLEEP_KIND_MAPPING.get(kind,{"default":kind}).get(
+                        metric if metric in _SLEEP_DATETIME_METRICS else "default", kind) 
+                    for metric in user_sleep_metrics_df.columns
+                    }
+                # Assume that all transformations require the datetime metrics to be in "HH:MM" format:
+                for metric in user_sleep_metrics_df.columns:
+                    if metric in _SLEEP_DATETIME_METRICS:
+                        user_sleep_metrics_df[metric] = user_sleep_metrics_df.loc[:,metric].dt.strftime("%H:%M").values 
+                transformed_dict[user]["values"] = {metric : fn_dict[metric](user_sleep_metrics_df[metric]) 
+                                                    for metric in user_sleep_metrics_df.columns}
                 transformed_dict[user]["days"] = [
                     x for x in user_sleep_metrics_df.index
                 ]

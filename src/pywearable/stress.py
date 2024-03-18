@@ -485,7 +485,7 @@ def get_unreliable_stress_duration(loader: BaseLoader,
     return get_daily_stress_metric(loader, "unreliable", start_date, end_date, user_id)
 
 
-def get_stress_score(loader: BaseLoader,
+def get_stress_qualifier(loader: BaseLoader,
                      user_id: Union[str, list] = "all",
                      start_date: Union[datetime.datetime, datetime.date, str, None] = None,
                      end_date: Union[datetime.datetime, datetime.date, str, None] = None):
@@ -523,7 +523,7 @@ def get_stress_score(loader: BaseLoader,
 def get_sleep_battery_recovery(loader: BaseLoader,
                                user_id: Union[str, list] = "all",
                                start_date: Union[datetime.datetime, datetime.date, str, None] = None,
-                               end_date: Union[datetime.datetime, datetime.date, str, None] = None
+                               end_date: Union[datetime.datetime, datetime.date, str, None] = None,
 ):
     """Get body battery recovered during sleep.
 
@@ -578,10 +578,96 @@ def get_sleep_battery_recovery(loader: BaseLoader,
                     .mean()
                     .sort_index()
                 )
-
-                data_dict[user][k] = int(df.iloc[-1] - df.iloc[0])
+                recovery = int(df.iloc[-1] - df.iloc[0])
+                data_dict[user][k] = recovery
 
     return data_dict
+
+
+def get_recovery_percentage(loader: BaseLoader,
+                               user_id: Union[str, list] = "all",
+                               start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+                               end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+                               kind: Union[str, None] = None
+):
+    """Get percentage of body battery recovered during sleep.
+
+    This function returns the amount of body battery recovered while sleeping,
+    in the time range of interest, as percentages w.r.t. the maximum amount possible.
+
+    Parameters
+    ----------
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        Initialized instance of BaseLoader, required in order to properly load data.
+    user_id : :class:`str` or :class:`list`, optional
+        IDs of the users for which battery recovery have to be extracted, by default "all"
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None.
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None
+    kind : :class:`str` or None, by default None
+        Whether to transform percentage of recovery over days, or to return the value for each day, by default None.
+
+    Returns
+    -------
+    :class:`dict`
+        The returned dictionary contains the percentages of body battery recharged
+        for the given ``user_id``, for all sleep periods detected.
+        The primary key of the dictionary is the id of the user of interest.
+        Each value is a nested dictionary with the following structure:
+            - ``day`` : ``percentage of body battery recharged``
+    """
+    data_dict = {}
+    if not (kind is None):
+        transformed_dict = {}
+
+    user_id = utils.get_user_ids(loader, user_id)
+
+    for user in user_id:
+        data_dict[user] = {}
+        sleep_timestamps = sleep.get_sleep_timestamps(
+            loader=loader, user_id=user, start_date=start_date, end_date=end_date
+        )[user]
+        if not (sleep_timestamps is None):
+            for k, v in sleep_timestamps.items():
+                sleep_onset, awake_time = v[0], v[1]
+
+                df = loader.load_stress(user, sleep_onset, awake_time)
+                if len(df) == 0:
+                    continue
+
+                df = df[~df[constants._STRESS_BODY_BATTERY_COL].isna()]
+                df = df.reset_index(drop=True)
+                if len(df) == 0:
+                    continue
+                df = (
+                    df.groupby(constants._ISODATE_COL)[
+                        constants._STRESS_BODY_BATTERY_COL
+                    ]
+                    .mean()
+                    .sort_index()
+                )
+                available_recovery = 100 - df.iloc[0]
+                pct_recovery = round((df.iloc[-1] - df.iloc[0])/available_recovery * 100, 1)
+                data_dict[user][k] = pct_recovery
+    
+        if kind == "mean":
+            recovery_df = pd.DataFrame.from_dict(
+                    data_dict[user], orient="index"
+                )
+            transformed_dict[user] = {}
+            transformed_dict[user]["PCT_RECOVERY"] = np.nanmean(
+                np.array(list(data_dict[user].values()))
+                )
+            transformed_dict[user]["days"] = [
+                datetime.datetime.strftime(x, "%Y-%m-%d")
+                for x in recovery_df.index
+                ]
+
+    if not (kind is None):
+        return transformed_dict
+    else:
+        return data_dict
 
 
 def get_min_body_battery(loader: BaseLoader,
@@ -677,17 +763,20 @@ def get_max_body_battery(loader: BaseLoader,
     return data_dict
 
 
-def get_average_stress(
+def get_daily_stress_score(
     loader: BaseLoader,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    kind: Union[str, None] = None
 ):
     daily_stress_stats = get_daily_stress_statistics(
         loader, user_id, start_date, end_date
     )
 
     data_dict = {}
+    if not (kind is None):
+        transformed_dict = {}
 
     for user in daily_stress_stats.keys():
         if daily_stress_stats[user] is None:
@@ -696,8 +785,23 @@ def get_average_stress(
             data_dict[user] = {
                 k.date(): v[0] for k, v in daily_stress_stats[user].items()
             }
+        if kind == "mean":
+            stress_df = pd.DataFrame.from_dict(
+                    data_dict[user], orient="index"
+                )
+            transformed_dict[user] = {}
+            transformed_dict[user]["STRESS_SCORE"] = np.nanmean(
+                np.array(list(data_dict[user].values()))
+                )
+            transformed_dict[user]["days"] = [
+                datetime.datetime.strftime(x, "%Y-%m-%d")
+                for x in stress_df.index
+                ]
 
-    return data_dict
+    if not (kind is None):
+        return transformed_dict
+    else:
+        return data_dict
 
 
 def get_waking_body_battery(

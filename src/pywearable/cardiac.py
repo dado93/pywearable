@@ -400,7 +400,7 @@ def _compute_hr_statistic(
         mean_hr = heart_rate.resample("30Min", label="left")[
             constants._HR_COLUMN
         ].mean()
-        return mean_hr.resample("1d").min().round(0)
+        return mean_hr.resample("1d").min().apply(lambda x: np.nan if pd.isna(x) else round(x))
     else:
         if statistic == _CARDIAC_METRIC_MAXIMUM_HEART_RATE:
             fn = "max"
@@ -415,7 +415,7 @@ def _compute_hr_statistic(
         return (
             heart_rate.groupby(constants._CALENDAR_DATE_COL)[constants._HR_COLUMN]
             .agg(fn)
-            .round(0)
+            .apply(lambda x: np.nan if pd.isna(x) else round(x))
         )
 
 

@@ -14,7 +14,6 @@ import pandas as pd
 import scipy.stats
 
 from . import constants
-from .loader.base import BaseLoader
 
 _LABFRONT_LAST_SAMPLE_UNIX_TIMESTAMP_IN_MS_KEY = "lastSampleUnixTimestampInMs"
 _LABFRONT_QUESTIONNAIRE_STRING = "questionnaire"
@@ -553,7 +552,7 @@ def std_time(times):
     return "%02i:%02i" % (h_std, m_std)
 
 
-def filter_out_awake(loader : BaseLoader,
+def filter_out_awake(loader : "BaseLoader",
                          user : str,
                          df : pd.DataFrame,
                          date : datetime.date,

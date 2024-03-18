@@ -1163,7 +1163,11 @@ class LabfrontLoader(BaseLoader):
             )
 
             sleep_data[constants._IS_SLEEPING_COL] = True
-            sleep_data = sleep_data.drop(
+
+            # Merge dataframes
+            # We need to merge the dataframes because the daily_data already contain sleep_data
+            if len(daily_data) > 0:
+                sleep_data = sleep_data.drop(
                 [
                     x
                     for x in sleep_data.columns
@@ -1179,11 +1183,7 @@ class LabfrontLoader(BaseLoader):
                     )
                 ],
                 axis=1,
-            )
-
-            # Merge dataframes
-            # We need to merge the dataframes because the daily_data already contain sleep_data
-            if len(daily_data) > 0:
+                )
                 merged_data = daily_data.merge(
                     sleep_data, on=constants._ISODATE_COL, how="left"
                 )
@@ -1191,6 +1191,8 @@ class LabfrontLoader(BaseLoader):
                     constants._IS_SLEEPING_COL
                 ].fillna(value=False)
                 return merged_data
+            else:
+                return sleep_data
         else:
             daily_data[daily_data[constants._IS_SLEEPING_COL]] = False
             return daily_data
@@ -1611,7 +1613,6 @@ class LabfrontLoader(BaseLoader):
                 user_id=user_id,
                 start_date=start_date,
                 end_date=end_date,
-                kind=None,
             )
             # Prepare columns for sleep information
             data[constants._IS_SLEEPING_COL] = False
@@ -1733,7 +1734,6 @@ class LabfrontLoader(BaseLoader):
                 user_id=user_id,
                 start_date=start_date,
                 end_date=end_date,
-                kind=None,
             )
             if type(sleep_timestamps) == dict:
                 if user_id in sleep_timestamps.keys():

@@ -18,7 +18,7 @@ _ACTIVITY_TIME_IN_MINUTES = "activeTimeInMinutes"
 
 
 def get_activity_series(
-    loader: BaseLoader,
+    loader: "BaseLoader",
     activity: str,
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -85,7 +85,7 @@ def get_activity_series(
 
 
 def get_active_activity_series(
-    loader: BaseLoader,
+    loader: "BaseLoader",
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -144,7 +144,7 @@ def get_active_activity_series(
 
 
 def get_highly_active_activity_series(
-    loader: BaseLoader,
+    loader: "BaseLoader",
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -186,7 +186,7 @@ def get_highly_active_activity_series(
 
 
 def get_sedentary_activity_series(
-    loader: BaseLoader,
+    loader: "BaseLoader",
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -228,7 +228,7 @@ def get_sedentary_activity_series(
 
 
 def get_steps_series(
-    loader: BaseLoader,
+    loader: "BaseLoader",
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -302,7 +302,7 @@ def get_steps_series(
 
 
 def get_distance_series(
-    loader: BaseLoader,
+    loader: "BaseLoader",
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -356,7 +356,7 @@ def get_distance_series(
 
 
 def get_daily_steps(
-    loader: BaseLoader,
+    loader: "BaseLoader",
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -426,7 +426,7 @@ def get_daily_steps(
 
 
 def get_daily_distance(
-    loader: BaseLoader,
+    loader: "BaseLoader",
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -463,23 +463,11 @@ def get_daily_distance(
     if end_date is None:
         end_date = datetime.datetime.now()
     for id in user_ids:
-        participant_epochs = loader.load_garmin_connect_epoch(
-            id,
-            start_date,
-            end_date
-            + datetime.timedelta(hours=23, minutes=45),  # TODO check if correct
-        )
-        if len(participant_epochs) > 0:
-            participant_epochs[
+        participant_daily_summary = loader.load_daily_summary(id, start_date, end_date)
+        if len(participant_daily_summary) > 0:
+            participant_daily_summary = participant_daily_summary.groupby(
                 constants._DAILY_SUMMARY_CALENDAR_DATE_COL
-            ] = participant_epochs[constants._ISODATE_COL].apply(lambda x: x.date())
-            participant_daily_summary = (
-                participant_epochs.groupby(constants._DAILY_SUMMARY_CALENDAR_DATE_COL)[
-                    constants._DAILY_SUMMARY_DISTANCE_COL
-                ]
-                .sum()
-                .reset_index()
-            )
+            ).tail(1)
             if average:
                 data_dict[id] = int(
                     participant_daily_summary[
@@ -493,16 +481,16 @@ def get_daily_distance(
                     ].values,
                     index=participant_daily_summary[
                         constants._DAILY_SUMMARY_CALENDAR_DATE_COL
-                    ],
+                    ].dt.date,
                 ).to_dict()
         else:
             data_dict[id] = None
-
-    return data_dict
+        
+        return data_dict
 
 
 def get_daily_steps_goal(
-    loader: BaseLoader,
+    loader: "BaseLoader",
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -554,7 +542,7 @@ def get_daily_steps_goal(
 
 
 def get_daily_intensity(
-    loader: BaseLoader,
+    loader: "BaseLoader",
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -645,7 +633,7 @@ def get_daily_intensity(
 
 
 def get_average_daily_activity_minutes(
-    loader: BaseLoader,
+    loader: "BaseLoader",
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -750,7 +738,7 @@ def get_average_daily_activity_minutes(
 
 
 def get_average_daily_sedentary_minutes(
-    loader: BaseLoader,
+    loader: "BaseLoader",
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -801,7 +789,7 @@ def get_average_daily_sedentary_minutes(
 
 
 def get_average_daily_active_minutes(
-    loader: BaseLoader,
+    loader: "BaseLoader",
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -852,7 +840,7 @@ def get_average_daily_active_minutes(
 
 
 def get_average_daily_highly_active_minutes(
-    loader: BaseLoader,
+    loader: "BaseLoader",
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -902,7 +890,7 @@ def get_average_daily_highly_active_minutes(
 
 
 def get_average_weekly_activities(
-    loader: BaseLoader,
+    loader: "BaseLoader",
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -1013,7 +1001,7 @@ def get_average_weekly_activities(
 
 
 def get_average_weekday_sedentary_minutes(
-    loader: BaseLoader,
+    loader: "BaseLoader",
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -1064,7 +1052,7 @@ def get_average_weekday_sedentary_minutes(
 
 
 def get_average_weekday_active_minutes(
-    loader: BaseLoader,
+    loader: "BaseLoader",
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -1115,7 +1103,7 @@ def get_average_weekday_active_minutes(
 
 
 def get_average_weekday_highly_active_minutes(
-    loader: BaseLoader,
+    loader: "BaseLoader",
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -1166,7 +1154,7 @@ def get_average_weekday_highly_active_minutes(
 
 
 def get_average_weekend_sedentary_minutes(
-    loader: BaseLoader,
+    loader: "BaseLoader",
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -1217,7 +1205,7 @@ def get_average_weekend_sedentary_minutes(
 
 
 def get_average_weekend_active_minutes(
-    loader: BaseLoader,
+    loader: "BaseLoader",
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -1268,7 +1256,7 @@ def get_average_weekend_active_minutes(
 
 
 def get_average_weekend_highly_active_minutes(
-    loader: BaseLoader,
+    loader: "BaseLoader",
     user_id: Union[str, list] = "all",
     start_date: Union[datetime.datetime, datetime.date, str, None] = None,
     end_date: Union[datetime.datetime, datetime.date, str, None] = None,
