@@ -19,6 +19,8 @@ from .loader.base import BaseLoader
 #       - loading function
 #       - metrics
 
+# TODO change get_sleep_timestamps
+
 _CARDIAC_METRIC_RESTING_HEART_RATE = "restHR"
 _CARDIAC_METRIC_MAXIMUM_HEART_RATE = "maxHR"
 _CARDIAC_METRIC_MINIMUM_HEART_RATE = "minHR"
@@ -63,19 +65,19 @@ def get_rest_heart_rate(
     loader_kwargs={},
     return_df: bool = True,
     return_multi_index: bool = True,
-) -> Union[dict, pd.DataFrame]:
+) -> Union[dict, pd.Series]:
     """Get daily resting heart rate (RHR).
 
     This function computes the resting heart rate metric.
     Rest heart rate is computed as the lowest
-    30 minute average over a period of 24 hours.
+    30 minute average over a period of a calendar day.
     Rest heart rate is reported for each day
     from ``start_date`` to ``end_date` and
-    for the users specifiec by ``user_id``.
+    for the users specified by ``user_id``.
     It is possible to perform an
-    aggregation of the computed RHR by setting
+    aggregation of the computed restHR by setting
     the ``kind`` parameter. For example, it is
-    possible to obtain the mean of the mean values by
+    possible to obtain the mean of the restHR values by
     setting the ``kind`` parameter to ``"mean"``. If the
     ``kind`` argument requires additional positional
     arguments or keyword arguments, it is possible to set them
@@ -85,7 +87,44 @@ def get_rest_heart_rate(
     :func:`~loader.BaseLoader.load_heart_rate`. If
     loader-specific arguments are required, it is
     possible to set them using the ``loader_kwargs`` argument.
-    The return type depends on the
+    The return type depends on the values of ``return_df``
+    and ``return_multi_index``. If both ``return_df`` and
+    ``return_multi_index`` are set to ``True``, then a
+    :class:`pd.Series` with a :class:`pd.MultiIndex` is
+    returned, with the two levels of the index being
+    ``userId`` and ``calendarDate``::
+
+        user            calendarDate
+        userId0         2023-05-18      41.0
+                        2023-05-19      40.0
+                        2023-05-20      37.0
+        Name: restHR, dtype: float64
+
+    Instead, if ``return_df`` is ``True`` but ``return_multi_index``
+    is ``False``, then a :class:`pd.Series` with a :class:`pd.RangeIndex` is
+    returned, with ``userId`` and ``calendarDate`` as columns of
+    the returned :class:`pd.DataFrame`::
+
+        user            calendarDate    restHR
+        userId0         2023-05-18      41.0
+        userId0         2023-05-19      40.0
+        userId0         2023-05-20      37.0
+
+    If, instead, ``return_df`` is ``False``, independetly of the value of
+    ``return_multi_index``, a nested :class:`dict` is returned with
+    values of the requested ``user_id`` as primary keys, calendar days
+    from ``start_date`` to ``end_date`` as secondary keys, and
+    ```restHR`` as values::
+
+        {
+            'userId0':
+            {
+                datetime.date(2023, 5, 18): 41.0,
+                datetime.date(2023, 5, 19): 40.0,
+                datetime.date(2023, 5, 20): 37.0,
+            }
+        }
+
 
     Parameters
     ----------
@@ -98,7 +137,8 @@ def get_rest_heart_rate(
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None
     kind : :class:`str` or None, optional
-        Whether to transform RHR over days, or to return its value for each day, by default None.
+        Type of transformation to apply to restHR over days,
+        or to return its value for each day (if ``None``), by default None.
     kind_args : :class:`list`, optional
         Additional positional arguments to be passed to the function used
         by the ``kind`` method, by default ``[]``
@@ -106,27 +146,31 @@ def get_rest_heart_rate(
         Additional keyword arguments to be passed to the function used by the ``kind``
         method, by default no additional keywords arguments are passed.
     loader_kwargs: :class:`dict`
-        Keyword arguemnts for the ``load_sleep_pulse_ox`` loading function of the ``loader``,
+        Keyword arguemnts for the ``load_heart_rate`` loading function of the ``loader``,
         by default no keyword arguments are passed.
     return_df: :class:`bool`
-        Whether to return a :class:`pd.DataFrame` (if ``True``) or a
+        Whether to return a :class:`pd.Series` (if ``True``) or a
         :class:`dict` (if ``False``) with daily RHR values, by
         default ``True``.
     return_multi_index: :class:`bool`
-        Whether to return a :class:`pd.DataFrame` with a
+        Whether to return a :class:`pd.Series` with a
         :class:`pd.MultiIndex` as index, with levels ``"user"`` and
         ``"calendarDate"`` (if ``True``) or to return a
-        :class:`pd.DataFrame` with a :class:`pd.RangeIndex` as index
-        and ``"user"`` and ``"calendarDate"`` as columns.
+        :class:`pd.Series` with a :class:`pd.RangeIndex` as index
+        and ``"user"`` and ``"calendarDate"`` as columns (if ``False``).
+        The value set to this parameter has no effect if ``return_df`` is
+        set to ``False``.
 
     Returns
     -------
-    :class:`dict`
-        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (:class:`datetime.date`) as keys and RHR as values.
-        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `RHR`
-        as key and its transformed value, and an additional `days` keys that contains an array of all
-        calendar days over which the transformation was computed.
+    :class:`dict` or :class:`pd.Series`
+        Depending on the values of ``return_df``,
+        :class:`dict` (if ``False``) or :class`pd.Series` (if ``True``) is returned,
+        the latter having a :class:`pd.MultiIndex` as index if ``return_multi_index``
+        is ``True``, or a :class:`pd.RangeIndex` if ``False``. If the ``kind``
+        parameter is ``None``, then the returned :class:`dict` or :class:`pd.Series`
+        contain the transformed value over the period of time from ``start_date``
+        to ``end_date``.
     """
 
     return get_heart_rate_statistic(
@@ -156,34 +200,110 @@ def get_max_heart_rate(
     return_df: bool = True,
     return_multi_index: bool = True,
 ) -> Union[dict, pd.DataFrame]:
-    """Get maximum heart rate (MHR) cardiac metric.
+    """Get daily maximum heart rate (RHR).
 
     This function computes the maximum heart rate metric.
-    Depending on the value of the ``kind`` parameter, this function
-    returns MHR for each calendar day (``kind=None``) from ``start_date`` to
-    ``end_date`` or the transformed value across all days.
+    Maximum heart rate is computed as the maximum
+    heart rate value over a period of a calendar day.
+    Maximum heart rate is reported for each day
+    from ``start_date`` to ``end_date` and
+    for the users specified by ``user_id``.
+    It is possible to perform an
+    aggregation of the computed maxHR by setting
+    the ``kind`` parameter. For example, it is
+    possible to obtain the mean of the maxHR values by
+    setting the ``kind`` parameter to ``"mean"``. If the
+    ``kind`` argument requires additional positional
+    arguments or keyword arguments, it is possible to set them
+    by passing them to the ``kind_args`` and
+    ``kind_kwargs`` arguments.
+    The function used to load heart rate data is the
+    :func:`~loader.BaseLoader.load_heart_rate`. If
+    loader-specific arguments are required, it is
+    possible to set them using the ``loader_kwargs`` argument.
+    The return type depends on the values of ``return_df``
+    and ``return_multi_index``. If both ``return_df`` and
+    ``return_multi_index`` are set to ``True``, then a
+    :class:`pd.Series` with a :class:`pd.MultiIndex` is
+    returned, with the two levels of the index being
+    ``userId`` and ``calendarDate``::
+
+        user            calendarDate
+        userId0         2023-05-18      155.0
+                        2023-05-19      132.0
+                        2023-05-20      91.0
+        Name: maxHR, dtype: float64
+
+    Instead, if ``return_df`` is ``True`` but ``return_multi_index``
+    is ``False``, then a :class:`pd.Series` with a :class:`pd.RangeIndex` is
+    returned, with ``userId`` and ``calendarDate`` as columns of
+    the returned :class:`pd.DataFrame`::
+
+        user            calendarDate    maxHR
+        userId0         2023-05-18      155.0
+        userId0         2023-05-19      132.0
+        userId0         2023-05-20      91.0
+
+    If, instead, ``return_df`` is ``False``, independetly of the value of
+    ``return_multi_index``, a nested :class:`dict` is returned with
+    values of the requested ``user_id`` as primary keys, calendar days
+    from ``start_date`` to ``end_date`` as secondary keys, and
+    ```maxHR`` as values::
+
+        {
+            'userId0':
+            {
+                datetime.date(2023, 5, 18): 155.0,
+                datetime.date(2023, 5, 19): 132.0,
+                datetime.date(2023, 5, 20): 91.0,
+            }
+        }
 
     Parameters
     ----------
     loader : :class:`pywearable.loader.base.BaseLoader`
         An instance of a data loader.
     user_id : :class:`str` or :class:`list`, optional
-        The id(s) for which MHR must be retrieved, by default "all"
+        The id(s) for which maxHR must be retrieved, by default "all"
     start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         Start date for data retrieval, by default None.
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None
     kind : :class:`str` or None, optional
-        Whether to transform MHR over days, or to return the value for each day, by default None.
+        Type of transformation to apply to maxHR over days,
+        or to return its value for each day (if ``None``), by default None.
+    kind_args : :class:`list`, optional
+        Additional positional arguments to be passed to the function used
+        by the ``kind`` method, by default ``[]``.
+    kind_kwargs : :class:`dict`, optional
+        Additional keyword arguments to be passed to the function used by the ``kind``
+        method, by default no additional keywords arguments are passed.
+    loader_kwargs: :class:`dict`
+        Keyword arguemnts for the ``load_heart_rate`` loading function of the ``loader``,
+        by default no keyword arguments are passed.
+    return_df: :class:`bool`
+        Whether to return a :class:`pd.Series` (if ``True``) or a
+        :class:`dict` (if ``False``) with daily maxHR values, by
+        default ``True``.
+    return_multi_index: :class:`bool`
+        Whether to return a :class:`pd.Series` with a
+        :class:`pd.MultiIndex` as index, with levels ``"user"`` and
+        ``"calendarDate"`` (if ``True``) or to return a
+        :class:`pd.Series` with a :class:`pd.RangeIndex` as index
+        and ``"user"`` and ``"calendarDate"`` as columns (if ``False``).
+        The value set to this parameter has no effect if ``return_df`` is
+        set to ``False``..
 
     Returns
     -------
-    :class:`dict`
-        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (:class:`datetime.date`) as keys and MHR as values.
-        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `MHR`
-        as key and its transformed value, and an additional `days` keys that contains an array of all
-        calendar days over which the transformation was computed.
+    :class:`dict` or :class:`pd.Series`
+        Depending on the values of ``return_df``,
+        :class:`dict` (if ``False``) or :class`pd.Series` (if ``True``) is returned,
+        the latter having a :class:`pd.MultiIndex` as index if ``return_multi_index``
+        is ``True``, or a :class:`pd.RangeIndex` if ``False``. If the ``kind``
+        parameter is ``None``, then the returned :class:`dict` or :class:`pd.Series`
+        contain the transformed value over the period of time from ``start_date``
+        to ``end_date``.
     """
 
     return get_heart_rate_statistic(
@@ -213,12 +333,64 @@ def get_min_heart_rate(
     return_df: bool = True,
     return_multi_index: bool = True,
 ) -> dict:
-    """Get minimum heart rate (minHR) cardiac metric.
+    """Get daily minimum heart rate (RHR).
 
     This function computes the minimum heart rate metric.
-    Depending on the value of the ``kind`` parameter, this function
-    returns minHR for each calendar day (``kind=None``) from ``start_date`` to
-    ``end_date`` or the transformed value across all days.
+    Minimum heart rate is computed as the minimum
+    heart rate value over a period of a calendar day.
+    Minimum heart rate is reported for each day
+    from ``start_date`` to ``end_date` and
+    for the users specified by ``user_id``.
+    It is possible to perform an
+    aggregation of the computed minHR by setting
+    the ``kind`` parameter. For example, it is
+    possible to obtain the mean of the minHR values by
+    setting the ``kind`` parameter to ``"mean"``. If the
+    ``kind`` argument requires additional positional
+    arguments or keyword arguments, it is possible to set them
+    by passing them to the ``kind_args`` and
+    ``kind_kwargs`` arguments.
+    The function used to load heart rate data is the
+    :func:`~loader.BaseLoader.load_heart_rate`. If
+    loader-specific arguments are required, it is
+    possible to set them using the ``loader_kwargs`` argument.
+    The return type depends on the values of ``return_df``
+    and ``return_multi_index``. If both ``return_df`` and
+    ``return_multi_index`` are set to ``True``, then a
+    :class:`pd.Series` with a :class:`pd.MultiIndex` is
+    returned, with the two levels of the index being
+    ``userId`` and ``calendarDate``::
+
+        user            calendarDate
+        userId0         2023-05-18      38.0
+                        2023-05-19      38.0
+                        2023-05-20      34.0
+        Name: minHR, dtype: float64
+
+    Instead, if ``return_df`` is ``True`` but ``return_multi_index``
+    is ``False``, then a :class:`pd.Series` with a :class:`pd.RangeIndex` is
+    returned, with ``userId`` and ``calendarDate`` as columns of
+    the returned :class:`pd.DataFrame`::
+
+        user            calendarDate    minHR
+        userId0         2023-05-18      38.0
+        userId0         2023-05-19      38.0
+        userId0         2023-05-20      34.0
+
+    If, instead, ``return_df`` is ``False``, independetly of the value of
+    ``return_multi_index``, a nested :class:`dict` is returned with
+    values of the requested ``user_id`` as primary keys, calendar days
+    from ``start_date`` to ``end_date`` as secondary keys, and
+    ```minHR`` as values::
+
+        {
+            'userId0':
+            {
+                datetime.date(2023, 5, 18): 38.0,
+                datetime.date(2023, 5, 19): 38.0,
+                datetime.date(2023, 5, 20): 34.0,
+            }
+        }
 
     Parameters
     ----------
@@ -231,16 +403,40 @@ def get_min_heart_rate(
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None
     kind : :class:`str` or None, optional
-        Whether to transform minHR over days, or to return the value for each day, by default None.
+        Type of transformation to apply to minHR over days,
+        or to return its value for each day (if ``None``), by default None.
+    kind_args : :class:`list`, optional
+        Additional positional arguments to be passed to the function used
+        by the ``kind`` method, by default ``[]``.
+    kind_kwargs : :class:`dict`, optional
+        Additional keyword arguments to be passed to the function used by the ``kind``
+        method, by default no additional keywords arguments are passed.
+    loader_kwargs: :class:`dict`
+        Keyword arguemnts for the ``load_heart_rate`` loading function of the ``loader``,
+        by default no keyword arguments are passed.
+    return_df: :class:`bool`
+        Whether to return a :class:`pd.Series` (if ``True``) or a
+        :class:`dict` (if ``False``) with daily minHR values, by
+        default ``True``.
+    return_multi_index: :class:`bool`
+        Whether to return a :class:`pd.Series` with a
+        :class:`pd.MultiIndex` as index, with levels ``"user"`` and
+        ``"calendarDate"`` (if ``True``) or to return a
+        :class:`pd.Series` with a :class:`pd.RangeIndex` as index
+        and ``"user"`` and ``"calendarDate"`` as columns (if ``False``).
+        The value set to this parameter has no effect if ``return_df`` is
+        set to ``False``..
 
     Returns
     -------
-    :class:`dict`
-        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (:class:`datetime.date`) as keys and minHR as values.
-        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `minHR`
-        as key and its transformed value, and an additional `days` keys that contains an array of all
-        calendar days over which the transformation was computed.
+    :class:`dict` or :class:`pd.Series`
+        Depending on the values of ``return_df``,
+        :class:`dict` (if ``False``) or :class`pd.Series` (if ``True``) is returned,
+        the latter having a :class:`pd.MultiIndex` as index if ``return_multi_index``
+        is ``True``, or a :class:`pd.RangeIndex` if ``False``. If the ``kind``
+        parameter is ``None``, then the returned :class:`dict` or :class:`pd.Series`
+        contain the transformed value over the period of time from ``start_date``
+        to ``end_date``.
     """
     return get_heart_rate_statistic(
         loader=loader,
@@ -269,12 +465,64 @@ def get_avg_heart_rate(
     return_df: bool = True,
     return_multi_index: bool = True,
 ) -> dict:
-    """Get average heart rate (avgHR) cardiac metric.
+    """Get daily average heart rate (RHR).
 
     This function computes the average heart rate metric.
-    Depending on the value of the ``kind`` parameter, this function
-    returns avgHR for each calendar day (``kind=None``) from ``start_date`` to
-    ``end_date`` or the transformed value across all days.
+    Average heart rate is computed as the average
+    heart rate value over a period of a calendar day.
+    Average heart rate is reported for each day
+    from ``start_date`` to ``end_date` and
+    for the users specified by ``user_id``.
+    It is possible to perform an
+    aggregation of the computed avgHR by setting
+    the ``kind`` parameter. For example, it is
+    possible to obtain the mean of the avgHR values by
+    setting the ``kind`` parameter to ``"mean"``. If the
+    ``kind`` argument requires additional positional
+    arguments or keyword arguments, it is possible to set them
+    by passing them to the ``kind_args`` and
+    ``kind_kwargs`` arguments.
+    The function used to load heart rate data is the
+    :func:`~loader.BaseLoader.load_heart_rate`. If
+    loader-specific arguments are required, it is
+    possible to set them using the ``loader_kwargs`` argument.
+    The return type depends on the values of ``return_df``
+    and ``return_multi_index``. If both ``return_df`` and
+    ``return_multi_index`` are set to ``True``, then a
+    :class:`pd.Series` with a :class:`pd.MultiIndex` is
+    returned, with the two levels of the index being
+    ``userId`` and ``calendarDate``::
+
+        user            calendarDate
+        userId0         2023-05-18      59.0
+                        2023-05-19      53.0
+                        2023-05-20      52.0
+        Name: avgHR, dtype: float64
+
+    Instead, if ``return_df`` is ``True`` but ``return_multi_index``
+    is ``False``, then a :class:`pd.Series` with a :class:`pd.RangeIndex` is
+    returned, with ``userId`` and ``calendarDate`` as columns of
+    the returned :class:`pd.DataFrame`::
+
+        user            calendarDate    avgHR
+        userId0         2023-05-18      59.0
+        userId0         2023-05-19      53.0
+        userId0         2023-05-20      52.0
+
+    If, instead, ``return_df`` is ``False``, independetly of the value of
+    ``return_multi_index``, a nested :class:`dict` is returned with
+    values of the requested ``user_id`` as primary keys, calendar days
+    from ``start_date`` to ``end_date`` as secondary keys, and
+    ```avgHR`` as values::
+
+        {
+            'userId0':
+            {
+                datetime.date(2023, 5, 18): 59.0,
+                datetime.date(2023, 5, 19): 53.0,
+                datetime.date(2023, 5, 20): 52.0,
+            }
+        }
 
     Parameters
     ----------
@@ -287,16 +535,40 @@ def get_avg_heart_rate(
     end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
         End date for data retrieval, by default None
     kind : :class:`str` or None, optional
-        Whether to transform avgHR over days, or to return the value for each day, by default None.
+        Type of transformation to apply to avgHR over days,
+        or to return its value for each day (if ``None``), by default None.
+    kind_args : :class:`list`, optional
+        Additional positional arguments to be passed to the function used
+        by the ``kind`` method, by default ``[]``.
+    kind_kwargs : :class:`dict`, optional
+        Additional keyword arguments to be passed to the function used by the ``kind``
+        method, by default no additional keywords arguments are passed.
+    loader_kwargs: :class:`dict`
+        Keyword arguemnts for the ``load_heart_rate`` loading function of the ``loader``,
+        by default no keyword arguments are passed.
+    return_df: :class:`bool`
+        Whether to return a :class:`pd.Series` (if ``True``) or a
+        :class:`dict` (if ``False``) with daily avgHR values, by
+        default ``True``.
+    return_multi_index: :class:`bool`
+        Whether to return a :class:`pd.Series` with a
+        :class:`pd.MultiIndex` as index, with levels ``"user"`` and
+        ``"calendarDate"`` (if ``True``) or to return a
+        :class:`pd.Series` with a :class:`pd.RangeIndex` as index
+        and ``"user"`` and ``"calendarDate"`` as columns (if ``False``).
+        The value set to this parameter has no effect if ``return_df`` is
+        set to ``False``..
 
     Returns
     -------
-    :class:`dict`
-        If ``kind==None``, dictionary with ``user_id`` as key, and a nested dictionary with
-        calendar days (:class:`datetime.date`) as keys and avgHR as values.
-        If ``kind!=None``, dictionary with ``user_id`` as key, and a nested dictionary with `avgHR`
-        as key and its transformed value, and an additional `days` keys that contains an array of all
-        calendar days over which the transformation was computed.
+    :class:`dict` or :class:`pd.Series`
+        Depending on the values of ``return_df``,
+        :class:`dict` (if ``False``) or :class`pd.Series` (if ``True``) is returned,
+        the latter having a :class:`pd.MultiIndex` as index if ``return_multi_index``
+        is ``True``, or a :class:`pd.RangeIndex` if ``False``. If the ``kind``
+        parameter is ``None``, then the returned :class:`dict` or :class:`pd.Series`
+        contain the transformed value over the period of time from ``start_date``
+        to ``end_date``.
     """
     return get_heart_rate_statistic(
         loader=loader,
@@ -314,12 +586,12 @@ def get_avg_heart_rate(
 
 
 def _compute_resting_heart_rate(heart_rate: pd.DataFrame, **kwargs) -> dict:
-    """Compute RHR from daily summaries.
+    """Compute RHR from heart rate data.
 
     Parameters
     ----------
-    daily_summary : :class:`pd.DataFrame`
-        Daily summaries, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_daily_summary`.
+    heart_rate : :class:`pd.DataFrame`
+        Heart rate value, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_daily_summary`.
 
     Returns
     -------
@@ -437,7 +709,7 @@ def _compute_hr_statistic(
         # Perform 30 minute average
         mean_hr = heart_rate.rolling(window="30Min")[constants._HR_COLUMN].mean()
         # Return minimum 30 minute average
-        return mean_hr.resample("1d", label="left").min().round(0)
+        return mean_hr.resample("1d", label="left").min()
     else:
         if statistic == _CARDIAC_METRIC_MAXIMUM_HEART_RATE:
             fn = "max"
@@ -453,6 +725,7 @@ def _compute_hr_statistic(
             heart_rate.groupby(constants._CALENDAR_DATE_COL)[constants._HR_COLUMN]
             .agg(fn)
             .round(0)
+            .astype("float")
         )
 
 
@@ -545,7 +818,9 @@ def get_heart_rate_statistics(
             [user_id, date_periods],
             names=[constants._USER_COL, constants._CALENDAR_DATE_COL],
         )
-        heart_rate_stats_df = pd.DataFrame(index=multi_index, columns=statistics)
+        heart_rate_stats_df = pd.DataFrame(
+            index=multi_index, columns=statistics, dtype=float
+        )
         both_dates_valid = True
     else:
         # Set up a standard df and we will populate it later with indexes
