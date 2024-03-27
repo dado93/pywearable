@@ -8,6 +8,7 @@ API documentation.
 
    _api/activity
    _api/adherence
+   _api/cardiac
    _api/constants
    _api/loader
    _api/respiration

@@ -21,32 +21,32 @@ from .loader.base import BaseLoader
 
 # TODO change get_sleep_timestamps
 
-_CARDIAC_METRIC_RESTING_HEART_RATE = "restHR"
-_CARDIAC_METRIC_MAXIMUM_HEART_RATE = "maxHR"
-_CARDIAC_METRIC_MINIMUM_HEART_RATE = "minHR"
-_CARDIAC_METRIC_AVERAGE_HEART_RATE = "avgHR"
-_CARDIAC_METRIC_ROOT_MEAN_SQUARED_SUCCESSIVE_DIFFERENCES = "RMSSD"
-_CARDIAC_METRIC_STANDARD_DEVIATION_NORMAL_TO_NORMAL = "SDNN"
-_CARDIAC_METRIC_LOW_FREQUENCY = "LF"
-_CARDIAC_METRIC_HIGH_FREQUENCY = "HF"
-_CARDIAC_METRIC_LOW_HIGH_FREQUENCY_RATIO = "LFHF"
+_CARDIAC_STATISTIC_RESTING_HEART_RATE = "restHR"
+_CARDIAC_STATISTIC_MAXIMUM_HEART_RATE = "maxHR"
+_CARDIAC_STATISTIC_MINIMUM_HEART_RATE = "minHR"
+_CARDIAC_STATISTIC_AVERAGE_HEART_RATE = "avgHR"
+_CARDIAC_STATISTIC_ROOT_MEAN_SQUARED_SUCCESSIVE_DIFFERENCES = "RMSSD"
+_CARDIAC_STATISTIC_STANDARD_DEVIATION_NORMAL_TO_NORMAL = "SDNN"
+_CARDIAC_STATISTIC_LOW_FREQUENCY = "LF"
+_CARDIAC_STATISTIC_HIGH_FREQUENCY = "HF"
+_CARDIAC_STATISTIC_LOW_HIGH_FREQUENCY_RATIO = "LFHF"
 
 _CARDIAC_HR_STATISTICS = [
-    _CARDIAC_METRIC_RESTING_HEART_RATE,
-    _CARDIAC_METRIC_MAXIMUM_HEART_RATE,
-    _CARDIAC_METRIC_MINIMUM_HEART_RATE,
-    _CARDIAC_METRIC_AVERAGE_HEART_RATE,
+    _CARDIAC_STATISTIC_RESTING_HEART_RATE,
+    _CARDIAC_STATISTIC_MAXIMUM_HEART_RATE,
+    _CARDIAC_STATISTIC_MINIMUM_HEART_RATE,
+    _CARDIAC_STATISTIC_AVERAGE_HEART_RATE,
 ]
 
 _CARDIAC_HRV_TIME_DOMAIN_STATISTICS = [
-    _CARDIAC_METRIC_ROOT_MEAN_SQUARED_SUCCESSIVE_DIFFERENCES,
-    _CARDIAC_METRIC_STANDARD_DEVIATION_NORMAL_TO_NORMAL,
+    _CARDIAC_STATISTIC_ROOT_MEAN_SQUARED_SUCCESSIVE_DIFFERENCES,
+    _CARDIAC_STATISTIC_STANDARD_DEVIATION_NORMAL_TO_NORMAL,
 ]
 
 _CARDIAC_HRV_FREQUENCY_DOMAIN_STATISTICS = [
-    _CARDIAC_METRIC_LOW_FREQUENCY,
-    _CARDIAC_METRIC_HIGH_FREQUENCY,
-    _CARDIAC_METRIC_LOW_HIGH_FREQUENCY_RATIO,
+    _CARDIAC_STATISTIC_LOW_FREQUENCY,
+    _CARDIAC_STATISTIC_HIGH_FREQUENCY,
+    _CARDIAC_STATISTIC_LOW_HIGH_FREQUENCY_RATIO,
 ]
 
 _CARDIAC_HRV_STATISTICS = (
@@ -68,11 +68,11 @@ def get_rest_heart_rate(
 ) -> Union[dict, pd.Series]:
     """Get daily resting heart rate (RHR).
 
-    This function computes the resting heart rate metric.
+    This function computes the resting heart rate statistic.
     Rest heart rate is computed as the lowest
     30 minute average over a period of a calendar day.
     Rest heart rate is reported for each day
-    from ``start_date`` to ``end_date` and
+    from ``start_date`` to ``end_date``and
     for the users specified by ``user_id``.
     It is possible to perform an
     aggregation of the computed restHR by setting
@@ -173,10 +173,10 @@ def get_rest_heart_rate(
         to ``end_date``.
     """
 
-    return get_heart_rate_statistic(
+    return get_heart_rate_statistics(
         loader=loader,
         user_id=user_id,
-        statistic=_CARDIAC_METRIC_RESTING_HEART_RATE,
+        statistic=_CARDIAC_STATISTIC_RESTING_HEART_RATE,
         start_date=start_date,
         end_date=end_date,
         kind=kind,
@@ -202,11 +202,11 @@ def get_max_heart_rate(
 ) -> Union[dict, pd.DataFrame]:
     """Get daily maximum heart rate (RHR).
 
-    This function computes the maximum heart rate metric.
+    This function computes the maximum heart rate statistic.
     Maximum heart rate is computed as the maximum
     heart rate value over a period of a calendar day.
     Maximum heart rate is reported for each day
-    from ``start_date`` to ``end_date` and
+    from ``start_date`` to ``end_date``and
     for the users specified by ``user_id``.
     It is possible to perform an
     aggregation of the computed maxHR by setting
@@ -306,10 +306,10 @@ def get_max_heart_rate(
         to ``end_date``.
     """
 
-    return get_heart_rate_statistic(
+    return get_heart_rate_statistics(
         loader=loader,
         user_id=user_id,
-        statistic=_CARDIAC_METRIC_MAXIMUM_HEART_RATE,
+        statistic=_CARDIAC_STATISTIC_MAXIMUM_HEART_RATE,
         start_date=start_date,
         end_date=end_date,
         kind=kind,
@@ -335,11 +335,11 @@ def get_min_heart_rate(
 ) -> dict:
     """Get daily minimum heart rate (RHR).
 
-    This function computes the minimum heart rate metric.
+    This function computes the minimum heart rate statistic.
     Minimum heart rate is computed as the minimum
     heart rate value over a period of a calendar day.
     Minimum heart rate is reported for each day
-    from ``start_date`` to ``end_date` and
+    from ``start_date`` to ``end_date``and
     for the users specified by ``user_id``.
     It is possible to perform an
     aggregation of the computed minHR by setting
@@ -438,10 +438,10 @@ def get_min_heart_rate(
         contain the transformed value over the period of time from ``start_date``
         to ``end_date``.
     """
-    return get_heart_rate_statistic(
+    return get_heart_rate_statistics(
         loader=loader,
         user_id=user_id,
-        statistic=_CARDIAC_METRIC_MINIMUM_HEART_RATE,
+        statistic=_CARDIAC_STATISTIC_MINIMUM_HEART_RATE,
         start_date=start_date,
         end_date=end_date,
         kind=kind,
@@ -467,11 +467,11 @@ def get_avg_heart_rate(
 ) -> dict:
     """Get daily average heart rate (RHR).
 
-    This function computes the average heart rate metric.
+    This function computes the average heart rate statistic.
     Average heart rate is computed as the average
     heart rate value over a period of a calendar day.
     Average heart rate is reported for each day
-    from ``start_date`` to ``end_date` and
+    from ``start_date`` to ``end_date``and
     for the users specified by ``user_id``.
     It is possible to perform an
     aggregation of the computed avgHR by setting
@@ -570,10 +570,10 @@ def get_avg_heart_rate(
         contain the transformed value over the period of time from ``start_date``
         to ``end_date``.
     """
-    return get_heart_rate_statistic(
+    return get_heart_rate_statistics(
         loader=loader,
         user_id=user_id,
-        statistic=_CARDIAC_METRIC_AVERAGE_HEART_RATE,
+        statistic=_CARDIAC_STATISTIC_AVERAGE_HEART_RATE,
         start_date=start_date,
         end_date=end_date,
         kind=kind,
@@ -585,75 +585,75 @@ def get_avg_heart_rate(
     )
 
 
-def _compute_resting_heart_rate(heart_rate: pd.DataFrame, **kwargs) -> dict:
+def _compute_resting_heart_rate(heart_rate: pd.DataFrame, **kwargs) -> pd.Series:
     """Compute RHR from heart rate data.
 
     Parameters
     ----------
     heart_rate : :class:`pd.DataFrame`
-        Heart rate value, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_daily_summary`.
+        Heart rate data, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_heart_rate`.
 
     Returns
     -------
-    :class:`dict`
-        A dictionary with daily RHR as values, and calendar dates as keys.
+    :class:`pd.Series`
+        A dictionary with daily rest heart as values, and calendar dates as index.
     """
     return _compute_hr_statistic(
-        heart_rate=heart_rate, statistic=_CARDIAC_METRIC_RESTING_HEART_RATE
+        heart_rate=heart_rate, statistic=_CARDIAC_STATISTIC_RESTING_HEART_RATE
     )
 
 
-def _compute_maximum_heart_rate(heart_rate: pd.DataFrame, **kwargs) -> dict:
-    """Compute MHR from daily summaries.
+def _compute_maximum_heart_rate(heart_rate: pd.DataFrame, **kwargs) -> pd.Series:
+    """Compute maximum heart rate from heart rate data.
 
     Parameters
     ----------
-    daily_summary : :class:`pd.DataFrame`
-        Daily summaries, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_daily_summary`.
+    heart_rate : :class:`pd.DataFrame`
+        Heart rate data, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_heart_rate`.
 
     Returns
     -------
-    :class:`dict`
-        A dictionary with daily MHR as values, and calendar dates as keys.
+    :class:`pd.Series`
+        A :class:`pd.Series` with daily maximum heart rate as values, and calendar dates as index.
     """
     return _compute_hr_statistic(
-        heart_rate=heart_rate, statistic=_CARDIAC_METRIC_MAXIMUM_HEART_RATE
+        heart_rate=heart_rate, statistic=_CARDIAC_STATISTIC_MAXIMUM_HEART_RATE
     )
 
 
-def _compute_minimum_heart_rate(heart_rate: pd.DataFrame, **kwargs) -> dict:
-    """Compute minHR from daily summaries.
+def _compute_minimum_heart_rate(heart_rate: pd.DataFrame, **kwargs) -> pd.Series:
+    """Compute minimum heart rate from heart rate data.
 
     Parameters
     ----------
-    daily_summary : :class:`pd.DataFrame`
-        Daily summaries, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_daily_summary`.
+    heart_rate : :class:`pd.DataFrame`
+        Heart rate data, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_heart_rate`.
 
     Returns
     -------
-    :class:`dict`
-        A dictionary with daily minHR as values, and calendar dates as keys.
+    :class:`pd.Series`
+        A :class:`pd.Series` with daily minimum heart rate as values, and calendar dates as index.
     """
     return _compute_hr_statistic(
-        heart_rate=heart_rate, statistic=_CARDIAC_METRIC_MINIMUM_HEART_RATE
+        heart_rate=heart_rate, statistic=_CARDIAC_STATISTIC_MINIMUM_HEART_RATE
     )
 
 
-def _compute_average_heart_rate(heart_rate: pd.DataFrame, **kwargs) -> dict:
-    """Compute avgHR from daily summaries.
+def _compute_average_heart_rate(heart_rate: pd.DataFrame, **kwargs) -> pd.Series:
+    """Compute average heart rate from heart rate data.
 
     Parameters
     ----------
-    daily_summary : :class:`pd.DataFrame`
-        Daily summaries, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_daily_summary`.
+    heart_rate : :class:`pd.DataFrame`
+        Heart rate data, that can be extracted using :method:`pywearable.loader.base.BaseLoader.load_heart_rate`.
 
     Returns
     -------
-    :class:`dict`
-        A dictionary with daily avgHR as values, and calendar dates as keys.
+    :class:`pd.Series`
+        A :class:`pd.Series` with daily average heart rate as values, and calendar dates as index.
     """
     return _compute_hr_statistic(
-        heart_rate=heart_rate, statistic=_CARDIAC_METRIC_AVERAGE_HEART_RATE
+        heart_rate=heart_rate, statistic=_CARDIAC_STATISTIC_AVERAGE_HEART_RATE
     )
 
 
@@ -676,14 +676,14 @@ def _compute_hr_statistic(
     -------
     :class:`dict`
         dictionary with ``user_id`` as primary key, and a nested dictionary with
-        calendar days (:class:`datetime.date`) as keys and the cardiac metric as values.
+        calendar days (:class:`datetime.date`) as keys and the cardiac statistic as values.
 
      Raises
     ------
     ValueError
         If `daily_summary` is not a :class:`pd.DataFrame`.
     ValueError
-        if `metric` isn't one of "RHR","MHR", "minHR","avgHR".
+        if `statistic` isn't one of "RHR","MHR", "minHR","avgHR".
     """
 
     if not isinstance(heart_rate, pd.DataFrame):
@@ -703,7 +703,7 @@ def _compute_hr_statistic(
         heart_rate = heart_rate.drop_duplicates(
             subset=[constants._ISODATE_COL], ignore_index=True
         )
-    if statistic == _CARDIAC_METRIC_RESTING_HEART_RATE:
+    if statistic == _CARDIAC_STATISTIC_RESTING_HEART_RATE:
         # Set iso date as index
         heart_rate = heart_rate.set_index(constants._ISODATE_COL)
         # Perform 30 minute average
@@ -711,11 +711,11 @@ def _compute_hr_statistic(
         # Return minimum 30 minute average
         return mean_hr.resample("1d", label="left").min()
     else:
-        if statistic == _CARDIAC_METRIC_MAXIMUM_HEART_RATE:
+        if statistic == _CARDIAC_STATISTIC_MAXIMUM_HEART_RATE:
             fn = "max"
-        elif statistic == _CARDIAC_METRIC_MINIMUM_HEART_RATE:
+        elif statistic == _CARDIAC_STATISTIC_MINIMUM_HEART_RATE:
             fn = "min"
-        elif statistic == _CARDIAC_METRIC_AVERAGE_HEART_RATE:
+        elif statistic == _CARDIAC_STATISTIC_AVERAGE_HEART_RATE:
             fn = "mean"
         else:
             raise ValueError(
@@ -724,45 +724,16 @@ def _compute_hr_statistic(
         return (
             heart_rate.groupby(constants._CALENDAR_DATE_COL)[constants._HR_COLUMN]
             .agg(fn)
-            .round(0)
             .astype("float")
         )
 
 
 _HEART_RATE_STATISTICS_DICT = {
-    _CARDIAC_METRIC_RESTING_HEART_RATE: _compute_resting_heart_rate,
-    _CARDIAC_METRIC_MAXIMUM_HEART_RATE: _compute_maximum_heart_rate,
-    _CARDIAC_METRIC_MINIMUM_HEART_RATE: _compute_minimum_heart_rate,
-    _CARDIAC_METRIC_AVERAGE_HEART_RATE: _compute_average_heart_rate,
+    _CARDIAC_STATISTIC_RESTING_HEART_RATE: _compute_resting_heart_rate,
+    _CARDIAC_STATISTIC_MAXIMUM_HEART_RATE: _compute_maximum_heart_rate,
+    _CARDIAC_STATISTIC_MINIMUM_HEART_RATE: _compute_minimum_heart_rate,
+    _CARDIAC_STATISTIC_AVERAGE_HEART_RATE: _compute_average_heart_rate,
 }
-
-
-def get_heart_rate_statistic(
-    loader: BaseLoader,
-    statistic: str,
-    user_id: Union[str, list] = "all",
-    start_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    kind=None,
-    kind_args: list = [],
-    kind_kwargs: dict = {},
-    loader_kwargs: dict = {},
-    return_df: bool = True,
-    return_multi_index: bool = True,
-):
-    return get_heart_rate_statistics(
-        loader=loader,
-        statistic=statistic,
-        user_id=user_id,
-        start_date=start_date,
-        end_date=end_date,
-        kind=kind,
-        kind_args=kind_args,
-        kind_kwargs=kind_kwargs,
-        loader_kwargs=loader_kwargs,
-        return_df=return_df,
-        return_multi_index=return_multi_index,
-    )
 
 
 def get_heart_rate_statistics(
@@ -777,19 +748,120 @@ def get_heart_rate_statistics(
     loader_kwargs: dict = {},
     return_df: bool = True,
     return_multi_index: bool = True,
-):
+) -> Union[pd.Series, pd.DataFrame]:
+    """Get all the available statistics based on heart rate.
+
+    This function computes statistics
+    based on heart rate data.
+    The statistics are reported for each day
+    from ``start_date`` to ``end_date`` and
+    for the users specified by ``user_id``.
+    The type of statistic to be computed can be set using
+    the ``statistic`` parameter. Available options are:
+
+        - ``"restHR"```for resting heart rate
+        - ``"minHR"```for minimum heart rate
+        - ``"maxHR"```for maximum heart rate
+        - ``"avgHR"```for average heart rate
+
+    Both single statistics and multiple statistics can
+    be computed. If all the available statistics have
+    to be computed, then the ``statistic`` parameter
+    can be set to ``None``.
+    It is possible to perform an
+    aggregation of the computed statistics by setting
+    the ``kind`` parameter. For example, it is
+    possible to obtain the mean of the values by
+    setting the ``kind`` parameter to ``"mean"``. If the
+    ``kind`` argument requires additional positional
+    arguments or keyword arguments, it is possible to set them
+    by passing them to the ``kind_args`` and
+    ``kind_kwargs`` arguments.
+    The function used to load heart rate data is the
+    :func:`~loader.BaseLoader.load_heart_rate`. If
+    loader-specific arguments are required, it is
+    possible to set them using the ``loader_kwargs`` argument.
+    The return type depends on the values of ``return_df``
+    and ``return_multi_index``. If both ``return_df`` and
+    ``return_multi_index`` are set to ``True``, then a
+    :class:`pd.DataFrame` with a :class:`pd.MultiIndex` is
+    returned, with the two levels of the index being
+    ``userId`` and ``calendarDate``. Instead, if ``return_df`` is ``True``
+    but ``return_multi_index``
+    is ``False``, then a :class:`pd.DataFrame` with a :class:`pd.RangeIndex` is
+    returned, with ``userId`` and ``calendarDate`` as columns of
+    the returned :class:`pd.DataFrame`. If a single ``statistic`` has to
+    be computed, then a :class:`pd.Series` is returned instead of a
+    :class:`pd.DataFrame`, with a single column
+    reporting the single statistic values.
+    Finally, if ``return_df`` is ``False``, independetly of the value of
+    ``return_multi_index``, a nested :class:`dict` is returned with
+    values of the requested ``user_id`` as primary keys, calendar days
+    from ``start_date`` to ``end_date`` as secondary keys, and
+    statistics as values.
+
+    Parameters
+    ----------
+    loader : :class:`pywearable.loader.base.BaseLoader`
+        An instance of a data loader.
+    user_id : :class:`str` or :class:`list`, optional
+        The id(s) for which the heart rate statistic must be retrieved, by default "all".
+    statistic : :class:`str` or :class:`list` or ```None```.
+        Statistic(s) to be computed. If ``None``, all heart rate statistics are computed.
+    start_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        Start date for data retrieval, by default None.
+    end_date : :class:`datetime.datetime` or :class:`datetime.date` or :class:`str` or None, optional
+        End date for data retrieval, by default None
+    kind : :class:`str` or None, optional
+        Type of transformation to apply to the statistic over days,
+        or to return its value for each day (if ``None``), by default None.
+    kind_args : :class:`list`, optional
+        Additional positional arguments to be passed to the function used
+        by the ``kind`` method, by default ``[]``.
+    kind_kwargs : :class:`dict`, optional
+        Additional keyword arguments to be passed to the function used by the ``kind``
+        method, by default no additional keywords arguments are passed.
+    loader_kwargs: :class:`dict`
+        Keyword arguemnts for the ``load_heart_rate`` loading function of the ``loader``,
+        by default no keyword arguments are passed.
+    return_df: :class:`bool`
+        Whether to return a :class:`pd.Series` (if ``True``) or a
+        :class:`dict` (if ``False``) with daily heart rate statistic values, by
+        default ``True``.
+    return_multi_index: :class:`bool`
+        Whether to return a :class:`pd.Series` with a
+        :class:`pd.MultiIndex` as index, with levels ``"user"`` and
+        ``"calendarDate"`` (if ``True``) or to return a
+        :class:`pd.Series` with a :class:`pd.RangeIndex` as index
+        and ``"user"`` and ``"calendarDate"`` as columns (if ``False``).
+        The value set to this parameter has no effect if ``return_df`` is
+        set to ``False``..
+
+    Returns
+    -------
+    :class:`dict` or :class:`pd.Series`
+        Depending on the values of ``return_df``,
+        :class:`dict` (if ``False``) or :class`pd.Series` (if ``True``) is returned,
+        the latter having a :class:`pd.MultiIndex` as index if ``return_multi_index``
+        is ``True``, or a :class:`pd.RangeIndex` if ``False``. If the ``kind``
+        parameter is ``None``, then the returned :class:`dict` or :class:`pd.Series`
+        contain the transformed value over the period of time from ``start_date``
+        to ``end_date``.
+    """
     # Get user id from the loader
     user_id = utils.get_user_ids(loader, user_id)
     # Convert to datetime
     start_date = utils.check_date(start_date)
     end_date = utils.check_date(end_date)
 
-    # Check metrics
+    # Check statistic
     if statistic is None:
-        # Consider all metrics
+        # Consider all statistics
         statistics = list(_HEART_RATE_STATISTICS_DICT.keys())
     elif type(statistic) == str:
         statistics = [statistic]
+    else:
+        statistics = statistic
 
     for statistic in statistics:
         if statistic not in _HEART_RATE_STATISTICS_DICT.keys():
@@ -837,7 +909,7 @@ def get_heart_rate_statistics(
         if len(heart_rate) > 0:
             # Get only data with calendar date between start and end date and reset index
             for statistic in statistics:
-                # Get series with metrics by calendarDate
+                # Get series with statistics by calendarDate
                 ser = _HEART_RATE_STATISTICS_DICT[statistic](heart_rate=heart_rate)
                 if both_dates_valid:
                     heart_rate_stats_df.loc[(user, ser.index), statistic] = ser.values
@@ -858,7 +930,7 @@ def get_heart_rate_statistics(
                             )
                         ).rename(statistic)
                         if len(user_heart_rate_stats_df) == 0:
-                            # Empty df, first metric
+                            # Empty df, first statistic
                             user_heart_rate_stats_df = ser.to_frame()
                         else:
                             user_heart_rate_stats_df = pd.merge(
@@ -944,7 +1016,7 @@ def get_night_rmssd(
     return get_hrv_statistic(
         loader=loader,
         user_id=user_id,
-        statistic=_CARDIAC_METRIC_ROOT_MEAN_SQUARED_SUCCESSIVE_DIFFERENCES,
+        statistic=_CARDIAC_STATISTIC_ROOT_MEAN_SQUARED_SUCCESSIVE_DIFFERENCES,
         start_date=start_date,
         end_date=end_date,
         coverage=coverage,
@@ -1007,7 +1079,7 @@ def get_night_sdnn(
     return get_hrv_statistic(
         loader=loader,
         user_id=user_id,
-        statistic=_CARDIAC_METRIC_STANDARD_DEVIATION_NORMAL_TO_NORMAL,
+        statistic=_CARDIAC_STATISTIC_STANDARD_DEVIATION_NORMAL_TO_NORMAL,
         start_date=start_date,
         end_date=end_date,
         coverage=coverage,
@@ -1069,7 +1141,7 @@ def get_night_lf(
     return get_hrv_statistic(
         loader=loader,
         user_id=user_id,
-        statistic=_CARDIAC_METRIC_LOW_FREQUENCY,
+        statistic=_CARDIAC_STATISTIC_LOW_FREQUENCY,
         start_date=start_date,
         end_date=end_date,
         coverage=coverage,
@@ -1132,7 +1204,7 @@ def get_night_hf(
     return get_hrv_statistic(
         loader=loader,
         user_id=user_id,
-        statistic=_CARDIAC_METRIC_HIGH_FREQUENCY,
+        statistic=_CARDIAC_STATISTIC_HIGH_FREQUENCY,
         start_date=start_date,
         end_date=end_date,
         coverage=coverage,
@@ -1195,7 +1267,7 @@ def get_night_lfhf(
     return get_hrv_statistic(
         loader=loader,
         user_id=user_id,
-        statistic=_CARDIAC_METRIC_LOW_HIGH_FREQUENCY_RATIO,
+        statistic=_CARDIAC_STATISTIC_LOW_HIGH_FREQUENCY_RATIO,
         start_date=start_date,
         end_date=end_date,
         coverage=coverage,
@@ -1247,11 +1319,11 @@ def _compute_hrv_statistic(
         coverage_filter = (counts > ((300 / (means / 1000)) * coverage)).values
 
         # time-domain
-        if metric == _CARDIAC_METRIC_ROOT_MEAN_SQUARED_SUCCESSIVE_DIFFERENCES:
+        if metric == _CARDIAC_STATISTIC_ROOT_MEAN_SQUARED_SUCCESSIVE_DIFFERENCES:
             ST_analysis = bbi_df.resample("5min").bbi.apply(
                 lambda x: np.sqrt(np.mean(np.diff(x) ** 2)) if x.count() > 5 else 0
             )
-        elif metric == _CARDIAC_METRIC_STANDARD_DEVIATION_NORMAL_TO_NORMAL:
+        elif metric == _CARDIAC_STATISTIC_STANDARD_DEVIATION_NORMAL_TO_NORMAL:
             ST_analysis = bbi_df.resample("5min").bbi.apply(
                 lambda x: np.std(x, ddof=1) if x.count() > 5 else 0
             )
@@ -1300,11 +1372,11 @@ def _compute_hrv_statistic(
 
                 return pow
 
-            if metric == _CARDIAC_METRIC_HIGH_FREQUENCY:
+            if metric == _CARDIAC_STATISTIC_HIGH_FREQUENCY:
                 ST_analysis = bbi_df.resample("5min").bbi.apply(
                     lambda x: calculate_power(x, HF_range) if x.count() > 5 else 0
                 )
-            elif metric == _CARDIAC_METRIC_LOW_FREQUENCY:
+            elif metric == _CARDIAC_STATISTIC_LOW_FREQUENCY:
                 ST_analysis = bbi_df.resample("5min").bbi.apply(
                     lambda x: calculate_power(x, LF_range) if x.count() > 5 else 0
                 )
@@ -1352,7 +1424,7 @@ def _compute_rmssd(bbi_dict: dict, coverage: float = 0.7, **kwargs) -> dict:
     """
     return _compute_hrv_statistic(
         bbi_dict=bbi_dict,
-        metric=_CARDIAC_METRIC_ROOT_MEAN_SQUARED_SUCCESSIVE_DIFFERENCES,
+        metric=_CARDIAC_STATISTIC_ROOT_MEAN_SQUARED_SUCCESSIVE_DIFFERENCES,
         coverage=coverage,
     )
 
@@ -1374,7 +1446,7 @@ def _compute_sdnn(bbi_dict: dict, coverage: float = 0.7, **kwargs) -> dict:
     """
     return _compute_hrv_statistic(
         bbi_dict=bbi_dict,
-        metric=_CARDIAC_METRIC_STANDARD_DEVIATION_NORMAL_TO_NORMAL,
+        metric=_CARDIAC_STATISTIC_STANDARD_DEVIATION_NORMAL_TO_NORMAL,
         coverage=coverage,
     )
 
@@ -1395,7 +1467,7 @@ def _compute_lf(bbi_dict: dict, coverage: float = 0.7, **kwargs) -> dict:
         A dictionary with night LF power as values, and calendar dates as keys.
     """
     return _compute_hrv_statistic(
-        bbi_dict=bbi_dict, metric=_CARDIAC_METRIC_LOW_FREQUENCY, coverage=coverage
+        bbi_dict=bbi_dict, metric=_CARDIAC_STATISTIC_LOW_FREQUENCY, coverage=coverage
     )
 
 
@@ -1415,7 +1487,7 @@ def _compute_hf(bbi_dict: dict, coverage: float = 0.7, **kwargs) -> dict:
         A dictionary with night HF power as values, and calendar dates as keys.
     """
     return _compute_hrv_statistic(
-        bbi_dict=bbi_dict, metric=_CARDIAC_METRIC_HIGH_FREQUENCY, coverage=coverage
+        bbi_dict=bbi_dict, metric=_CARDIAC_STATISTIC_HIGH_FREQUENCY, coverage=coverage
     )
 
 
@@ -1436,17 +1508,17 @@ def _compute_lfhf(bbi_dict: dict, coverage: float = 0.7, **kwargs) -> dict:
     """
     return _compute_hrv_statistic(
         bbi_dict=bbi_dict,
-        metric=_CARDIAC_METRIC_LOW_HIGH_FREQUENCY_RATIO,
+        metric=_CARDIAC_STATISTIC_LOW_HIGH_FREQUENCY_RATIO,
         coverage=coverage,
     )
 
 
 _HRV_STATISTICS_DICT = {
-    _CARDIAC_METRIC_LOW_FREQUENCY: _compute_lf,
-    _CARDIAC_METRIC_HIGH_FREQUENCY: _compute_hf,
-    _CARDIAC_METRIC_LOW_HIGH_FREQUENCY_RATIO: _compute_lfhf,
-    _CARDIAC_METRIC_ROOT_MEAN_SQUARED_SUCCESSIVE_DIFFERENCES: _compute_rmssd,
-    _CARDIAC_METRIC_STANDARD_DEVIATION_NORMAL_TO_NORMAL: _compute_sdnn,
+    _CARDIAC_STATISTIC_LOW_FREQUENCY: _compute_lf,
+    _CARDIAC_STATISTIC_HIGH_FREQUENCY: _compute_hf,
+    _CARDIAC_STATISTIC_LOW_HIGH_FREQUENCY_RATIO: _compute_lfhf,
+    _CARDIAC_STATISTIC_ROOT_MEAN_SQUARED_SUCCESSIVE_DIFFERENCES: _compute_rmssd,
+    _CARDIAC_STATISTIC_STANDARD_DEVIATION_NORMAL_TO_NORMAL: _compute_sdnn,
 }
 
 
